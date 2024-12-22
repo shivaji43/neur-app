@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "vercel-build": "pnpm npx prisma generate && next build",
-    "dev": "NODE_NO_WARNINGS=1 next dev",
+    "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
