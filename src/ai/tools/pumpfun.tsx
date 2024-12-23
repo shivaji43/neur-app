@@ -1,9 +1,73 @@
 import { retrieveAgentKit } from "@/server/actions/ai";
 import { z } from "zod";
+import { Card } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface LaunchResultProps {
+    signature: string;
+    mint: string;
+    metadataUri: string;
+}
+
+function LaunchResult({ signature, mint, metadataUri }: LaunchResultProps) {
+    return (
+        <Card className="p-6 bg-card">
+            <h2 className="text-xl font-semibold mb-4 text-card-foreground">Token Launch Successful! 🚀</h2>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div>
+                        <div className="text-sm font-medium text-muted-foreground">Transaction Hash</div>
+                        <div className="text-sm font-mono truncate max-w-[200px]">{signature}</div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => window.open(`https://solscan.io/tx/${signature}`, '_blank')}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div>
+                        <div className="text-sm font-medium text-muted-foreground">Token Contract</div>
+                        <div className="text-sm font-mono truncate max-w-[200px]">{mint}</div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => window.open(`https://pump.fun/mint/${mint}`, '_blank')}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div>
+                        <div className="text-sm font-medium text-muted-foreground">Metadata URI</div>
+                        <div className="text-sm font-mono truncate max-w-[200px]">{metadataUri}</div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => window.open(metadataUri, '_blank')}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        </Card>
+    );
+}
 
 export const pumpfunTools = {
     launchToken: {
         description: 'Launch a token on PumpFun',
+        displayName: '💊 Deploy new token',
         parameters: z.object(
             {
                 name: z.string().describe("The name of the token"),
@@ -55,5 +119,18 @@ export const pumpfunTools = {
                 };
             }
         },
+        render: (result: { success: boolean, data: any }) => {
+            if (!result.success) {
+                return (
+                    <Card className="p-6 bg-destructive/10">
+                        <h2 className="text-xl font-semibold mb-2 text-destructive">Launch Failed</h2>
+                        <pre className="text-sm text-destructive/80">{JSON.stringify(result, null, 2)}</pre>
+                    </Card>
+                );
+            }
+
+            const data = result.data as { signature: string, mint: string, metadataUri: string };
+            return <LaunchResult {...data} />;
+        }
     },
 }
