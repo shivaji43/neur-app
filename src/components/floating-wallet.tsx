@@ -103,7 +103,7 @@ export function FloatingWallet({ data, className, isLoading = false }: FloatingW
                                             className="group flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary"
                                         >
                                             <span className="truncate max-w-[120px]">
-                                                {data.address}
+                                                {data.address.slice(0, 4)}...{data.address.slice(-4)}
                                             </span>
                                             <ExternalLink className="h-3 w-3 shrink-0" />
                                         </a>

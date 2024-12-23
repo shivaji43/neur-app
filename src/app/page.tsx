@@ -301,7 +301,7 @@ const Features = () => {
     <BlurFade delay={0.5} className="relative py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight sm:text-4xl mb-3 sm:mb-4">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl mb-3 sm:mb-4">
             Tailored for Solana
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">

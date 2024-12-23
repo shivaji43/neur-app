@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
 
 // Types
 interface DexScreenerOrder {
@@ -55,7 +56,7 @@ const OrdersResult = ({ orders }: { orders: DexScreenerOrder[] }) => {
     if (!orders.length) {
         return (
             <Card className="p-4 bg-muted/50">
-                <p className="text-sm text-muted-foreground">No orders found for this token</p>
+                <p className="text-sm text-muted-foreground">No, this token hasn&apos;t paid for any DexScreener promotional services. This means they haven&apos;t invested in marketing features like token profile promotion or community takeover on DexScreener.</p>
             </Card>
         );
     }
@@ -97,12 +98,15 @@ const TokenProfile = ({ pair }: { pair: DexScreenerPair }) => {
             <div className="flex items-center gap-3">
                 {pair.info?.imageUrl && (
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
-                        <img
+                        <Image
                             src={pair.info.imageUrl}
                             alt={pair.baseToken.symbol}
-                            className="h-full w-full object-cover"
+                            className="object-cover"
+                            fill
+                            sizes="48px"
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/placeholder.png'
+                                // @ts-expect-error - Type 'string' is not assignable to type 'never'
+                                e.target.src = '/placeholder.png'
                             }}
                         />
                     </div>

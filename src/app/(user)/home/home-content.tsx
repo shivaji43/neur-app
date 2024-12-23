@@ -19,6 +19,7 @@ import Link from "next/link"
 import { SolanaUtils } from "@/lib/solana"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 
 const EAP_PRICE = 0.5
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
@@ -181,7 +182,7 @@ export function HomeContent() {
                                 <div className="space-y-2 text-center">
                                     <h2 className="text-2xl font-semibold">Early Access Program</h2>
                                     <p className="text-muted-foreground">
-                                        We&apos;re currently limiting BETA access to Early Access Program members to ensure a stable service and while keep refining features.
+                                        We&apos;re currently limiting <Badge>BETA</Badge> access to a limited number of users to ensure a stable service and while keep refining features.
                                     </p>
                                 </div>
 
@@ -202,9 +203,9 @@ export function HomeContent() {
                                         <span className="text-sm font-medium">Payment</span>
                                         <span className="text-lg font-semibold">{EAP_PRICE} SOL</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        Funds will be allocated to cover expenses such as LLM  integration, RPC data services, infrastructure maintenance, and other operational costs, all aimed at ensuring the platform’s stability and reliability.
-                                    </p>
+                                    <div className="text-sm text-muted-foreground">
+                                        Funds will be allocated to cover expenses such as LLM  integration, RPC data services, infrastructure maintenance, and other operational costs, all aimed at ensuring the platform&apos;s stability and reliability.
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-4">

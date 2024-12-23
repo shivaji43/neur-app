@@ -1,6 +1,6 @@
 'use client'
 
-import { Bot, HomeIcon, Workflow } from "lucide-react"
+import { BookOpen, Bot, HomeIcon, Workflow } from "lucide-react"
 import {
     Sidebar,
     SidebarContent,
@@ -53,18 +53,28 @@ const ExploreItems = [
         url: "/home",
         segment: "home",
         icon: HomeIcon,
+        external: false,
+    },
+    {
+        title: "Docs",
+        url: "https://docs.neur.sh",
+        segment: "docs",
+        icon: BookOpen,
+        external: true,
     },
     {
         title: "Agents",
         url: "/agents",
         segment: "agents",
         icon: Bot,
+        external: false,
     },
     {
         title: "Automations",
         url: "/automations",
         segment: "automations",
         icon: Workflow,
+        external: false,
     }
 ] as const
 
@@ -87,7 +97,7 @@ export function AppSidebar() {
                                             asChild
                                             isActive={segment === item.segment}
                                         >
-                                            <Link href={item.url}>
+                                            <Link href={item.url} target={item.external ? "_blank" : undefined}>
                                                 <item.icon />
                                                 <span>{item.title}</span>
                                             </Link>

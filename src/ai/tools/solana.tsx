@@ -7,9 +7,7 @@ import { WalletPortfolio } from "@/components/message/wallet-portfolio";
 import { retrieveAgentKit } from "@/server/actions/ai";
 import { AlertCircle, ArrowRightLeft, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { formatNumber } from "@/lib/utils";
+import Image from "next/image";
 
 // Constants
 const DEFAULT_OPTIONS = {
@@ -52,12 +50,15 @@ const TokenSearchResult = ({ token, className }: { token: any, className?: strin
         )}>
             <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
-                    <img
+                    <Image
                         src={token.content?.links?.image || "/placeholder.png"}
                         alt={token.content?.metadata?.symbol || "Token"}
-                        className="h-full w-full object-cover"
+                        className="object-cover"
+                        fill
+                        sizes="40px"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
+                            // @ts-expect-error - Type 'string' is not assignable to type 'never'
+                            e.target.src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
                         }}
                     />
                 </div>

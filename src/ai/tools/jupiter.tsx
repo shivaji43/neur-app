@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { formatNumber } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { searchJupiterTokens, getJupiterTokenPrice, type TokenPrice } from "@/server/actions/jupiter";
+import Image from "next/image";
 
 // Types
 interface JupiterToken {
@@ -16,12 +16,15 @@ function TokenCard({ token }: { token: JupiterToken }) {
         <div className="relative overflow-hidden rounded-2xl bg-muted/50 p-4">
             <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
-                    <img
+                    <Image
                         src={token.logoURI || "/placeholder.png"}
                         alt={token.name}
-                        className="h-full w-full object-cover"
+                        className="object-cover"
+                        fill
+                        sizes="40px"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
+                            // @ts-expect-error - Type 'string' is not assignable to type 'never'
+                            e.target.src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
                         }}
                     />
                 </div>
@@ -55,12 +58,15 @@ function PriceCard({ token, price }: { token: JupiterToken; price: TokenPrice })
         <div className="relative overflow-hidden rounded-2xl bg-muted/50 p-4">
             <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
-                    <img
+                    <Image
                         src={token.logoURI || "/placeholder.png"}
                         alt={token.name}
-                        className="h-full w-full object-cover"
+                        className="object-cover"
+                        fill
+                        sizes="40px"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
+                            // @ts-expect-error - Type 'string' is not assignable to type 'never'
+                            e.target.src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
                         }}
                     />
                 </div>

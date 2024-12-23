@@ -35,32 +35,39 @@ Our current focus is developing core infrastructure and agent functionality.
 - [x] Chat Persistence
 - [x] Streaming Tool Components
 - [x] Embedded Wallet
-  - [ ] Phantom Embedded Wallet Migration
+  - [ ] Migrate to Phantom Embedded Wallet
 
 ### Agent Capabilities
-- [x] Tool Usage
+- [x] Multi-Tool Usage
+- [ ] Multimodal
+  - [x] Image
+  - [ ] Realtime Voice Conversation
 - [ ] Memory Layer
-- [ ] Web Search
-- [ ] Twitter Search
+- [ ] Web2 Integration
+  - [ ] Web Scraping
+  - [ ] Twitter Search
 
 ### Solana Integration
 - [x] SNS (Solana Name Service) Resolver
 - [x] Wallet Portfolio
 - [ ] Transaction Parser
-- [ ] Token Operations
+- [ ] NFT Operations
+- [x] Basic Token Operations
   - [x] Send/Swap Tokens
   - [x] Token Launch (pump.fun)
-  - [ ] SOL Staking
-  - [ ] Dialect Blinks
-- [ ] NFT Operations
 - [x] DeFi Integration
   - [x] Jupiter
     - [x] Swaps
     - [x] Price API v2
-    - [x] Verified Token Search 
+    - [x] Verified Token Search
+    - [ ] Limit Orders
+    - [ ] DCA
   - [x] Pump.Fun Integration
     - [x] Deploy Token
   - [x] Dexscreener Integration
+    - [x] Token Profile
+    - [x] Paid Orders Check
+  - [ ] Blinks Integration
   - [ ] Magic Eden Integration
 
 ### Market Intelligence
