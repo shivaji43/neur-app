@@ -24,12 +24,11 @@ const EAP_PRICE = 0.5
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
 
 const EAP_BENEFITS = [
-    "Support platform development and expansion",
-    "Early access to all platform features",
-    "Unlimited AI conversations",
-    "$NEUR airdrop in the future",
-    "Participate in early governance and decision-making",
-]
+    "Support platform growth",
+    "Early access to features",
+    "Unlimited AI interactions",
+    "Join early governance and decisions",
+];
 
 interface SectionTitleProps {
     children: React.ReactNode
@@ -204,7 +203,7 @@ export function HomeContent() {
                                         <span className="text-lg font-semibold">{EAP_PRICE} SOL</span>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                        Funds will be used to cover AI model API costs, RPC data services, infrastructure maintenance, and other operational expenses to ensure platform stability.
+                                        Funds will be allocated to cover expenses such as LLM  integration, RPC data services, infrastructure maintenance, and other operational costs, all aimed at ensuring the platform’s stability and reliability.
                                     </p>
                                 </div>
 
