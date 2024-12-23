@@ -19,12 +19,29 @@ interface FloatingWalletProps {
 export function FloatingWallet({ data, className, isLoading = false }: FloatingWalletProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [imagesLoaded, setImagesLoaded] = useState(false)
 
     useEffect(() => {
         setMounted(true)
-    }, [])
+        // Preload all token images
+        if (data.tokens.length > 0) {
+            Promise.all(
+                data.tokens.map((token) => {
+                    if (!token.imageUrl) return Promise.resolve()
+                    return new Promise((resolve) => {
+                        const img = new Image()
+                        img.src = token.imageUrl
+                        img.onload = resolve
+                        img.onerror = resolve
+                    })
+                })
+            ).then(() => setImagesLoaded(true))
+        } else {
+            setImagesLoaded(true)
+        }
+    }, [data.tokens])
 
-    if (!mounted) return null
+    if (!mounted || !imagesLoaded) return null
 
     return (
         <div
@@ -40,10 +57,12 @@ export function FloatingWallet({ data, className, isLoading = false }: FloatingW
                 }}
                 transition={{
                     type: "spring",
-                    bounce: 0.2,
-                    duration: 0.5
+                    bounce: 0,
+                    duration: 0.3,
+                    stiffness: 500,
+                    damping: 40
                 }}
-                className="relative"
+                className="relative will-change-transform"
             >
                 <AnimatePresence>
                     {isExpanded && (
@@ -54,14 +73,16 @@ export function FloatingWallet({ data, className, isLoading = false }: FloatingW
                             transition={{
                                 height: {
                                     type: "spring",
-                                    bounce: 0.2,
-                                    duration: 0.5
+                                    bounce: 0,
+                                    duration: 0.3,
+                                    stiffness: 500,
+                                    damping: 40
                                 },
                                 opacity: {
-                                    duration: 0.2
+                                    duration: 0.15
                                 }
                             }}
-                            className="absolute bottom-full left-0 right-0 mb-1 overflow-hidden rounded-2xl bg-muted"
+                            className="absolute bottom-full left-0 right-0 mb-1 overflow-hidden rounded-2xl bg-muted will-change-transform"
                         >
                             <div className="h-[340px] flex flex-col">
                                 <div className="p-3 flex flex-col gap-3">
@@ -100,8 +121,9 @@ export function FloatingWallet({ data, className, isLoading = false }: FloatingW
                                                     y: 0,
                                                     transition: {
                                                         type: "spring",
-                                                        bounce: 0.2,
-                                                        delay: index * 0.02
+                                                        bounce: 0,
+                                                        duration: 0.2,
+                                                        delay: index * 0.01
                                                     }
                                                 }}
                                                 href={`https://solscan.io/account/${data.address}#portfolio`}
