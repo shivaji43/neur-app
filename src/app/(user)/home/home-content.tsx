@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import BlurFade from "@/components/ui/blur-fade"
 import TypingAnimation from "@/components/ui/typing-animation"
 import { SuggestionCard } from "./suggestion-card"
@@ -13,13 +13,15 @@ import ChatInterface from "@/app/(user)/chat/[id]/chat-interface"
 import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2, ExternalLink } from "lucide-react"
 import { RiTwitterXFill } from "@remixicon/react"
 import Link from "next/link"
 import { SolanaUtils } from "@/lib/solana"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { checkEAPTransaction } from "@/server/actions/eap"
 
 const EAP_PRICE = 0.5
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
@@ -49,6 +51,9 @@ export function HomeContent() {
     const [isProcessing, setIsProcessing] = useState(false)
     const chatId = useMemo(() => uuidv4(), [])
     const { user, isLoading } = useUser()
+    const [verifyingTx, setVerifyingTx] = useState<string | null>(null)
+    const [verificationAttempts, setVerificationAttempts] = useState(0)
+    const MAX_VERIFICATION_ATTEMPTS = 20 // 20 attempts * 3s = 60s total
 
     const { messages, input, handleSubmit, setInput } = useChat({
         id: chatId,
@@ -58,6 +63,44 @@ export function HomeContent() {
             window.history.replaceState({}, "", `/chat/${chatId}`)
         },
     });
+
+    // Verification effect
+    useEffect(() => {
+        if (!verifyingTx) return
+
+        const verify = async () => {
+            try {
+                const response = await checkEAPTransaction({ txHash: verifyingTx })
+                if (response?.data?.success) {
+                    toast.success("EAP Purchase Successful", {
+                        description: "Your Early Access Program purchase has been verified. Please refresh the page."
+                    })
+                    setVerifyingTx(null)
+                    return
+                }
+
+                // Continue verification if not reached max attempts
+                if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
+                    setVerificationAttempts(prev => prev + 1)
+                } else {
+                    // Max attempts reached, show manual verification message
+                    toast.error("Verification Timeout", {
+                        description: "Please visit the FAQ page to manually verify your transaction."
+                    })
+                    setVerifyingTx(null)
+                }
+            } catch (error) {
+                console.error("Verification error:", error)
+                // Continue verification if not reached max attempts
+                if (verificationAttempts < MAX_VERIFICATION_ATTEMPTS) {
+                    setVerificationAttempts(prev => prev + 1)
+                }
+            }
+        }
+
+        const timer = setTimeout(verify, 3000)
+        return () => clearTimeout(timer)
+    }, [verifyingTx, verificationAttempts])
 
     const handleSend = async (value: string) => {
         if (!value.trim()) return
@@ -77,6 +120,7 @@ export function HomeContent() {
     const handlePurchase = async () => {
         if (!user) return
         setIsProcessing(true)
+        setVerificationAttempts(0)
 
         try {
             const tx = await SolanaUtils.sendTransferWithMemo({
@@ -88,14 +132,39 @@ export function HomeContent() {
                 }`
             })
 
-            if (typeof tx === 'string') {
-                toast.success("Transaction Sent", { description: "Processing your EAP purchase..." })
+            if (tx) {
+                setVerifyingTx(tx)
+                toast.success("Transaction Sent", {
+                    description: "Transaction has been sent. Verifying your purchase..."
+                })
             } else {
-                toast.error("Transaction Failed", { description: "Failed to send the transaction. Please try again." })
+                toast.error("Transaction Failed", {
+                    description: "Failed to send the transaction. Please try again."
+                })
             }
         } catch (error) {
             console.error("Transaction error:", error)
-            toast("Transaction Failed", { description: "Failed to send the transaction. Please try again." })
+
+            let errorMessage = "Failed to send the transaction. Please try again."
+
+            if (error instanceof Error) {
+                const errorString = error.toString()
+                if (errorString.includes('TransactionExpiredBlockheightExceededError')) {
+                    toast.error("Transaction Timeout", {
+                        description: <>
+                            <span className="font-semibold">Transaction might have been sent successfully.</span>
+                            <br />
+                            If SOL was deducted from your wallet, please visit the FAQ page and input your transaction hash for manual verification.
+                        </>
+                    })
+                    return
+                }
+                errorMessage = error.message
+            }
+
+            toast.error("Transaction Failed", {
+                description: errorMessage
+            })
         } finally {
             setIsProcessing(false)
         }
@@ -181,9 +250,9 @@ export function HomeContent() {
                             <div className="relative space-y-6">
                                 <div className="space-y-2 text-center">
                                     <h2 className="text-2xl font-semibold">Early Access Program</h2>
-                                    <p className="text-muted-foreground">
+                                    <div className="text-muted-foreground">
                                         We&apos;re currently limiting <Badge>BETA</Badge> access to a limited number of users to ensure a stable service and while keep refining features.
-                                    </p>
+                                    </div>
                                 </div>
 
                                 <Card className="border-teal-500/10 bg-white/[0.01] dark:bg-black/[0.01] backdrop-blur-sm p-6">
@@ -241,5 +310,57 @@ export function HomeContent() {
         )
     }
 
-    return mainContent
+    return (
+        <>
+            {mainContent}
+
+            <Dialog open={!!verifyingTx} onOpenChange={() => setVerifyingTx(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <div className="space-y-4">
+                        <div className="space-y-2 text-center">
+                            <h2 className="text-lg font-semibold">Verifying Purchase</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Please wait while we verify your EAP purchase.
+                            </p>
+                        </div>
+
+                        <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                            <div className="flex items-center justify-between gap-2">
+                                <span>Transaction Hash:</span>
+                                <code className="text-xs">{verifyingTx}</code>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <span>Verification Attempts:</span>
+                                <span>{verificationAttempts} / {MAX_VERIFICATION_ATTEMPTS}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => window.open(`https://solscan.io/tx/${verifyingTx}`, '_blank')}
+                            >
+                                View on Solscan
+                                <ExternalLink className="ml-2 h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => setVerifyingTx(null)}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
 } 
