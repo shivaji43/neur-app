@@ -5,6 +5,9 @@ import { type CoreUserMessage, generateText } from 'ai';
 import { z } from "zod"
 import { actionClient, ActionEmptyResponse } from "@/lib/safe-action"
 import prisma from '@/lib/prisma';
+import { SolanaAgentKit, createSolanaTools } from "solana-agent-kit";
+import { verifyUser } from './user';
+import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
 
 export async function generateTitleFromUserMessage({ message }: { message: CoreUserMessage }) {
     const { text: title } = await generateText({
@@ -37,4 +40,33 @@ export const renameConversation = actionClient
         } catch (error) {
             return { success: false, error: "UNEXPECTED_ERROR" }
         }
+    })
+
+export const retrieveAgentKit = actionClient
+    .action(async () => {
+        const authResult = await verifyUser();
+        const userId = authResult?.data?.data?.id;
+
+        if (!userId) {
+            return { success: false, error: "UNAUTHORIZED" }
+        }
+
+        const wallet = await prisma.wallet.findFirst({
+            where: {
+                ownerId: userId,
+            }
+        })
+
+        if (!wallet) {
+            return { success: false, error: "WALLET_NOT_FOUND" }
+        }
+
+        console.log("[retrieveAgentKit] wallet", wallet.publicKey)
+
+        const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
+        const rpc = process.env.NEXT_PUBLIC_HELIUS_RPC_URL!;
+        const openaiKey = process.env.OPENAI_API_KEY!;
+        const agent = new SolanaAgentKit(privateKey, rpc, openaiKey);
+
+        return { success: true, data: { agent } };
     })

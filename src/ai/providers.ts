@@ -1,9 +1,9 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { definedTools } from "./tools/defined_fi";
-import { jupiterTools } from "./tools/jupiter";
 import { solanaTools } from "./tools/solana";
 import { twitterTools } from "./tools/twitter";
+import { pumpfunTools } from './tools/pumpfun';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -17,8 +17,8 @@ export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
 
 export const defaultTools = {
     ...solanaTools,
-    ...jupiterTools,
     ...definedTools,
+    ...pumpfunTools,
     ...twitterTools,
 }
 

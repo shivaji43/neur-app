@@ -49,13 +49,13 @@ Our current focus is developing core infrastructure and agent functionality.
 - [ ] Transaction Parser
 - [ ] Token Operations
   - [ ] Send/Swap Tokens
-  - [ ] Token Launch (pump.fun)
+  - [x] Token Launch (pump.fun)
   - [ ] SOL Staking
   - [ ] Dialect Blinks
 - [ ] NFT Operations
 - [ ] DeFi Integration
   - [ ] Jupiter (Swaps, Price Data, Limit Orders, DCA)
-  - [ ] Pump.Fun Integration
+  - [x] Pump.Fun Integration
   - [ ] Magic Eden Integration
 
 ### Market Intelligence

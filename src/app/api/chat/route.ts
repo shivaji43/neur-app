@@ -43,9 +43,23 @@ export async function POST(req: Request) {
       ],
     });
 
+    // extract all attachments from the user message
+    const attachments = messages
+      .filter(message => message.experimental_attachments)
+      .map(message => message.experimental_attachments)
+      .flat()
+      .map(attachment => {
+        return {
+          type: attachment?.contentType,
+          data: attachment?.url
+        }
+      });
+    // append to system prompt
+    const systemPrompt = defaultSystemPrompt + `\n\nHistory of attachments: ${JSON.stringify(attachments)}`;
+
     const result = streamText({
       model: defaultModel,
-      system: defaultSystemPrompt,
+      system: systemPrompt,
       tools: defaultTools,
       experimental_toolCallStreaming: true,
       experimental_telemetry: {
