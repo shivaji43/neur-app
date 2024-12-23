@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { getToolConfig } from "@/lib/tools/config"
-import { cn } from "@/lib/utils"
+import { DefaultToolResultRenderer, getToolConfig } from "@/ai/providers"
 import * as Collapsible from "@radix-ui/react-collapsible"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -14,10 +13,10 @@ interface ToolResultProps {
 }
 
 export function ToolResult({ toolName, result, expanded: initialExpanded, header }: ToolResultProps) {
-    const config = getToolConfig(toolName)
+    const config = getToolConfig(toolName)!
     const [isOpen, setIsOpen] = useState(initialExpanded ?? !config.isCollapsible)
 
-    const content = config.renderResult(result)
+    const content = config.render ? config.render(result) : DefaultToolResultRenderer({ result })
     if (!content) return null
 
     if (!config.isCollapsible) {

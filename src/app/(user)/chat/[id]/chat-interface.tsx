@@ -18,9 +18,9 @@ import Logo from "@/components/logo";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { ToolResult } from "@/components/message/tool-result"
-import { getToolConfig } from "@/lib/tools/config"
 import { FloatingWallet } from "@/components/floating-wallet"
 import { useWalletPortfolio } from "@/hooks/use-wallet-portfolio"
+import { getToolConfig } from "@/ai/providers";
 
 // Types
 interface UploadingImage extends Attachment {
@@ -165,7 +165,7 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
             {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
                 const isCompleted = result !== undefined;
                 const isError = isCompleted && typeof result === 'object' && result !== null && 'error' in result;
-                const config = getToolConfig(toolName);
+                const config = getToolConfig(toolName)!;
                 const finalDisplayName = displayName || config.displayName;
 
                 const header = (
@@ -611,7 +611,7 @@ export default function ChatInterface({ id, initialMessages = [] }: { id: string
                             isLoading={isPortfolioLoading}
                         />
                     )}
-                    
+
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                         <div className="relative overflow-hidden rounded-2xl bg-muted">
                             {attachments.length > 0 && (

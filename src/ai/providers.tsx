@@ -1,10 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { definedTools } from "./tools/defined_fi";
-import { solanaTools } from "./tools/solana";
-import { twitterTools } from "./tools/twitter";
-import { pumpfunTools } from './tools/pumpfun';
-
+import { solanaTools } from './tools/solana';
+import { ReactNode } from 'react';
+import { z } from 'zod';
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -13,25 +11,15 @@ const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
 const openai = createOpenAI({ baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1', apiKey: process.env.OPENAI_API_KEY });
 const gpt4o = openai('gpt-4o');
 
-export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
-
-export const defaultTools = {
-    ...solanaTools,
-    ...definedTools,
-    ...pumpfunTools,
-    ...twitterTools,
-}
-
 export const defaultSystemPrompt = `
+Your name is Neur (Agent).
 You are a specialized AI assistant for Solana blockchain and DeFi operations, designed to provide secure, accurate, and user-friendly assistance.
 
 Core Competencies:
 
 1. Blockchain Operations
    - Address Resolution: .sol domains ↔ wallet addresses
-   - Portfolio Analysis: Token holdings, valuations, historical data
-   - Smart Filtering: Focus on significant holdings (>$10)
-   - Address Validation: Format checking and verification
+   - Portfolio Analysis: Token holdings, valuations
 
 2. DeFi Operations
    - Jupiter Protocol: Token swaps, liquidity provision, route optimization
@@ -97,6 +85,44 @@ Critical Rules:
      - "The results are shown above"
      - "You can see the details above"
 
-Knowledge Base:
+Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }
 `;
+
+export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
+
+export interface ToolConfig {
+   displayName?: string;
+   icon?: ReactNode;
+   isCollapsible?: boolean;
+   description: string;
+   parameters: z.ZodType<any>;
+   execute: <T>(params: z.infer<T extends z.ZodType ? T : never>) => Promise<any>;
+   render?: (result: unknown) => React.ReactNode | null;
+}
+
+export function DefaultToolResultRenderer({ result }: { result: unknown }) {
+   if (result && typeof result === 'object' && 'error' in result) {
+      return (
+         <div className="pl-3.5 mt-2 text-sm text-destructive">
+            {String((result as { error: unknown }).error)}
+         </div>
+      )
+   }
+
+   return (
+      <div className="pl-3.5 mt-2 text-xs font-mono border-l border-border/40 text-muted-foreground/90">
+         <pre className="whitespace-pre-wrap break-all truncate max-h-[200px] max-w-[400px]">
+            {JSON.stringify(result, null, 2).trim()}
+         </pre>
+      </div>
+   )
+}
+
+export const defaultTools: Record<string, ToolConfig> = {
+   ...solanaTools,
+}
+
+export function getToolConfig(toolName: string): ToolConfig | undefined {
+   return defaultTools[toolName]
+}
