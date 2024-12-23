@@ -17,7 +17,7 @@ import { AppSidebarConversations } from "./app-sidebar-conversations"
 import { AppSidebarUser } from "./app-sidebar-user"
 import Link from "next/link"
 import { useSelectedLayoutSegment } from "next/navigation"
-import { RiHomeOfficeLine } from "@remixicon/react"
+import { APP_VERSION, IS_BETA } from "@/lib/constants"
 
 const AppSidebarHeader = () => {
     return (
@@ -25,11 +25,13 @@ const AppSidebarHeader = () => {
             <div className="flex items-center justify-between px-1">
                 <span className="font-medium text-lg tracking-tight pl-2 group-data-[collapsible=icon]:hidden">neur.sh</span>
                 <div className="flex items-center gap-1.5 group-data-[collapsible=icon]:hidden">
-                    <span className="text-xs text-primary-foreground bg-primary/90 rounded-md px-1.5 py-0.5 select-none">
-                        BETA
-                    </span>
+                    {IS_BETA && (
+                        <span className="text-xs text-primary-foreground bg-primary/90 rounded-md px-1.5 py-0.5 select-none">
+                            BETA
+                        </span>
+                    )}
                     <span className="text-xs text-muted-foreground bg-muted rounded-md px-1.5 py-0.5 select-none">
-                        0.1.3
+                        {APP_VERSION}
                     </span>
                 </div>
             </div>
