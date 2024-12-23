@@ -169,7 +169,7 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
                 const finalDisplayName = displayName || config.displayName;
 
                 const header = (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors rounded-lg cursor-pointer">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className={cn(
                             "h-1.5 w-1.5 rounded-full ring-2",
                             isCompleted
@@ -178,22 +178,12 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
                                     : "bg-emerald-500 ring-emerald-500/20"
                                 : "bg-amber-500 ring-amber-500/20 animate-pulse"
                         )} />
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="text-xs font-medium text-foreground/90 truncate">
-                                {finalDisplayName}
-                            </span>
-                            {config.description && (
-                                <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
-                                    {config.description}
-                                </span>
-                            )}
-                            <span className="font-mono text-[10px] text-muted-foreground/70">
-                                {toolCallId.slice(0, 8)}
-                            </span>
-                        </div>
-                        {isCompleted && !isError && (
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/70 transition-transform ui-expanded:rotate-180" />
-                        )}
+                        <span className="text-xs font-medium text-foreground/90 truncate">
+                            {finalDisplayName}
+                        </span>
+                        <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                            {toolCallId.slice(0, 9)}
+                        </span>
                     </div>
                 );
 
@@ -203,7 +193,7 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
                             <ToolResult
                                 toolName={toolName}
                                 result={result}
-                                expanded={!config.isCollapsible}
+                                expanded={false}
                                 header={header}
                             />
                         ) : (

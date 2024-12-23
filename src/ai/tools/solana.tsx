@@ -2,6 +2,7 @@ import { z } from "zod";
 import { SolanaUtils } from "@/lib/solana";
 import { searchWalletAssets } from "@/lib/solana/helius";
 import { transformToPortfolio } from "@/types/helius/portfolio";
+import { WalletPortfolio } from "@/components/message/wallet-portfolio";
 
 const publicKeySchema = z.string()
     .regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address format. Must be a base58 encoded string.')
@@ -13,13 +14,16 @@ const domainSchema = z.string()
 
 const wallet = {
     resolveSolanaDomain: {
+        displayName: "🔍 Resolve Solana Domain",
         description: 'Resolve a Solana domain name to an address.',
+        isCollapsible: true,
         parameters: z.object({ domain: domainSchema }),
         execute: async ({ domain }: { domain: string }) => {
             return await SolanaUtils.resolveDomainToAddress(domain);
         },
     },
     getWalletPortfolio: {
+        displayName: "🏦 Wallet Portfolio",
         description: 'Get the portfolio of a Solana wallet, including detailed token information & total value, SOL value etc.',
         parameters: z.object({ walletAddress: publicKeySchema }),
         execute: async ({ walletAddress }: { walletAddress: string }) => {
@@ -48,6 +52,11 @@ const wallet = {
                 throw new Error(`Failed to get wallet portfolio: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         },
+        render: (raw: unknown) => {
+            const result = (raw as { data: any }).data;
+            if (!result || typeof result !== 'object') return null;
+            return <WalletPortfolio data={result} />;
+        }
     },
     batchGetTokenMarketCap: {
         description: 'Batch calculate the market cap of a list of tokens, based on their price_per_token',

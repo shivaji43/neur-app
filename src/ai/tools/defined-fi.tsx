@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { filterSolanaTokens } from "@/lib/solana/integrations/defined_fi"
 import { TokenData } from "@/lib/solana/integrations/defined_fi";
+import { TokenGrid } from "@/components/message/token-grid";
 
 type FilterTokensParams = {
     maxVolume24h: number;
@@ -28,6 +29,7 @@ type FilterTokensResponse = {
 
 export const definedTools = {
     filterTrendingTokens: {
+        displayName: "🔍 Trending Tokens",
         description: 'Filter and search for trending Solana tokens based on various criteria.',
         parameters: z.object({
             maxVolume24h: z.number().default(100000000000).describe('Maximum 24-hour trading volume in USD'),
@@ -134,6 +136,16 @@ export const definedTools = {
                     error: 'EXECUTION_ERROR'
                 };
             }
+        },
+        render: (raw: unknown) => {
+            const result = (raw as { data: any }).data;
+            return (
+                <TokenGrid
+                    tokens={Array.isArray(result) ? result : []}
+                    className="mt-3"
+                    isLoading={!Array.isArray(result)}
+                />
+            )
         }
     }
 }
