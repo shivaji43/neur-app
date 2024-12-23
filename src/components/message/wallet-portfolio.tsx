@@ -25,7 +25,7 @@ function getInitials(name: string) {
 
 function TokenCardSkeleton() {
     return (
-        <div className="animate-pulse rounded-2xl border bg-muted/40 p-6">
+        <div className="animate-pulse p-4">
             <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl bg-muted" />
                 <div className="flex-1 space-y-2">
@@ -49,31 +49,24 @@ function TokenRow({ token, index }: { token: Portfolio['tokens'][0], index: numb
             href={`https://solscan.io/token/${token.mint}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(
-                "group relative block overflow-hidden rounded-2xl bg-gradient-to-br from-background to-muted/30",
-                "border border-border/50",
-                "transition-all duration-300 ease-out",
-                "hover:-translate-y-1 hover:border-border/80",
-                "hover:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.2)]",
-                "active:translate-y-0 active:shadow-none",
-            )}
+            className="group/row relative block transition-colors duration-200 ease-out hover:bg-muted/50"
         >
-            <div className="relative flex items-center justify-between p-6">
-                {/* Background Gradient Hover Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
+            <div className="relative flex items-center justify-between p-4">
                 {/* Token Info */}
                 <div className="flex items-center gap-4 min-w-0">
-                    <Avatar className="h-12 w-12 rounded-xl border bg-gradient-to-br from-background to-muted">
-                        <AvatarImage
-                            src={token.imageUrl}
-                            alt={token.name}
-                            className="object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                        <AvatarFallback className="rounded-xl text-sm">
-                            {getInitials(token.name)}
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                        <Avatar className="h-12 w-12 rounded-xl border bg-gradient-to-br from-background to-muted">
+                            <AvatarImage
+                                src={token.imageUrl}
+                                alt={token.name}
+                                className="object-cover transition-transform duration-300 group-hover/row:scale-105"
+                            />
+                            <AvatarFallback className="rounded-xl text-sm">
+                                {getInitials(token.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-background bg-primary opacity-0 transition-opacity duration-200 group-hover/row:opacity-100" />
+                    </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
                             <div className="truncate font-medium">{token.name}</div>
@@ -99,7 +92,7 @@ function TokenRow({ token, index }: { token: Portfolio['tokens'][0], index: numb
                     {hasPrice && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span>@ {token.pricePerToken.toFixed(4)} $</span>
-                            <ExternalLink className="h-3.5 w-3.5 transition-colors group-hover:text-primary" />
+                            <ExternalLink className="h-3.5 w-3.5 transition-colors group-hover/row:text-primary" />
                         </div>
                     )}
                 </div>
@@ -113,8 +106,6 @@ export function WalletPortfolio({ data, className, isLoading = false }: WalletPo
         return (
             <Card className={cn(
                 "mt-3 overflow-hidden border-border/50 bg-gradient-to-br from-background to-muted/30",
-                "transition-all duration-300 ease-out",
-                "hover:border-border/80 hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.2)]",
                 className
             )}>
                 <CardHeader>
@@ -139,11 +130,9 @@ export function WalletPortfolio({ data, className, isLoading = false }: WalletPo
     return (
         <Card className={cn(
             "mt-3 overflow-hidden border-border/50 bg-gradient-to-br from-background to-muted/30",
-            "transition-all duration-300 ease-out",
-            "hover:border-border/80 hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.2)]",
             className
         )}>
-            <CardHeader>
+            <CardHeader className="border-b border-border/40 bg-muted/20">
                 <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
@@ -160,9 +149,9 @@ export function WalletPortfolio({ data, className, isLoading = false }: WalletPo
                     </span>
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-[480px] pr-4">
-                    <div className="space-y-3">
+            <CardContent className="p-0">
+                <ScrollArea className="h-[480px]">
+                    <div className="divide-y divide-border/40">
                         {data.tokens.map((token, index) => (
                             <TokenRow key={index} token={token} index={index} />
                         ))}
