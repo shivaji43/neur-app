@@ -3,18 +3,18 @@ import { filterSolanaTokens } from "@/lib/solana/integrations/defined_fi"
 import { TokenData } from "@/lib/solana/integrations/defined_fi";
 
 type FilterTokensParams = {
-    maxVolume24h?: number;
-    minVolume24h?: number;
-    maxLiquidity?: number;
-    minLiquidity?: number;
-    maxMarketCap?: number;
-    minMarketCap?: number;
+    maxVolume24h: number;
+    minVolume24h: number;
+    maxLiquidity: number;
+    minLiquidity: number;
+    maxMarketCap: number;
+    minMarketCap: number;
     minTransactions24h?: number;
-    createdWithinHours?: number;
+    createdWithinHours: number;
     excludeScams?: boolean;
-    sortBy?: 'trendingScore24' | 'marketCap' | 'volume24' | 'liquidity' | 'transactions24h';
-    sortDirection?: 'ASC' | 'DESC';
-    limit?: number;
+    sortBy: 'trendingScore24' | 'marketCap' | 'volume24' | 'liquidity' | 'transactions24h';
+    sortDirection: 'ASC' | 'DESC';
+    limit: number;
     offset?: number;
 }
 
@@ -30,28 +30,28 @@ export const definedTools = {
     filterTrendingTokens: {
         description: 'Filter and search for trending Solana tokens based on various criteria.',
         parameters: z.object({
-            maxVolume24h: z.number().optional().describe('Maximum 24-hour trading volume in USD'),
-            minVolume24h: z.number().optional().describe('Minimum 24-hour trading volume in USD'),
-            maxLiquidity: z.number().optional().describe('Maximum liquidity in USD'),
-            minLiquidity: z.number().optional().describe('Minimum liquidity in USD'),
-            maxMarketCap: z.number().optional().describe('Maximum market cap in USD'),
-            minMarketCap: z.number().optional().describe('Minimum market cap in USD'),
-            createdWithinHours: z.number().optional().describe('Only show tokens created within the last N hours'),
-            sortBy: z.enum(['trendingScore24', 'marketCap', 'volume24', 'liquidity', 'transactions24h']).optional().describe('Sort results by this metric'),
-            sortDirection: z.enum(['ASC', 'DESC']).optional().describe('Sort direction'),
-            limit: z.number().min(1).max(20).optional().describe('Maximum number of results to return')
+            maxVolume24h: z.number().default(100000000000).describe('Maximum 24-hour trading volume in USD'),
+            minVolume24h: z.number().default(0).describe('Minimum 24-hour trading volume in USD'),
+            maxLiquidity: z.number().default(250000000).describe('Maximum liquidity in USD'),
+            minLiquidity: z.number().default(0).describe('Minimum liquidity in USD'),
+            maxMarketCap: z.number().default(1000000000000).describe('Maximum market cap in USD'),
+            minMarketCap: z.number().default(0).describe('Minimum market cap in USD'),
+            createdWithinHours: z.number().default(48).describe('Only show tokens created within the last N hours'),
+            sortBy: z.enum(['trendingScore24', 'marketCap', 'volume24', 'liquidity', 'transactions24h']).default('trendingScore24').describe('Sort results by this metric'),
+            sortDirection: z.enum(['ASC', 'DESC']).default('DESC').describe('Sort direction'),
+            limit: z.number().min(1).max(20).default(50).describe('Maximum number of results to return')
         }),
         execute: async ({
-            maxVolume24h = 100000000000,
-            minVolume24h = 0,
-            maxLiquidity = 250000000,
-            minLiquidity = 0,
-            maxMarketCap = 1000000000000,
-            minMarketCap = 0,
-            createdWithinHours = 24,
-            sortBy = 'trendingScore24',
-            sortDirection = 'DESC',
-            limit = 50
+            maxVolume24h,
+            minVolume24h,
+            maxLiquidity,
+            minLiquidity,
+            maxMarketCap,
+            minMarketCap,
+            createdWithinHours,
+            sortBy,
+            sortDirection,
+            limit
         }: FilterTokensParams) => {
             const filters: any = {
                 potentialScam: false,
@@ -103,7 +103,7 @@ export const definedTools = {
                     timeoutPromise
                 ]) as FilterTokensResponse;
 
-                return response.data.filterTokens.results
+                const tokens = response.data.filterTokens.results
                     .slice(0, limit)
                     .map((token: TokenData) => ({
                         address: token.token.address,
@@ -123,6 +123,11 @@ export const definedTools = {
                         }
                         return getValue(b, sortBy) - getValue(a, sortBy);
                     });
+
+                return {
+                    suppressFollowUp: true,
+                    data: tokens
+                };
             } catch (error) {
                 console.error('[filterTrendingTokens] Error:', error);
                 return {

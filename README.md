@@ -13,6 +13,7 @@ Neur is an open-source, full-stack application that brings together the power of
 
 ## Features
 
+- **Modern UI**: Beautiful, responsive design with Tailwind CSS, Mobile-friendly, Dark Mode
 - **Intelligent Agent**: Natural language understanding tailored for DeFi, NFTs, and Solana-native interactions
 - **Smart Tools**: Execute complex blockchain operations using our advanced function-calling system
 - **Embedded Wallet**: Integrated wallet management with real-time portfolio insights
@@ -23,7 +24,7 @@ Neur is an open-source, full-stack application that brings together the power of
 
 ## Roadmap
 
-We aim to build the most advanced interface for the Solana Network, enabling users to design AI agents for autonomous actions and custom strategies. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
+We aim to build the **most advanced interface** for the Solana Network, enabling users to design AI agents for autonomous actions and custom strategies. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
 
 Our current focus is developing core infrastructure and agent functionality.
 

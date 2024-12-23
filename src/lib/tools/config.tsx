@@ -48,13 +48,16 @@ export const toolConfigs: Record<string, ToolConfig> = {
     filterTrendingTokens: {
         displayName: "🔍 Trending Tokens",
         description: "Search and filter trending tokens on Solana",
-        renderResult: (result: unknown) => (
-            <TokenGrid
-                tokens={Array.isArray(result) ? result : []}
-                className="mt-3"
-                isLoading={!Array.isArray(result)}
-            />
-        )
+        renderResult: (raw: unknown) => {
+            const result = (raw as { data: any }).data;
+            return (
+                <TokenGrid
+                    tokens={Array.isArray(result) ? result : []}
+                    className="mt-3"
+                    isLoading={!Array.isArray(result)}
+                />
+            )
+        }
     },
     getWalletPortfolio: {
         displayName: "💰 Wallet Portfolio",

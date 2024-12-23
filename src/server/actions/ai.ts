@@ -1,6 +1,6 @@
 "use server"
 
-import { defaultModel } from '@/ai/model';
+import { defaultModel } from '@/ai/providers';
 import { type CoreUserMessage, generateText } from 'ai';
 import { z } from "zod"
 import { actionClient, ActionEmptyResponse } from "@/lib/safe-action"
