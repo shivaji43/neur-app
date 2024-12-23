@@ -7,7 +7,8 @@
     "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:reset": "pnpm npx prisma generate && pnpm npx prisma migrate reset && pnpm npx prisma db push"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.5",
