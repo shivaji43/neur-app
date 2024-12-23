@@ -1,19 +1,26 @@
-import { verifyUser } from '@/server/actions/user';
+import { getUserData, verifyUser } from '@/server/actions/user';
 import { defaultModel, defaultSystemPrompt, defaultTools } from '@/ai/providers';
-import { convertToCoreMessages, CoreMessage, generateObject, Message, NoSuchToolError, streamText } from 'ai';
+import { convertToCoreMessages, CoreMessage, CoreTool, generateObject, Message, NoSuchToolError, streamText } from 'ai';
 import { getMostRecentUserMessage, sanitizeResponseMessages } from '@/lib/utils/ai';
 import { dbDeleteConversation, dbGetConversation, dbCreateConversation, dbCreateMessages } from '@/server/db/queries';
 import { generateTitleFromUserMessage } from '@/server/actions/ai';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const session = await verifyUser();
   const userId = session?.data?.data?.id;
+  const publicKey = session?.data?.data?.publicKey;
 
   if (!userId) {
     return new Response('Unauthorized', { status: 401 });
+  }
+
+  if (!publicKey) {
+    console.error('[chat/route] No public key found');
+    return new Response('No public key found', { status: 400 });
   }
 
   try {
@@ -55,12 +62,14 @@ export async function POST(req: Request) {
         }
       });
     // append to system prompt
-    const systemPrompt = defaultSystemPrompt + `\n\nHistory of attachments: ${JSON.stringify(attachments)}`;
+    const systemPrompt = defaultSystemPrompt +
+      `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
+      `\n\nUser Solana wallet public key: ${publicKey}`;
 
     const result = streamText({
       model: defaultModel,
       system: systemPrompt,
-      tools: defaultTools,
+      tools: defaultTools as Record<string, CoreTool<any, any>>,
       experimental_toolCallStreaming: true,
       experimental_telemetry: {
         isEnabled: true,

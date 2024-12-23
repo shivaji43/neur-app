@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { z } from 'zod';
 import { definedTools } from './tools/defined-fi';
 import { pumpfunTools } from './tools/pumpfun';
+import { jupiterTools } from './tools/jupiter';
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -26,9 +27,13 @@ Critical Rules:
      - "I've displayed the information above"
      - "The results are shown above"
      - "You can see the details above"
+- Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 
 Common knowledge:
-- { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }
+- { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
+
+Common tokens:
+
 `;
 
 export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
@@ -64,7 +69,8 @@ export function DefaultToolResultRenderer({ result }: { result: unknown }) {
 export const defaultTools: Record<string, ToolConfig> = {
    ...solanaTools,
    ...definedTools,
-   ...pumpfunTools
+   ...pumpfunTools,
+   ...jupiterTools
 }
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

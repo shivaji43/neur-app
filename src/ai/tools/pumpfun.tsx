@@ -119,17 +119,19 @@ export const pumpfunTools = {
                 };
             }
         },
-        render: (result: { success: boolean, data: any }) => {
-            if (!result.success) {
+        render: (result: unknown) => {
+            const typedResult = result as { success: boolean, data: any, error?: string };
+
+            if (!typedResult.success) {
                 return (
                     <Card className="p-6 bg-destructive/10">
                         <h2 className="text-xl font-semibold mb-2 text-destructive">Launch Failed</h2>
-                        <pre className="text-sm text-destructive/80">{JSON.stringify(result, null, 2)}</pre>
+                        <pre className="text-sm text-destructive/80">{JSON.stringify(typedResult, null, 2)}</pre>
                     </Card>
                 );
             }
 
-            const data = result.data as { signature: string, mint: string, metadataUri: string };
+            const data = typedResult.data as { signature: string, mint: string, metadataUri: string };
             return <LaunchResult {...data} />;
         }
     },

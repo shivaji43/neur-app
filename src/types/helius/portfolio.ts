@@ -45,7 +45,11 @@ export function transformToPortfolio(address: string, fungibleTokens: FungibleTo
             balance: token.token_info.balance / Math.pow(10, token.token_info.decimals),
             pricePerToken: token.token_info.price_info?.price_per_token || 0,
             decimals: token.token_info.decimals
-        }));
+        }))
+        .filter((token, index, self) =>
+            token.symbol !== "SOL" ||
+            index === self.findIndex(t => t.symbol === "SOL")
+        );
 
     const nfts: NFT[] = nonFungibleTokens
         .map(nft => ({

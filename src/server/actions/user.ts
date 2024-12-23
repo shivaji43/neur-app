@@ -67,7 +67,7 @@ const getOrCreateUser = actionClient
     });
 
 export const verifyUser = actionClient
-    .action<ActionResponse<{ id: string }>>(async () => {
+    .action<ActionResponse<{ id: string, publicKey?: string }>>(async () => {
         const token = (await cookies()).get("privy-token")?.value;
 
         if (!token) {
@@ -81,7 +81,15 @@ export const verifyUser = actionClient
             const claims = await PRIVY_SERVER_CLIENT.verifyAuthToken(token);
             const user = await prisma.user.findUnique({
                 where: { privyId: claims.userId },
-                select: { id: true }
+                select: {
+                    id: true,
+                    wallets: {
+                        select: {
+                            publicKey: true
+                        },
+                        take: 1
+                    }
+                }
             });
 
             if (!user) {
@@ -93,7 +101,10 @@ export const verifyUser = actionClient
 
             return {
                 success: true,
-                data: { id: user.id }
+                data: {
+                    id: user.id,
+                    publicKey: user.wallets[0]?.publicKey
+                }
             };
         } catch (_) {
             return {
