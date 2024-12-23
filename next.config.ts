@@ -5,10 +5,17 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "*",
       },
     ],
   },
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.json$/,
+      type: 'json'
+    })
+    return config
+  }
 };
 
 export default nextConfig;

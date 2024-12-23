@@ -47,11 +47,11 @@ export function WalletCard({ wallet }: { wallet: EmbeddedWallet }) {
     const [sendStatus, setSendStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Fetch SOL balance with auto-refresh every 10 seconds
+    // Fetch SOL balance with auto-refresh every 30 seconds
     const { data: balance = 0, isLoading: isBalanceLoading } = useSWR(
         ['solana-balance', wallet.publicKey],
         () => SolanaUtils.getBalance(wallet.publicKey),
-        { refreshInterval: 10000 }
+        { refreshInterval: 30000 }
     );
 
     /**

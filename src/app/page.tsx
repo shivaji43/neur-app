@@ -16,12 +16,13 @@ import { BorderBeam } from "@/components/ui/border-beam";
 import Image from "next/image";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import Marquee from "@/components/ui/marquee";
-import { BrainCircuitIcon, ZapIcon, LinkIcon, ShieldIcon, ActivityIcon, GithubIcon, BookOpenIcon } from "lucide-react";
+import { BrainCircuitIcon, ZapIcon, LinkIcon, ShieldIcon, ActivityIcon, BookOpenIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IntegrationsBackground } from "@/components/ui/integrations-background";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 
 const navItems = [
-  { label: "Github", href: "https://git.new/neur", icon: GithubIcon },
+  { label: "Github", href: "https://git.new/neur", icon: GitHubLogoIcon },
   { label: "Docs", href: "https://docs.neur.sh", icon: BookOpenIcon },
 ];
 
@@ -272,9 +273,9 @@ const features = [
     background: <IntegrationsBackground />,
   },
   {
-    Icon: ShieldIcon,
-    name: "Enterprise-Grade Security",
-    description: "Leverage end-to-end encryption and robust security protocols designed for enterprise needs. Protect your assets with AI-powered agents that securely manage wallet operations.",
+    Icon: GitHubLogoIcon,
+    name: "Open Source & Community Driven",
+    description: "Built with transparency and collaboration in mind. Our full-stack application is completely open source, community-driven, and welcomes contributions from developers worldwide to shape the future of Solana AI tools.",
     className: "col-span-1 sm:col-span-3 lg:col-span-1",
     background: (
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
@@ -300,7 +301,7 @@ const Features = () => {
     <BlurFade delay={0.5} className="relative py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight sm:text-4xl mb-3 sm:mb-4">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl mb-3 sm:mb-4">
             Tailored for Solana
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">

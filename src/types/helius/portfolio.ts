@@ -26,6 +26,12 @@ export interface WalletPortfolio {
 }
 
 export function transformToPortfolio(address: string, fungibleTokens: FungibleToken[], nonFungibleTokens: NonFungibleToken[]): WalletPortfolio {
+    // Rename Wrapped SOL to Solana
+    const sol = fungibleTokens.find(token => token.id === "So11111111111111111111111111111111111111112")
+    if (sol) {
+        sol.content.metadata.name = "Solana";
+    }
+
     const tokens: Token[] = fungibleTokens
         .filter(token =>
             token.id === "So11111111111111111111111111111111111111112" ||
@@ -39,7 +45,11 @@ export function transformToPortfolio(address: string, fungibleTokens: FungibleTo
             balance: token.token_info.balance / Math.pow(10, token.token_info.decimals),
             pricePerToken: token.token_info.price_info?.price_per_token || 0,
             decimals: token.token_info.decimals
-        }));
+        }))
+        .filter((token, index, self) =>
+            token.symbol !== "SOL" ||
+            index === self.findIndex(t => t.symbol === "SOL")
+        );
 
     const nfts: NFT[] = nonFungibleTokens
         .map(nft => ({
@@ -51,10 +61,18 @@ export function transformToPortfolio(address: string, fungibleTokens: FungibleTo
 
     const totalBalance = tokens.reduce((acc, token) => acc + token.balance * token.pricePerToken, 0);
 
+    // Always make sure SOL is the first token
+    let tokenList = [...tokens];
+    const solToken = tokenList.find(token => token.symbol === "SOL");
+    if (solToken) {
+        tokenList = tokenList.filter(token => token.symbol !== "SOL");
+        tokenList.unshift(solToken);
+    }
+
     return {
         address,
         totalBalance,
-        tokens,
+        tokens: tokenList,
         nfts
     };
 } 

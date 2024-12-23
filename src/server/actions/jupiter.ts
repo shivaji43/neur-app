@@ -56,6 +56,73 @@ export const searchJupiterTokens = async (query: string): Promise<JupiterToken[]
     const searchTerm = query.toLowerCase()
     return tokens.filter(token =>
         token.name.toLowerCase().includes(searchTerm) ||
-        token.symbol.toLowerCase().includes(searchTerm)
+        token.symbol.toLowerCase().includes(searchTerm) ||
+        token.address.toLowerCase() === searchTerm.toLowerCase()
     )
-} 
+}
+
+export interface TokenPrice {
+    id: string
+    type: string
+    price: string
+    extraInfo?: {
+        lastSwappedPrice?: {
+            lastJupiterSellAt: number
+            lastJupiterSellPrice: string
+            lastJupiterBuyAt: number
+            lastJupiterBuyPrice: string
+        }
+        quotedPrice?: {
+            buyPrice: string
+            buyAt: number
+            sellPrice: string
+            sellAt: number
+        }
+        confidenceLevel?: string
+        depth?: {
+            buyPriceImpactRatio?: {
+                depth: {
+                    [key: string]: number
+                }
+                timestamp: number
+            }
+            sellPriceImpactRatio?: {
+                depth: {
+                    [key: string]: number
+                }
+                timestamp: number
+            }
+        }
+    }
+}
+
+export interface TokenPriceResponse {
+    data: {
+        [key: string]: TokenPrice
+    }
+    timeTaken: number
+}
+
+// Cache the fetch for 5 seconds
+export const getJupiterTokenPrice = cache(async (tokenAddress: string, showExtraInfo: boolean = true): Promise<TokenPrice | null> => {
+    try {
+        const response = await fetch(
+            `https://api.jup.ag/price/v2?ids=${tokenAddress}&showExtraInfo=${showExtraInfo}`,
+            {
+                next: {
+                    revalidate: 5 // Cache for 5 seconds
+                }
+            }
+        )
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch price data')
+        }
+
+        const data = await response.json() as TokenPriceResponse
+        return data.data[tokenAddress] || null
+    } catch (error) {
+        console.error('Error fetching Jupiter token price:', error)
+        return null
+    }
+}) 

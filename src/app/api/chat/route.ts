@@ -1,22 +1,26 @@
-import { verifyUser } from '@/server/actions/user';
-import { defaultModel } from '@/ai/model';
-import { neurAgentTools } from '@/ai/tools';
-import { convertToCoreMessages, CoreMessage, Message, streamText } from 'ai';
+import { getUserData, verifyUser } from '@/server/actions/user';
+import { defaultModel, defaultSystemPrompt, defaultTools } from '@/ai/providers';
+import { convertToCoreMessages, CoreMessage, CoreTool, generateObject, Message, NoSuchToolError, streamText } from 'ai';
 import { getMostRecentUserMessage, sanitizeResponseMessages } from '@/lib/utils/ai';
 import { dbDeleteConversation, dbGetConversation, dbCreateConversation, dbCreateMessages } from '@/server/db/queries';
 import { generateTitleFromUserMessage } from '@/server/actions/ai';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  console.log('[chat/route] Starting POST request');
   const session = await verifyUser();
   const userId = session?.data?.data?.id;
+  const publicKey = session?.data?.data?.publicKey;
 
   if (!userId) {
-    console.error('[chat/route] Unauthorized request');
     return new Response('Unauthorized', { status: 401 });
+  }
+
+  if (!publicKey) {
+    console.error('[chat/route] No public key found');
+    return new Response('No public key found', { status: 400 });
   }
 
   try {
@@ -25,11 +29,8 @@ export async function POST(req: Request) {
     const userMessage: CoreMessage | undefined = getMostRecentUserMessage(coreMessages);
 
     if (!userMessage) {
-      console.error('[chat/route] No user message found');
       return new Response('No user message found', { status: 400 });
     }
-
-    console.log('[chat/route] Processing conversation:', { conversationId, messageCount: messages.length });
 
     const conversation = await dbGetConversation({ conversationId });
 
@@ -49,35 +50,72 @@ export async function POST(req: Request) {
       ],
     });
 
+    // extract all attachments from the user message
+    const attachments = messages
+      .filter(message => message.experimental_attachments)
+      .map(message => message.experimental_attachments)
+      .flat()
+      .map(attachment => {
+        return {
+          type: attachment?.contentType,
+          data: attachment?.url
+        }
+      });
+    // append to system prompt
+    const systemPrompt = defaultSystemPrompt +
+      `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
+      `\n\nUser Solana wallet public key: ${publicKey}`;
+
     const result = streamText({
       model: defaultModel,
-      system: `
-      You are a helpful assistant.
-      Answer the question based on the context provided.
-      Leverage the tools provided smartly.
-      Be nice and slightly humorous. Make your answer concise and to the point.
-
-      ---
-      Famous people on Solana and their twitter handles:
-      - toly: @aeyakovenko
-      ---
-      `,
-      messages,
-      tools: neurAgentTools,
+      system: systemPrompt,
+      tools: defaultTools as Record<string, CoreTool<any, any>>,
       experimental_toolCallStreaming: true,
-      maxSteps: 15,
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'stream-text',
       },
+      experimental_repairToolCall: async ({
+        toolCall,
+        tools,
+        parameterSchema,
+        error,
+      }) => {
+        if (NoSuchToolError.isInstance(error)) {
+          return null;
+        }
+
+        console.log('[chat/route] repairToolCall', toolCall);
+
+        const tool = tools[toolCall.toolName as keyof typeof tools];
+        const { object: repairedArgs } = await generateObject({
+          model: defaultModel,
+          schema: tool.parameters as z.ZodType<any>,
+          prompt: [
+            `The model tried to call the tool "${toolCall.toolName}"` +
+            ` with the following arguments:`,
+            JSON.stringify(toolCall.args),
+            `The tool accepts the following schema:`,
+            JSON.stringify(parameterSchema(toolCall)),
+            'Please fix the arguments.',
+          ].join('\n'),
+        });
+
+        console.log('[chat/route] repairedArgs', repairedArgs);
+        console.log('[chat/route] toolCall', toolCall);
+
+        return { ...toolCall, args: JSON.stringify(repairedArgs) };
+      },
+
+      maxSteps: 15,
+      messages,
       async onFinish({ response }) {
         if (!userId) return;
 
         try {
-          console.log('[chat/route] Saving response messages');
-          const responseMessagesWithoutIncompleteToolCalls = sanitizeResponseMessages(response.messages);
+          const sanitizedResponses = sanitizeResponseMessages(response.messages);
           await dbCreateMessages({
-            messages: responseMessagesWithoutIncompleteToolCalls.map(
+            messages: sanitizedResponses.map(
               (message) => {
                 return {
                   conversationId,
@@ -91,13 +129,10 @@ export async function POST(req: Request) {
           revalidatePath('/api/conversations');
         } catch (error) {
           console.error("[chat/route] Failed to save messages", error);
-          // Even if saving messages fails, we don't want to break the stream
-          // The messages will still be shown to the user in the UI
         }
       }
     });
 
-    console.log('[chat/route] Streaming response');
     return result.toDataStreamResponse();
   } catch (error) {
     console.error('[chat/route] Unexpected error:', error);
@@ -108,7 +143,10 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const session = await verifyUser();
   const userId = session?.data?.data?.id;
-  if (!userId) return new Response('Unauthorized', { status: 401 });
+
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 });
+  }
 
   try {
     const { id: conversationId } = await req.json();

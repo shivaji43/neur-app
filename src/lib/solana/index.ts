@@ -90,31 +90,36 @@ export class SolanaUtils {
      * Send SOL transfer transaction with memo
      */
     static async sendTransferWithMemo(params: TransferWithMemoParams): Promise<string | null> {
+        const provider = await this.getPhantomProvider();
+        if (!provider) {
+            throw new Error('Phantom wallet not found or connection rejected');
+        }
+
+        if (!provider.publicKey) {
+            throw new Error('Wallet not connected');
+        }
+
+        const { to, amount, memo } = params;
+        const fromPubkey = provider.publicKey;
+        const toPubkey = new PublicKey(to);
+
+        // Check balance first
+        const balance = await this.connection.getBalance(fromPubkey);
+        const requiredAmount = amount * LAMPORTS_PER_SOL;
+        if (balance < requiredAmount) {
+            throw new Error(`Insufficient balance. You have ${balance / LAMPORTS_PER_SOL} SOL but need ${amount} SOL`);
+        }
+
         try {
-            const provider = await this.getPhantomProvider();
-            if (!provider) {
-                throw new Error('Phantom wallet not found or connection rejected');
-            }
-
-            if (!provider.publicKey) {
-                throw new Error('Wallet not connected');
-            }
-
-            const { to, amount, memo } = params;
-            const fromPubkey = provider.publicKey;
-            const toPubkey = new PublicKey(to);
-
             // Create transaction
             const transaction = new Transaction();
-
-            // Set payer
             transaction.feePayer = fromPubkey;
 
             // Create transfer instruction
             const transferInstruction = SystemProgram.transfer({
                 fromPubkey,
                 toPubkey,
-                lamports: amount * LAMPORTS_PER_SOL,
+                lamports: requiredAmount,
             });
 
             // Create Memo instruction
@@ -128,30 +133,37 @@ export class SolanaUtils {
             transaction.add(memoInstruction);
 
             // Get latest blockhash
-            const { blockhash } = await this.connection.getLatestBlockhash();
+            const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
             transaction.recentBlockhash = blockhash;
 
-            // Sign transaction first
+            // Sign transaction
             const signedTransaction = await provider.signTransaction(transaction);
 
-            // Send signed transaction
-            const signature = await this.connection.sendRawTransaction(signedTransaction.serialize());
-
-            // Confirm transaction
-            const confirmation = await this.connection.confirmTransaction({
-                signature,
-                blockhash,
-                lastValidBlockHeight: await this.connection.getBlockHeight()
+            // Send transaction and return signature immediately
+            const signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
+                skipPreflight: false,
+                maxRetries: 5,
+                preflightCommitment: 'confirmed'
             });
 
-            if (confirmation.value.err) {
-                return null;
-            }
+            // Log for debugging
+            console.log('Transaction sent successfully:', signature);
 
+            // Return signature immediately without waiting for confirmation
             return signature;
-        } catch (error) {
-            console.error("Transaction error:", error)
-            return null;
+        } catch (error: unknown) {
+            console.error('TEST Transaction error:', error);
+            if (error instanceof Error) {
+                // Handle insufficient funds error
+                if (error.toString().includes('insufficient lamports')) {
+                    throw new Error(`Insufficient balance. Please make sure you have enough SOL to cover the transaction.`);
+                }
+                // Handle other known errors
+                if (error.toString().includes('Transaction simulation failed')) {
+                    throw new Error(`Transaction failed. Please try again.`);
+                }
+            }
+            throw error;
         }
     }
 }

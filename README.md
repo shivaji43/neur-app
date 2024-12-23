@@ -13,6 +13,7 @@ Neur is an open-source, full-stack application that brings together the power of
 
 ## Features
 
+- **Modern UI**: Beautiful, responsive design with Tailwind CSS, Mobile-friendly, Dark Mode
 - **Intelligent Agent**: Natural language understanding tailored for DeFi, NFTs, and Solana-native interactions
 - **Smart Tools**: Execute complex blockchain operations using our advanced function-calling system
 - **Embedded Wallet**: Integrated wallet management with real-time portfolio insights
@@ -23,7 +24,7 @@ Neur is an open-source, full-stack application that brings together the power of
 
 ## Roadmap
 
-We aim to build the most advanced interface for the Solana Network, enabling users to design AI agents for autonomous actions and custom strategies. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
+We aim to build the **most advanced interface** for the Solana Network, enabling users to design AI agents for **autonomous actions and custom strategies**. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
 
 Our current focus is developing core infrastructure and agent functionality.
 
@@ -34,27 +35,39 @@ Our current focus is developing core infrastructure and agent functionality.
 - [x] Chat Persistence
 - [x] Streaming Tool Components
 - [x] Embedded Wallet
-  - [ ] Phantom Embedded Wallet Migration
+  - [ ] Migrate to Phantom Embedded Wallet
 
 ### Agent Capabilities
-- [x] Tool Usage
+- [x] Multi-Tool Usage
+- [ ] Multimodal
+  - [x] Image
+  - [ ] Realtime Voice Conversation
 - [ ] Memory Layer
-- [ ] Web Search
-- [ ] Twitter Search
+- [ ] Web2 Integration
+  - [ ] Web Scraping
+  - [ ] Twitter Search
 
 ### Solana Integration
 - [x] SNS (Solana Name Service) Resolver
 - [x] Wallet Portfolio
 - [ ] Transaction Parser
-- [ ] Token Operations
-  - [ ] Send/Swap Tokens
-  - [ ] Token Launch (pump.fun)
-  - [ ] SOL Staking
-  - [ ] Dialect Blinks
 - [ ] NFT Operations
-- [ ] DeFi Integration
-  - [ ] Jupiter (Swaps, Price Data, Limit Orders, DCA)
-  - [ ] Pump.Fun Integration
+- [x] Basic Token Operations
+  - [x] Send/Swap Tokens
+  - [x] Token Launch (pump.fun)
+- [x] DeFi Integration
+  - [x] Jupiter
+    - [x] Swaps
+    - [x] Price API v2
+    - [x] Verified Token Search
+    - [ ] Limit Orders
+    - [ ] DCA
+  - [x] Pump.Fun Integration
+    - [x] Deploy Token
+  - [x] Dexscreener Integration
+    - [x] Token Profile
+    - [x] Paid Orders Check
+  - [ ] Blinks Integration
   - [ ] Magic Eden Integration
 
 ### Market Intelligence

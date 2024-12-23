@@ -18,8 +18,9 @@ import Logo from "@/components/logo";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import { ToolResult } from "@/components/message/tool-result"
-import { toast } from "sonner"
-import { getToolConfig } from "@/lib/tools/config"
+import { FloatingWallet } from "@/components/floating-wallet"
+import { useWalletPortfolio } from "@/hooks/use-wallet-portfolio"
+import { getToolConfig } from "@/ai/providers";
 
 // Types
 interface UploadingImage extends Attachment {
@@ -164,11 +165,11 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
             {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
                 const isCompleted = result !== undefined;
                 const isError = isCompleted && typeof result === 'object' && result !== null && 'error' in result;
-                const config = getToolConfig(toolName);
+                const config = getToolConfig(toolName)!;
                 const finalDisplayName = displayName || config.displayName;
 
                 const header = (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors rounded-lg cursor-pointer">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className={cn(
                             "h-1.5 w-1.5 rounded-full ring-2",
                             isCompleted
@@ -177,22 +178,12 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
                                     : "bg-emerald-500 ring-emerald-500/20"
                                 : "bg-amber-500 ring-amber-500/20 animate-pulse"
                         )} />
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="text-xs font-medium text-foreground/90 truncate">
-                                {finalDisplayName}
-                            </span>
-                            {config.description && (
-                                <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
-                                    {config.description}
-                                </span>
-                            )}
-                            <span className="font-mono text-[10px] text-muted-foreground/70">
-                                {toolCallId.slice(0, 8)}
-                            </span>
-                        </div>
-                        {isCompleted && !isError && (
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/70 transition-transform ui-expanded:rotate-180" />
-                        )}
+                        <span className="text-xs font-medium text-foreground/90 truncate">
+                            {finalDisplayName}
+                        </span>
+                        <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                            {toolCallId.slice(0, 9)}
+                        </span>
                     </div>
                 );
 
@@ -202,7 +193,7 @@ function MessageToolInvocations({ toolInvocations }: { toolInvocations: ToolInvo
                             <ToolResult
                                 toolName={toolName}
                                 result={result}
-                                expanded={!config.isCollapsible}
+                                expanded={false}
                                 header={header}
                             />
                         ) : (
@@ -530,6 +521,7 @@ export default function ChatInterface({ id, initialMessages = [] }: { id: string
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const { attachments, setAttachments, handleImageUpload, removeAttachment } = useImageUpload()
+    const { data: portfolio, isLoading: isPortfolioLoading } = useWalletPortfolio()
 
     const scrollToBottom = useCallback(() => {
         if (messagesEndRef.current) {
@@ -602,6 +594,14 @@ export default function ChatInterface({ id, initialMessages = [] }: { id: string
             <div className="sticky bottom-0 z-10">
                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background via-background/95 to-background/0 pointer-events-none" />
                 <div className="relative mx-auto w-full max-w-3xl px-4 py-4">
+                    {/* Floating Wallet */}
+                    {portfolio && (
+                        <FloatingWallet
+                            data={portfolio}
+                            isLoading={isPortfolioLoading}
+                        />
+                    )}
+
                     <form onSubmit={handleFormSubmit} className="space-y-4">
                         <div className="relative overflow-hidden rounded-2xl bg-muted">
                             {attachments.length > 0 && (

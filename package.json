@@ -1,13 +1,14 @@
 {
   "name": "neur-app",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "private": true,
   "scripts": {
     "vercel-build": "pnpm npx prisma generate && next build",
     "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:reset": "pnpm npx prisma generate && pnpm npx prisma migrate reset && pnpm npx prisma db push"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.5",
