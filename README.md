@@ -53,12 +53,14 @@ Our current focus is developing core infrastructure and agent functionality.
   - [ ] SOL Staking
   - [ ] Dialect Blinks
 - [ ] NFT Operations
-- [ ] DeFi Integration
+- [x] DeFi Integration
   - [x] Jupiter
     - [x] Swaps
-    - [x] Verified Token List 
+    - [x] Price API v2
+    - [x] Verified Token Search 
   - [x] Pump.Fun Integration
     - [x] Deploy Token
+  - [x] Dexscreener Integration
   - [ ] Magic Eden Integration
 
 ### Market Intelligence
