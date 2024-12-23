@@ -24,7 +24,7 @@ Neur is an open-source, full-stack application that brings together the power of
 
 ## Roadmap
 
-We aim to build the **most advanced interface** for the Solana Network, enabling users to design AI agents for autonomous actions and custom strategies. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
+We aim to build the **most advanced interface** for the Solana Network, enabling users to design AI agents for **autonomous actions and custom strategies**. These agents merge live blockchain data with real-time internet insights, offering an integrated solution for managing the crypto ecosystem.
 
 Our current focus is developing core infrastructure and agent functionality.
 

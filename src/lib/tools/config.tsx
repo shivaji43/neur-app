@@ -62,7 +62,8 @@ export const toolConfigs: Record<string, ToolConfig> = {
     getWalletPortfolio: {
         displayName: "💰 Wallet Portfolio",
         description: "Display wallet portfolio information",
-        renderResult: (result: unknown) => {
+        renderResult: (raw: unknown) => {
+            const result = (raw as { data: any }).data;
             if (!result || typeof result !== 'object') return null;
             return <WalletPortfolio data={result as Portfolio} />;
         }

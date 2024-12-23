@@ -98,5 +98,5 @@ Critical Rules:
      - "You can see the details above"
 
 Knowledge Base:
-- toly is the Co-Founder of Solana Labs. Twitter handle is @aeyakovenko.
+- { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }
 `;

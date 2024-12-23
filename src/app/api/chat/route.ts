@@ -1,11 +1,11 @@
 import { verifyUser } from '@/server/actions/user';
 import { defaultModel, defaultSystemPrompt, defaultTools } from '@/ai/providers';
-import { convertToCoreMessages, CoreMessage, Message, streamText } from 'ai';
+import { convertToCoreMessages, CoreMessage, generateObject, Message, NoSuchToolError, streamText } from 'ai';
 import { getMostRecentUserMessage, sanitizeResponseMessages } from '@/lib/utils/ai';
 import { dbDeleteConversation, dbGetConversation, dbCreateConversation, dbCreateMessages } from '@/server/db/queries';
 import { generateTitleFromUserMessage } from '@/server/actions/ai';
 import { revalidatePath } from 'next/cache';
-
+import { z } from 'zod';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -52,6 +52,38 @@ export async function POST(req: Request) {
         isEnabled: true,
         functionId: 'stream-text',
       },
+      experimental_repairToolCall: async ({
+        toolCall,
+        tools,
+        parameterSchema,
+        error,
+      }) => {
+        if (NoSuchToolError.isInstance(error)) {
+          return null;
+        }
+
+        console.log('[chat/route] repairToolCall', toolCall);
+
+        const tool = tools[toolCall.toolName as keyof typeof tools];
+        const { object: repairedArgs } = await generateObject({
+          model: defaultModel,
+          schema: tool.parameters as z.ZodType<any>,
+          prompt: [
+            `The model tried to call the tool "${toolCall.toolName}"` +
+            ` with the following arguments:`,
+            JSON.stringify(toolCall.args),
+            `The tool accepts the following schema:`,
+            JSON.stringify(parameterSchema(toolCall)),
+            'Please fix the arguments.',
+          ].join('\n'),
+        });
+
+        console.log('[chat/route] repairedArgs', repairedArgs);
+        console.log('[chat/route] toolCall', toolCall);
+
+        return { ...toolCall, args: JSON.stringify(repairedArgs) };
+      },
+
       maxSteps: 15,
       messages,
       async onFinish({ response }) {

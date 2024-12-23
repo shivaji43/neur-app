@@ -1,15 +1,15 @@
 import { z } from "zod";
 import { SolanaUtils } from "@/lib/solana";
-import { getBalance, searchWalletAssets } from "@/lib/solana/helius";
+import { searchWalletAssets } from "@/lib/solana/helius";
 import { transformToPortfolio } from "@/types/helius/portfolio";
 
 const publicKeySchema = z.string()
     .regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, 'Invalid Solana address format. Must be a base58 encoded string.')
-    .describe('The Solana wallet address to get the balance of.');
+    .describe('A valid Solana wallet address. (base58 encoded)');
 
 const domainSchema = z.string()
     .regex(/^[a-zA-Z0-9-]+\.sol$/, 'Invalid Solana domain format. Must be a valid Solana domain name.')
-    .describe('The Solana domain name to resolve to an address.');
+    .describe('A Solana domain name. (e.g. toly.sol). Needed for resolving a domain to an address.  ');
 
 const wallet = {
     resolveSolanaDomain: {
@@ -23,23 +23,30 @@ const wallet = {
         description: 'Get the portfolio of a Solana wallet, including detailed token information & total value, SOL value etc.',
         parameters: z.object({ walletAddress: publicKeySchema }),
         execute: async ({ walletAddress }: { walletAddress: string }) => {
-            const { fungibleTokens } = await searchWalletAssets(walletAddress);
-            const portfolio = transformToPortfolio(walletAddress, fungibleTokens, []);
-            portfolio.tokens = portfolio.tokens
-                // Filter tokens with value > $10
-                .filter(token => token.balance * token.pricePerToken > 10 || token.symbol === "SOL")
-                // Sort tokens by value
-                .sort((a, b) => b.balance * b.pricePerToken - a.balance * a.pricePerToken)
-                // Limit to 10 tokens
-                .slice(0, 10);
+            console.log('[getWalletPortfolio] walletAddress', walletAddress);
+            try {
+                const { fungibleTokens } = await searchWalletAssets(walletAddress);
+                const portfolio = transformToPortfolio(walletAddress, fungibleTokens, []);
+                const solanaToken = portfolio.tokens.find(token => token.symbol === "SOL");
 
-            // make SOL token the first one
-            const solanaToken = portfolio.tokens.find(token => token.symbol === "SOL");
-            if (solanaToken) {
-                portfolio.tokens.unshift(solanaToken);
+                portfolio.tokens = portfolio.tokens
+                    .filter(token => token.balance * token.pricePerToken > 10 || token.symbol === "SOL")
+                    .sort((a, b) => b.balance * b.pricePerToken - a.balance * a.pricePerToken)
+                    .slice(0, 10);
+
+                if (solanaToken) {
+                    portfolio.tokens.unshift(solanaToken);
+                } else {
+                    console.error('[getWalletPortfolio] No SOL token found');
+                }
+
+                return {
+                    suppressFollowUp: true,
+                    data: portfolio,
+                };
+            } catch (error) {
+                throw new Error(`Failed to get wallet portfolio: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
-
-            return portfolio;
         },
     },
     batchGetTokenMarketCap: {
