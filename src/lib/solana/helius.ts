@@ -2,7 +2,7 @@ import { FungibleToken } from "@/types/helius/fungibleToken";
 import { NonFungibleToken } from "@/types/helius/nonFungibleToken";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const HELIUS_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL!;
+const HELIUS_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
 type HeliusMethod = "searchAssets" | "getBalance";
 

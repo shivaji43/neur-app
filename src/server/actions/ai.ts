@@ -64,7 +64,7 @@ export const retrieveAgentKit = actionClient
         console.log("[retrieveAgentKit] wallet", wallet.publicKey)
 
         const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
-        const rpc = process.env.NEXT_PUBLIC_HELIUS_RPC_URL!;
+        const rpc = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
         const openaiKey = process.env.OPENAI_API_KEY!;
         const agent = new SolanaAgentKit(privateKey, rpc, openaiKey);
 
