@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { ExternalLink } from "lucide-react"
 import { formatNumber } from "@/lib/format"
+import { formatDistanceToNow } from "date-fns"
 
 interface Token {
     address: string
@@ -14,6 +14,8 @@ interface Token {
     liquidity: number
     transactions24h: number
     image: string
+    holdersCount?: number
+    listedAt?: string
 }
 
 interface TokenGridProps {
@@ -49,6 +51,26 @@ function TokenCardSkeleton() {
             </div>
         </div>
     )
+}
+
+function formatHoldersCount(count: number | undefined): string {
+    if (!count) return "Unknown"
+    if (count >= 1000000) {
+        return `${(count / 1000000).toFixed(1)}M`
+    }
+    if (count >= 1000) {
+        return `${(count / 1000).toFixed(1)}K`
+    }
+    return count.toString()
+}
+
+function formatListedTime(date: string | undefined): string {
+    if (!date) return "Unknown"
+    try {
+        return formatDistanceToNow(new Date(date), { addSuffix: true })
+    } catch (error) {
+        return "Unknown"
+    }
 }
 
 function TokenCard({ token, className }: TokenCardProps) {
@@ -87,10 +109,6 @@ function TokenCard({ token, className }: TokenCardProps) {
                             {token.symbol}
                         </span>
                     </div>
-                    <div className="mt-1 flex items-baseline gap-2">
-                        <span className="text-sm font-medium">$0.0234</span>
-                        <span className="text-[10px] text-green-500">+12.5%</span>
-                    </div>
                 </div>
             </div>
 
@@ -109,9 +127,9 @@ function TokenCard({ token, className }: TokenCardProps) {
             {/* Additional Info */}
             <div className="flex items-center justify-between border-t border-border/50 px-3 py-2 text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-2">
-                    <span>2.4K holders</span>
+                    <span>{formatHoldersCount(token.holdersCount)} holders</span>
                     <span className="h-3 w-px bg-border/50" />
-                    <span>Listed 2d ago</span>
+                    <span>Listed {formatListedTime(token.listedAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="rounded bg-muted/50 px-1.5 py-0.5">

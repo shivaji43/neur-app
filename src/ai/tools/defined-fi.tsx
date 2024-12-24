@@ -116,7 +116,9 @@ export const definedTools = {
                         liquidity: token.liquidity,
                         transactions24h: token.uniqueTransactions24,
                         trendingScore24: token.uniqueTransactions24,
-                        image: token.token.imageThumbUrl
+                        image: token.token.imageThumbUrl,
+                        listedAt: token.createdAt ? new Date(token.createdAt * 1000).toISOString() : undefined,
+                        holdersCount: token.holders
                     }))
                     .sort((a, b) => {
                         const getValue = (obj: any, key: string) => parseFloat(obj[key] || '0');
