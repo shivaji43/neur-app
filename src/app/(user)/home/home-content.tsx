@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { checkEAPTransaction } from "@/server/actions/eap"
 
-const EAP_PRICE = 0.5
+const EAP_PRICE = 1.0
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
 
 const EAP_BENEFITS = [

@@ -8,7 +8,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 import prisma from "@/lib/prisma"
 
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
-const EAP_PRICE = 0.5
+const EAP_PRICE = 1.0
 
 interface MemoData {
     type: string
