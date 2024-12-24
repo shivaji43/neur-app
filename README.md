@@ -29,6 +29,7 @@ We aim to build the **most advanced interface** for the Solana Network, enabling
 Our current focus is developing core infrastructure and agent functionality.
 
 ### Core Infrastructure
+
 - [x] Landing Page
 - [x] User Model
 - [x] Chat Interface
@@ -38,6 +39,7 @@ Our current focus is developing core infrastructure and agent functionality.
   - [ ] Migrate to Phantom Embedded Wallet
 
 ### Agent Capabilities
+
 - [x] Multi-Tool Usage
 - [ ] Multimodal
   - [x] Image
@@ -48,6 +50,7 @@ Our current focus is developing core infrastructure and agent functionality.
   - [ ] Twitter Search
 
 ### Solana Integration
+
 - [x] SNS (Solana Name Service) Resolver
 - [x] Wallet Portfolio
 - [ ] Transaction Parser
@@ -71,10 +74,12 @@ Our current focus is developing core infrastructure and agent functionality.
   - [ ] Magic Eden Integration
 
 ### Market Intelligence
+
 - [x] Token Trends (via Defined.fi)
 - [ ] NFT Trends (via Magic Eden)
 
 ### Automation
+
 - [ ] Automated On-Chain Actions
 - [ ] Personalized Agent
 - [ ] Trading AI
@@ -82,3 +87,7 @@ Our current focus is developing core infrastructure and agent functionality.
 ## Contributing
 
 We welcome contributions from the community! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+
+## Development
+
+Information about setting up a local development environment can be found in [LOCAL_DEV.md](LOCAL_DEV.md).
