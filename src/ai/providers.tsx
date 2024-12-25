@@ -1,18 +1,25 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { solanaTools } from './tools/solana';
 import { ReactNode } from 'react';
+
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
+
 import { definedTools } from './tools/defined-fi';
-import { pumpfunTools } from './tools/pumpfun';
-import { jupiterTools } from './tools/jupiter';
 import { dexscreenerTools } from './tools/dexscreener';
+import { jupiterTools } from './tools/jupiter';
+import { magicEdenTools } from './tools/magic-eden';
+import { pumpfunTools } from './tools/pumpfun';
+import { solanaTools } from './tools/solana';
+
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
 
-const openai = createOpenAI({ baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1', apiKey: process.env.OPENAI_API_KEY });
+const openai = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY,
+});
 const gpt4o = openai('gpt-4o');
 
 export const defaultSystemPrompt = `
@@ -40,41 +47,44 @@ Common tokens:
 export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
 
 export interface ToolConfig {
-   displayName?: string;
-   icon?: ReactNode;
-   isCollapsible?: boolean;
-   description: string;
-   parameters: z.ZodType<any>;
-   execute: <T>(params: z.infer<T extends z.ZodType ? T : never>) => Promise<any>;
-   render?: (result: unknown) => React.ReactNode | null;
+  displayName?: string;
+  icon?: ReactNode;
+  isCollapsible?: boolean;
+  description: string;
+  parameters: z.ZodType<any>;
+  execute: <T>(
+    params: z.infer<T extends z.ZodType ? T : never>,
+  ) => Promise<any>;
+  render?: (result: unknown) => React.ReactNode | null;
 }
 
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {
-   if (result && typeof result === 'object' && 'error' in result) {
-      return (
-         <div className="pl-3.5 mt-2 text-sm text-destructive">
-            {String((result as { error: unknown }).error)}
-         </div>
-      )
-   }
-
-   return (
-      <div className="pl-3.5 mt-2 text-xs font-mono border-l border-border/40 text-muted-foreground/90">
-         <pre className="whitespace-pre-wrap break-all truncate max-h-[200px] max-w-[400px]">
-            {JSON.stringify(result, null, 2).trim()}
-         </pre>
+  if (result && typeof result === 'object' && 'error' in result) {
+    return (
+      <div className="mt-2 pl-3.5 text-sm text-destructive">
+        {String((result as { error: unknown }).error)}
       </div>
-   )
+    );
+  }
+
+  return (
+    <div className="mt-2 border-l border-border/40 pl-3.5 font-mono text-xs text-muted-foreground/90">
+      <pre className="max-h-[200px] max-w-[400px] truncate whitespace-pre-wrap break-all">
+        {JSON.stringify(result, null, 2).trim()}
+      </pre>
+    </div>
+  );
 }
 
 export const defaultTools: Record<string, ToolConfig> = {
-   ...solanaTools,
-   ...definedTools,
-   ...pumpfunTools,
-   ...jupiterTools,
-   ...dexscreenerTools
-}
+  ...solanaTools,
+  ...definedTools,
+  ...pumpfunTools,
+  ...jupiterTools,
+  ...dexscreenerTools,
+  ...magicEdenTools,
+};
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
-   return defaultTools[toolName]
+  return defaultTools[toolName];
 }

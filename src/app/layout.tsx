@@ -1,45 +1,49 @@
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
 
-import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { ThemeProvider } from "@/components/provider-theme";
-import { cn } from "@/lib/utils";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
-import AuthProviders from "@/components/provider-auth";
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
+import AuthProviders from '@/components/provider-auth';
+import { ThemeProvider } from '@/components/provider-theme';
+import { Toaster } from '@/components/ui/sonner';
+import { cn } from '@/lib/utils';
+
+import './globals.css';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Neur",
-    default: "Neur - The Intelligent Copilot for Solana",
+    template: '%s | Neur',
+    default: 'Neur - The Intelligent Copilot for Solana',
   },
-  description: "The Intelligent Copilot elevating your Solana experience.",
+  description: 'The Intelligent Copilot elevating your Solana experience.',
 
   icons: {
-    icon: "/logo.svg",
+    icon: '/logo.svg',
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={
-        cn(
+      <body
+        className={cn(
           `${geistSans.variable} ${geistMono.variable}`,
-          "overflow-x-hidden antialiased",
-        )
-      }>
+          'overflow-x-hidden antialiased',
+        )}
+      >
         <AuthProviders>
           <ThemeProvider
             attribute="class"

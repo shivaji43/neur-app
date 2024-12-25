@@ -1,25 +1,29 @@
-import crypto from "crypto";
+import crypto from 'crypto';
 
 class DefinedClient {
-  private readonly endpoint = "https://graph.codex.io/graphql";
+  private readonly endpoint = 'https://graph.codex.io/graphql';
   private tokenCache: { token: string; updatedAt: number } | null = null;
 
   private async generateToken(): Promise<string> {
-    const timestamp = Math.floor(Date.now() / 1e3) - (Math.floor(Date.now() / 1e3) % 300);
+    const timestamp =
+      Math.floor(Date.now() / 1e3) - (Math.floor(Date.now() / 1e3) % 300);
     const encoder = new TextEncoder();
     const data = encoder.encode(timestamp.toString());
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
 
-    const response = await fetch(`https://d2gndqco47nwa6.cloudfront.net?challenge=${encodeURIComponent(hashBase64)}`, { method: "GET" });
+    const response = await fetch(
+      `https://d2gndqco47nwa6.cloudfront.net?challenge=${encodeURIComponent(hashBase64)}`,
+      { method: 'GET' },
+    );
 
     if (!response.ok) {
-      throw new Error("Failed to get JWT token");
+      throw new Error('Failed to get JWT token');
     }
 
     const token = await response.text();
-    if (token.includes("Failed challenge")) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (token.includes('Failed challenge')) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       return this.generateToken();
     }
 
@@ -40,14 +44,17 @@ class DefinedClient {
     return token;
   }
 
-  private async request<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  private async request<T>(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<T> {
     const token = await this.getValidToken();
 
     const response = await fetch(this.endpoint, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         query,
@@ -63,7 +70,9 @@ class DefinedClient {
     return data as T;
   }
 
-  async filterTokens(options: FilterTokensOptions): Promise<FilterTokensResponse> {
+  async filterTokens(
+    options: FilterTokensOptions,
+  ): Promise<FilterTokensResponse> {
     const query = `
       query FilterTokens($filters: TokenFilters, $statsType: TokenPairStatisticsType, $phrase: String, $tokens: [String], $rankings: [TokenRanking], $limit: Int, $offset: Int) {
         filterTokens(
@@ -169,7 +178,10 @@ class DefinedClient {
         }
       }
     `;
-    return await this.request<FilterTokensResponse>(query, options as Record<string, unknown>);
+    return await this.request<FilterTokensResponse>(
+      query,
+      options as Record<string, unknown>,
+    );
   }
 }
 
@@ -305,6 +317,8 @@ export interface Token {
 
 const client = new DefinedClient();
 
-export async function filterSolanaTokens(options: FilterTokensOptions): Promise<FilterTokensResponse> {
+export async function filterSolanaTokens(
+  options: FilterTokensOptions,
+): Promise<FilterTokensResponse> {
   return client.filterTokens(options);
 }

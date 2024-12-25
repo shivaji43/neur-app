@@ -1,27 +1,27 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 
 export function useMediaQuery(query: string): boolean {
-    const [matches, setMatches] = useState(false)
-    const [mounted, setMounted] = useState(false)
+  const [matches, setMatches] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-    useEffect(() => {
-        setMounted(true)
+  useEffect(() => {
+    setMounted(true);
 
-        const mediaQuery = window.matchMedia(query)
-        setMatches(mediaQuery.matches)
+    const mediaQuery = window.matchMedia(query);
+    setMatches(mediaQuery.matches);
 
-        const handler = (event: MediaQueryListEvent) => {
-            setMatches(event.matches)
-        }
+    const handler = (event: MediaQueryListEvent) => {
+      setMatches(event.matches);
+    };
 
-        mediaQuery.addEventListener('change', handler)
-        return () => mediaQuery.removeEventListener('change', handler)
-    }, [query])
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [query]);
 
-    // Prevent hydration mismatch by returning false until mounted
-    if (!mounted) return false
+  // Prevent hydration mismatch by returning false until mounted
+  if (!mounted) return false;
 
-    return matches
-} 
+  return matches;
+}

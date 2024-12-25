@@ -1,29 +1,39 @@
-"use client";
+'use client';
 
-import { Brand } from "@/components/logo";
-import Link from "next/link";
-import AnimatedShinyText from "@/components/ui/animated-shiny-text";
-import { RiTwitterXFill } from "@remixicon/react";
-import BlurFade from "@/components/ui/blur-fade";
-import { Button } from "@/components/ui/button";
-import { RainbowButton } from "@/components/ui/rainbow-button";
-import { useState, useRef } from "react";
-import { AiParticlesBackground } from "@/components/ui/ai-particles-background";
-import { useLogin } from "@privy-io/react-auth";
-import { useRouter } from "next/navigation";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { BorderBeam } from "@/components/ui/border-beam";
-import Image from "next/image";
-import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
-import Marquee from "@/components/ui/marquee";
-import { BrainCircuitIcon, ZapIcon, LinkIcon, ShieldIcon, ActivityIcon, BookOpenIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { IntegrationsBackground } from "@/components/ui/integrations-background";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { useRef, useState } from 'react';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { useLogin } from '@privy-io/react-auth';
+import { GitHubLogoIcon } from '@radix-ui/react-icons';
+import { RiTwitterXFill } from '@remixicon/react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import {
+  ActivityIcon,
+  BookOpenIcon,
+  BrainCircuitIcon,
+  LinkIcon,
+  ShieldIcon,
+  ZapIcon,
+} from 'lucide-react';
+
+import { Brand } from '@/components/logo';
+import { AiParticlesBackground } from '@/components/ui/ai-particles-background';
+import AnimatedShinyText from '@/components/ui/animated-shiny-text';
+import { BentoCard, BentoGrid } from '@/components/ui/bento-grid';
+import BlurFade from '@/components/ui/blur-fade';
+import { BorderBeam } from '@/components/ui/border-beam';
+import { Button } from '@/components/ui/button';
+import { IntegrationsBackground } from '@/components/ui/integrations-background';
+import Marquee from '@/components/ui/marquee';
+import { RainbowButton } from '@/components/ui/rainbow-button';
+import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: "Github", href: "https://git.new/neur", icon: GitHubLogoIcon },
-  { label: "Docs", href: "https://docs.neur.sh", icon: BookOpenIcon },
+  { label: 'Github', href: 'https://git.new/neur', icon: GitHubLogoIcon },
+  { label: 'Docs', href: 'https://docs.neur.sh', icon: BookOpenIcon },
 ];
 
 const Header = ({ handleLogin }: { handleLogin: () => void }) => {
@@ -31,15 +41,15 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
 
   return (
     <BlurFade delay={0.1} className="relative z-50">
-      <header className="fixed top-0 left-0 right-0">
+      <header className="fixed left-0 right-0 top-0">
         <div className="mx-auto max-w-6xl px-4 py-4">
-          <div className="backdrop-blur-md bg-muted/70 rounded-xl shadow-lg border border-border/50">
-            <div className="px-4 py-2 flex items-center justify-between">
+          <div className="rounded-xl border border-border/50 bg-muted/70 shadow-lg backdrop-blur-md">
+            <div className="flex items-center justify-between px-4 py-2">
               <div className="relative">
-                <Brand className="hover:opacity-80 transition-opacity scale-95" />
+                <Brand className="scale-95 transition-opacity hover:opacity-80" />
               </div>
 
-              <nav className="hidden md:flex md:ml-auto md:mr-8">
+              <nav className="hidden md:ml-auto md:mr-8 md:flex">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -48,11 +58,11 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="relative px-4 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors group flex items-center gap-1.5"
+                      className="group relative flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                     >
                       <Icon className="h-4 w-4" />
                       {item.label}
-                      <span className="absolute inset-x-4 -bottom-px h-px bg-gradient-to-r from-primary/0 via-primary/70 to-primary/0 scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                      <span className="absolute inset-x-4 -bottom-px h-px scale-x-0 bg-gradient-to-r from-primary/0 via-primary/70 to-primary/0 transition-transform duration-300 group-hover:scale-x-100" />
                     </a>
                   );
                 })}
@@ -61,7 +71,7 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
-                  className="hover:bg-primary hover:text-primary-foreground transition-colors rounded-lg px-4 h-9 text-sm"
+                  className="h-9 rounded-lg px-4 text-sm transition-colors hover:bg-primary hover:text-primary-foreground"
                   onClick={handleLogin}
                 >
                   Login
@@ -70,7 +80,7 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="md:hidden h-9 w-9"
+                  className="h-9 w-9 md:hidden"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 >
                   <svg
@@ -95,7 +105,7 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
           </div>
 
           {isMobileMenuOpen && (
-            <div className="md:hidden absolute top-full left-4 right-4 mt-2 p-3 backdrop-blur-md bg-background/95 rounded-lg border border-border/50 shadow-lg">
+            <div className="absolute left-4 right-4 top-full mt-2 rounded-lg border border-border/50 bg-background/95 p-3 shadow-lg backdrop-blur-md md:hidden">
               <nav className="flex flex-col gap-1.5">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -105,7 +115,7 @@ const Header = ({ handleLogin }: { handleLogin: () => void }) => {
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-md hover:bg-primary/5 flex items-center gap-2"
+                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Icon className="h-4 w-4" />
@@ -126,7 +136,7 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
   const productRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: productRef,
-    offset: ["start end", "end start"]
+    offset: ['start end', 'end start'],
   });
 
   const rotateX = useTransform(scrollYProgress, [0, 0.5], [30, 0]);
@@ -136,22 +146,26 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
   return (
     <section className="relative pt-[5.75rem]" ref={productRef}>
       {/* Content */}
-      <div className="relative mx-auto max-w-screen-xl px-6 pt-12 pb-6 md:pt-16 md:pb-8 text-center">
+      <div className="relative mx-auto max-w-screen-xl px-6 pb-6 pt-12 text-center md:pb-8 md:pt-16">
         <div className="mx-auto max-w-3xl">
           <BlurFade delay={0.3} className="pointer-events-none select-none">
             <div className="inline-flex items-center rounded-full border border-primary/20 bg-muted/80 px-4 py-1.5 shadow-lg backdrop-blur-sm">
-              <span className="text-sm font-medium text-primary">✨ Introducing Neur Agent</span>
+              <span className="text-sm font-medium text-primary">
+                ✨ Introducing Neur Agent
+              </span>
             </div>
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-              The <AnimatedShinyText className="inline">
+              The{' '}
+              <AnimatedShinyText className="inline">
                 <span>Intelligent Copilot</span>
-              </AnimatedShinyText> for{" "}
-              <span>Solana</span>
+              </AnimatedShinyText>{' '}
+              for <span>Solana</span>
             </h1>
 
             <p className="mt-4 text-lg text-muted-foreground">
-              Elevate your Solana experience with AI-powered insights and delegated actions
+              Elevate your Solana experience with AI-powered insights and
+              delegated actions
             </p>
           </BlurFade>
 
@@ -159,7 +173,8 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
             <div className="mt-8">
               <RainbowButton
                 onClick={handleLogin}
-                className="min-w-[180px] h-12 text-base hover:scale-105 transition-all duration-300">
+                className="h-12 min-w-[180px] text-base transition-all duration-300 hover:scale-105"
+              >
                 Getting Started
               </RainbowButton>
             </div>
@@ -182,7 +197,7 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
                 transformPerspective: 1000,
               }}
               transition={{
-                type: "spring",
+                type: 'spring',
                 stiffness: 50,
                 damping: 20,
                 delay: 0.5,
@@ -212,12 +227,16 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
                     priority
                   />
                 </div>
-                <BorderBeam className="opacity-0 group-hover:opacity-100" duration={10} size={300} />
+                <BorderBeam
+                  className="opacity-0 group-hover:opacity-100"
+                  duration={10}
+                  size={300}
+                />
               </div>
 
               {/* Decorative elements */}
               <div className="absolute -left-4 -top-4 h-72 w-72 animate-blob rounded-full bg-primary/5 mix-blend-multiply blur-xl" />
-              <div className="absolute -right-4 -top-4 h-72 w-72 animate-blob rounded-full bg-secondary/5 mix-blend-multiply blur-xl animation-delay-2000" />
+              <div className="animation-delay-2000 absolute -right-4 -top-4 h-72 w-72 animate-blob rounded-full bg-secondary/5 mix-blend-multiply blur-xl" />
             </motion.div>
           </div>
         </BlurFade>
@@ -229,9 +248,10 @@ const Hero = ({ handleLogin }: { handleLogin: () => void }) => {
 const features = [
   {
     Icon: BrainCircuitIcon,
-    name: "Cutting-Edge AI Intelligence",
-    description: "Harness the power of the world&apos;s most advanced AI models, including Claude 3.5-Sonnet and GPT-4o, to intelligently analyze your Solana transactions in real-time, providing data-driven insights and seamless automated actions.",
-    className: "col-span-1 sm:col-span-3 lg:col-span-2",
+    name: 'Cutting-Edge AI Intelligence',
+    description:
+      'Harness the power of the world&apos;s most advanced AI models, including Claude 3.5-Sonnet and GPT-4o, to intelligently analyze your Solana transactions in real-time, providing data-driven insights and seamless automated actions.',
+    className: 'col-span-1 sm:col-span-3 lg:col-span-2',
     background: (
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
         <div className="relative h-full w-full">
@@ -244,9 +264,10 @@ const features = [
   },
   {
     Icon: ZapIcon,
-    name: "Seamless Execution",
-    description: "Experience ultra-efficient, frictionless transactions powered by our deep Solana integration. Enjoy smooth, rapid execution without the need for compromise.",
-    className: "col-span-1 sm:col-span-3 lg:col-span-1",
+    name: 'Seamless Execution',
+    description:
+      'Experience ultra-efficient, frictionless transactions powered by our deep Solana integration. Enjoy smooth, rapid execution without the need for compromise.',
+    className: 'col-span-1 sm:col-span-3 lg:col-span-1',
     background: (
       <Marquee
         pauseOnHover
@@ -258,7 +279,7 @@ const features = [
             className="mx-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-muted/30 px-3 py-2"
           >
             <div className="text-sm font-medium">
-              {idx % 2 === 0 ? "Instant, frictionless" : "Seamless transaction"}
+              {idx % 2 === 0 ? 'Instant, frictionless' : 'Seamless transaction'}
             </div>
           </div>
         ))}
@@ -267,16 +288,18 @@ const features = [
   },
   {
     Icon: LinkIcon,
-    name: "Comprehensive Ecosystem Integration",
-    description: "Effortlessly connect with the full spectrum of Solana's protocols and services. Our platform is designed for seamless AI-powered collaboration, ensuring full synergy with the ecosystem.",
-    className: "col-span-1 sm:col-span-3 lg:col-span-3",
+    name: 'Comprehensive Ecosystem Integration',
+    description:
+      "Effortlessly connect with the full spectrum of Solana's protocols and services. Our platform is designed for seamless AI-powered collaboration, ensuring full synergy with the ecosystem.",
+    className: 'col-span-1 sm:col-span-3 lg:col-span-3',
     background: <IntegrationsBackground />,
   },
   {
     Icon: GitHubLogoIcon,
-    name: "Open Source & Community Driven",
-    description: "Built with transparency and collaboration in mind. Our full-stack application is completely open source, community-driven, and welcomes contributions from developers worldwide to shape the future of Solana AI tools.",
-    className: "col-span-1 sm:col-span-3 lg:col-span-1",
+    name: 'Open Source & Community Driven',
+    description:
+      'Built with transparency and collaboration in mind. Our full-stack application is completely open source, community-driven, and welcomes contributions from developers worldwide to shape the future of Solana AI tools.',
+    className: 'col-span-1 sm:col-span-3 lg:col-span-1',
     background: (
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
         <div className="h-32 w-32 animate-pulse rounded-full border-4 border-accent"></div>
@@ -285,9 +308,10 @@ const features = [
   },
   {
     Icon: ActivityIcon,
-    name: "AI-Driven Automations & Agents",
-    description: "Revolutionize your workflows with powerful AI agents and custom automations designed to handle complex tasks. *Coming soon* to streamline your operations even further.",
-    className: "col-span-1 sm:col-span-3 lg:col-span-2",
+    name: 'AI-Driven Automations & Agents',
+    description:
+      'Revolutionize your workflows with powerful AI agents and custom automations designed to handle complex tasks. *Coming soon* to streamline your operations even further.',
+    className: 'col-span-1 sm:col-span-3 lg:col-span-2',
     background: (
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
         <div className="h-32 w-32 animate-pulse rounded-full border-4 border-accent"></div>
@@ -300,11 +324,11 @@ const Features = () => {
   return (
     <BlurFade delay={0.5} className="relative py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl mb-3 sm:mb-4">
+        <div className="mb-12 text-center sm:mb-16">
+          <h2 className="mb-3 text-2xl font-bold tracking-tight sm:mb-4 sm:text-4xl">
             Tailored for Solana
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <p className="text-sm text-muted-foreground sm:text-base">
             Seamless integration with the world&apos;s leading AI-models
           </p>
         </div>
@@ -315,8 +339,8 @@ const Features = () => {
               key={idx}
               {...feature}
               className={cn(
-                "group relative overflow-hidden rounded-2xl sm:rounded-3xl border bg-card p-4 sm:p-6 shadow-lg transition-all hover:shadow-xl",
-                feature.className
+                'group relative overflow-hidden rounded-2xl border bg-card p-4 shadow-lg transition-all hover:shadow-xl sm:rounded-3xl sm:p-6',
+                feature.className,
               )}
             />
           ))}
@@ -329,14 +353,17 @@ const Features = () => {
 const Footer = () => {
   return (
     <footer className="mt-auto py-4">
-      <BlurFade delay={0.5} className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+      <BlurFade
+        delay={0.5}
+        className="flex items-center justify-center gap-3 text-sm text-muted-foreground"
+      >
         <p>© 2024 Neur. All rights reserved.</p>
         <span>|</span>
         <Link
           href="https://x.com/neur_sh"
           target="_blank"
           title="Follow us on X"
-          className="hover:text-primary transition-colors hover:scale-105"
+          className="transition-colors hover:scale-105 hover:text-primary"
         >
           <RiTwitterXFill className="h-4 w-4" />
         </Link>
@@ -346,18 +373,24 @@ const Footer = () => {
 };
 
 export default function Home() {
-  const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
+  const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
   const router = useRouter();
   let { login } = useLogin({
-    onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, loginAccount) => {
-      router.push('/home')
-    }
+    onComplete: (
+      user,
+      isNewUser,
+      wasAlreadyAuthenticated,
+      loginMethod,
+      loginAccount,
+    ) => {
+      router.push('/home');
+    },
   });
 
   if (isMaintenanceMode) {
     login = () => {
-      window.location.href = "https://x.com/neur_sh";
-    }
+      window.location.href = 'https://x.com/neur_sh';
+    };
   }
 
   return (

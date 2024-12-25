@@ -2,8 +2,10 @@
  * Debug mode state from environment variables
  * Can be controlled via NEXT_PUBLIC_DEBUG_MODE environment variable
  */
-export const isDebugMode = process.env.NEXT_PUBLIC_DEBUG_MODE === 'true' || 
-  (typeof window !== 'undefined' && localStorage.getItem('debug-mode') === 'true');
+export const isDebugMode =
+  process.env.NEXT_PUBLIC_DEBUG_MODE === 'true' ||
+  (typeof window !== 'undefined' &&
+    localStorage.getItem('debug-mode') === 'true');
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -21,7 +23,7 @@ interface DebugOptions {
 export function debugLog(
   message: string,
   data?: unknown,
-  options: DebugOptions = {}
+  options: DebugOptions = {},
 ): void {
   if (!isDebugMode) return;
 
@@ -30,10 +32,10 @@ export function debugLog(
   const prefix = `[${timestamp}] [${module}] [${level.toUpperCase()}]`;
 
   const logFn = console[level] || console.log;
-  
+
   if (data !== undefined) {
     logFn(`${prefix} ${message}`, data);
   } else {
     logFn(`${prefix} ${message}`);
   }
-} 
+}
