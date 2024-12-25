@@ -1,14 +1,13 @@
 import { FungibleToken } from "@/types/helius/fungibleToken";
 import { NonFungibleToken } from "@/types/helius/nonFungibleToken";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-
-const HELIUS_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
+import { RPC_URL } from "../constants";
 
 type HeliusMethod = "searchAssets" | "getBalance";
 
 const fetchHelius = async (method: HeliusMethod, params: any) => {
     try {
-        const response = await fetch(HELIUS_URL, {
+        const response = await fetch(RPC_URL, {
             next: { revalidate: 5 },
             method: "POST",
             headers: { "Content-Type": "application/json" },

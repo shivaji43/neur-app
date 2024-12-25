@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Bot, HomeIcon, Workflow } from "lucide-react"
+import { BookOpen, Bot, Brain, HomeIcon, Workflow } from "lucide-react"
 import {
     Sidebar,
     SidebarContent,
@@ -63,19 +63,26 @@ const ExploreItems = [
         external: true,
     },
     {
-        title: "Agents",
-        url: "/agents",
-        segment: "agents",
-        icon: Bot,
+        title: "Memories",
+        url: "/memories",
+        segment: "memories",
+        icon: Brain,
         external: false,
     },
-    {
-        title: "Automations",
-        url: "/automations",
-        segment: "automations",
-        icon: Workflow,
-        external: false,
-    }
+    // {
+    //     title: "Agents",
+    //     url: "/agents",
+    //     segment: "agents",
+    //     icon: Bot,
+    //     external: false,
+    // },
+    // {
+    //     title: "Automations",
+    //     url: "/automations",
+    //     segment: "automations",
+    //     icon: Workflow,
+    //     external: false,
+    // }
 ] as const
 
 export function AppSidebar() {

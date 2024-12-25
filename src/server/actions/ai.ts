@@ -5,9 +5,10 @@ import { type CoreUserMessage, generateText } from 'ai';
 import { z } from "zod"
 import { actionClient, ActionEmptyResponse } from "@/lib/safe-action"
 import prisma from '@/lib/prisma';
-import { SolanaAgentKit, createSolanaTools } from "solana-agent-kit";
+import { SolanaAgentKit } from "solana-agent-kit";
 import { verifyUser } from './user';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
+import { RPC_URL } from '@/lib/constants';
 
 export async function generateTitleFromUserMessage({ message }: { message: CoreUserMessage }) {
     const { text: title } = await generateText({
@@ -64,9 +65,8 @@ export const retrieveAgentKit = actionClient
         console.log("[retrieveAgentKit] wallet", wallet.publicKey)
 
         const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
-        const rpc = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
         const openaiKey = process.env.OPENAI_API_KEY!;
-        const agent = new SolanaAgentKit(privateKey, rpc, openaiKey);
+        const agent = new SolanaAgentKit(privateKey, RPC_URL, openaiKey);
 
         return { success: true, data: { agent } };
     })

@@ -65,8 +65,9 @@ const ConversationMenuItem = ({ id, title, active, onDelete, onRename }: Convers
             toast.dismiss(loadingToast)
             toast.success("Conversation deleted")
 
-            // Navigate after successful deletion
+            // Navigate and refresh after successful deletion
             router.replace('/home')
+            router.refresh()
         } catch (error) {
             console.error('Error deleting conversation:', error)
             toast.error("Failed to delete conversation")

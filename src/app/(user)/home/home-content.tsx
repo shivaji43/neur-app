@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { checkEAPTransaction } from "@/server/actions/eap"
+import { usePathname } from "next/navigation"
 
 const EAP_PRICE = 1.0
 const RECEIVE_WALLET_ADDRESS = process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!
@@ -46,6 +47,7 @@ function SectionTitle({ children }: SectionTitleProps) {
 }
 
 export function HomeContent() {
+    const pathname = usePathname()
     const suggestions = useMemo(() => getRandomSuggestions(4), [])
     const [showChat, setShowChat] = useState(false)
     const [isProcessing, setIsProcessing] = useState(false)
@@ -169,6 +171,13 @@ export function HomeContent() {
             setIsProcessing(false)
         }
     }
+
+    // Reset showChat when pathname changes to /home
+    useEffect(() => {
+        if (pathname === '/home') {
+            setShowChat(false)
+        }
+    }, [pathname])
 
     if (isLoading) {
         return (
