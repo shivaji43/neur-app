@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
-
 import { cn } from "@/lib/utils"
+import { Placeholder } from "@/lib/placeholder"
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -22,12 +22,16 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image> & { fallbackText?: string }
+>(({ className, fallbackText, ...props }, ref) => (
   <AvatarPrimitive.Image
     ref={ref}
     className={cn("aspect-square h-full w-full", className)}
     {...props}
+    onError={(e) => {
+      (e.target as HTMLImageElement).src = Placeholder.avatar();
+      if (props.onError) props.onError(e);
+    }}
   />
 ))
 AvatarImage.displayName = AvatarPrimitive.Image.displayName

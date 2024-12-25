@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import { Placeholder } from "@/lib/placeholder";
 
 // Types
 interface MagicEdenStats {
@@ -45,7 +45,6 @@ interface MagicEdenCollection {
     hasCNFTs: boolean;
 }
 
-// Helper Functions
 const formatSOL = (lamports: number) => {
     return (lamports / 1e9).toLocaleString(undefined, {
         minimumFractionDigits: 2,
@@ -53,8 +52,55 @@ const formatSOL = (lamports: number) => {
     });
 };
 
+const formatLargeNumber = (value: number) => {
+    if (value >= 1_000_000) {
+        return `${(value / 1_000_000).toFixed(2)}M`;
+    }
+    if (value >= 1_000) {
+        return `${(value / 1_000).toFixed(2)}K`;
+    }
+    return value.toFixed(2);
+};
+
 const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
+};
+
+const processImageUrl = (url: string): string => {
+    if (!url) return Placeholder.nft();
+
+    try {
+        // Remove query parameters and get clean URL
+        const cleanUrl = url.split('?')[0];
+
+        // Handle IPFS URLs
+        if (cleanUrl.includes('ipfs://')) {
+            const hash = cleanUrl.replace('ipfs://', '');
+            return `https://ipfs.io/ipfs/${hash}`;
+        }
+
+        // Handle various IPFS gateway URLs
+        const ipfsMatch = cleanUrl.match(/\/ipfs\/([a-zA-Z0-9]+)/);
+        if (ipfsMatch || cleanUrl.includes('nftstorage.link')) {
+            let cid = ipfsMatch ? ipfsMatch[1] : cleanUrl.split('/').pop();
+            if (cid) {
+                // Remove file extension if present
+                cid = cid.split('.')[0];
+                return `https://ipfs.io/ipfs/${cid}`;
+            }
+        }
+
+        // Handle Arweave URLs
+        if (cleanUrl.includes('arweave.net')) {
+            // Keep the original Arweave URL but ensure it's HTTPS
+            return cleanUrl.replace('http://', 'https://');
+        }
+
+        return url;
+    } catch (error) {
+        console.warn('Error processing image URL:', error);
+        return Placeholder.nft();
+    }
 };
 
 // Components
@@ -69,7 +115,7 @@ const CollectionStats = ({ stats }: { stats: MagicEdenStats }) => {
                 </div>
                 <div className="p-3 rounded-lg bg-background/50">
                     <div className="text-sm font-medium text-muted-foreground">Listed</div>
-                    <div className="mt-1 text-xl font-semibold">{stats.listedCount}</div>
+                    <div className="mt-1 text-xl font-semibold">{stats.listedCount.toLocaleString()}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-background/50">
                     <div className="text-sm font-medium text-muted-foreground">Avg Price (24h)</div>
@@ -77,7 +123,7 @@ const CollectionStats = ({ stats }: { stats: MagicEdenStats }) => {
                 </div>
                 <div className="p-3 rounded-lg bg-background/50">
                     <div className="text-sm font-medium text-muted-foreground">Total Volume</div>
-                    <div className="mt-1 text-xl font-semibold">◎ {formatSOL(stats.volumeAll)}</div>
+                    <div className="mt-1 text-xl font-semibold">◎ {formatLargeNumber(stats.volumeAll)}</div>
                 </div>
             </div>
         </Card>
@@ -130,33 +176,39 @@ const PopularCollections = ({ collections }: { collections: MagicEdenCollection[
             <h3 className="text-lg font-medium">Popular Collections</h3>
             <div className="space-y-3">
                 {collections.map((collection, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-background/50">
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
-                            <Image
-                                src={collection.image}
-                                alt={collection.name}
-                                className="object-cover"
-                                fill
-                                sizes="48px"
-                                onError={(e) => {
-                                    // @ts-expect-error - Type 'string' is not assignable to type 'never'
-                                    e.target.src = '/placeholder.png'
-                                }}
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium truncate">{collection.name}</h4>
-                                <Badge variant="outline" className="ml-2">
-                                    #{index + 1}
-                                </Badge>
+                    <a
+                        key={index}
+                        href={`https://magiceden.io/marketplace/${collection.symbol}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                        <div className="flex items-center gap-4 p-3 rounded-lg bg-background/50 hover:bg-background/80">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                                <img
+                                    src={processImageUrl(collection.image)}
+                                    alt={collection.name}
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = Placeholder.nft()
+                                    }}
+                                />
                             </div>
-                            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                                <span>Floor: ◎ {formatSOL(collection.floorPrice)}</span>
-                                <span>Volume: ◎ {formatSOL(collection.volumeAll)}</span>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-medium truncate">{collection.name}</h4>
+                                    <Badge variant="outline" className="ml-2">
+                                        #{index + 1}
+                                    </Badge>
+                                </div>
+                                <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+                                    <span>Floor: ◎ {formatSOL(collection.floorPrice)}</span>
+                                    <span>Volume: ◎ {formatLargeNumber(collection.volumeAll)}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 ))}
             </div>
         </Card>
@@ -234,13 +286,12 @@ export const magicEdenTools = {
         displayName: "🔥 Popular Collections",
         description: "Get the most popular collections on Magic Eden based on volume and activity.",
         parameters: z.object({
-            timeRange: z.enum(['1h', '1d', '7d', '30d']).describe("Time range for popularity metrics"),
-            limit: z.number().min(1).max(50).default(10).describe("Number of collections to return (max 50)")
+            timeRange: z.enum(['1h', '1d', '7d', '30d']).describe("Time range for popularity metrics")
         }),
         execute: async ({ timeRange, limit }: { timeRange: string, limit: number }) => {
             try {
                 const response = await fetch(
-                    `https://api-mainnet.magiceden.dev/v2/marketplace/popular_collections?time_range=${timeRange}&limit=${limit}`,
+                    `https://api-mainnet.magiceden.dev/v2/marketplace/popular_collections?time_range=${timeRange}&limit=50`,
                     { headers: { 'Accept': 'application/json' } }
                 );
 

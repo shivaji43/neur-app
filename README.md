@@ -71,12 +71,12 @@ Our current focus is developing core infrastructure and agent functionality.
     - [x] Token Profile
     - [x] Paid Orders Check
   - [ ] Blinks Integration
-  - [ ] Magic Eden Integration
+  - [x] Magic Eden Integration
 
 ### Market Intelligence
 
 - [x] Token Trends (via Defined.fi)
-- [ ] NFT Trends (via Magic Eden)
+- [x] NFT Trends (via Magic Eden)
 
 ### Automation
 

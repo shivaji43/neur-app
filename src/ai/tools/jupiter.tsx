@@ -2,6 +2,7 @@ import { z } from "zod";
 import { formatNumber } from "@/lib/format";
 import { searchJupiterTokens, getJupiterTokenPrice, type TokenPrice } from "@/server/actions/jupiter";
 import Image from "next/image";
+import { Placeholder } from "@/lib/placeholder";
 
 // Types
 interface JupiterToken {
@@ -17,14 +18,13 @@ function TokenCard({ token }: { token: JupiterToken }) {
             <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
                     <Image
-                        src={token.logoURI || "/placeholder.png"}
+                        src={token.logoURI || Placeholder.generate({ width: 40, height: 40, text: 'Token' })}
                         alt={token.name}
                         className="object-cover"
                         fill
                         sizes="40px"
                         onError={(e) => {
-                            // @ts-expect-error - Type 'string' is not assignable to type 'never'
-                            e.target.src = 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png'
+                            (e.target as HTMLImageElement).src = Placeholder.generate({ width: 40, height: 40, text: token.symbol })
                         }}
                     />
                 </div>
