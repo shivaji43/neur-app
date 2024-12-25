@@ -7,6 +7,7 @@ import { definedTools } from './tools/defined-fi';
 import { pumpfunTools } from './tools/pumpfun';
 import { jupiterTools } from './tools/jupiter';
 import { dexscreenerTools } from './tools/dexscreener';
+import { magicEdenTools } from './tools/magic-eden';
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -72,7 +73,8 @@ export const defaultTools: Record<string, ToolConfig> = {
    ...definedTools,
    ...pumpfunTools,
    ...jupiterTools,
-   ...dexscreenerTools
+   ...dexscreenerTools,
+   ...magicEdenTools
 }
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
