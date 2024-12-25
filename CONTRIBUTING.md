@@ -1,4 +1,4 @@
-# Contributing 
+# Contributing
 
 We love your input! We want to make contributing to Neur as easy and transparent as possible, whether it's:
 
@@ -22,11 +22,13 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 ## Development Setup
 
 1. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 2. Start the development server:
+
    ```bash
    pnpm dev
    ```
@@ -85,6 +87,7 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 - `chore:` Maintenance tasks
 
 Example:
+
 ```
 feat: add user authentication component
 ```
@@ -106,4 +109,3 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 ## License
 
 By contributing, you agree that your contributions will be licensed under its MIT License.
-

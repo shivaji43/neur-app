@@ -1,24 +1,25 @@
-import { LucideIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { LucideIcon } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 
 interface ComingSoonPageProps {
-  icon: LucideIcon
-  title?: string
-  className?: string
+  icon: LucideIcon;
+  title?: string;
+  className?: string;
 }
 
 export function ComingSoonPage({
   icon: Icon,
-  title = "Coming Soon",
+  title = 'Coming Soon',
   className,
 }: ComingSoonPageProps) {
   return (
-    <div 
+    <div
       className={cn(
-        "relative min-h-[80vh] w-full overflow-hidden",
-        "[background-image:radial-gradient(rgb(229_229_229/0.5)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgb(64_64_64/0.25)_1px,transparent_1px)]",
-        "[background-size:40px_40px]",
-        className
+        'relative min-h-[80vh] w-full overflow-hidden',
+        '[background-image:radial-gradient(rgb(229_229_229/0.5)_1px,transparent_1px)] dark:[background-image:radial-gradient(rgb(64_64_64/0.25)_1px,transparent_1px)]',
+        '[background-size:40px_40px]',
+        className,
       )}
     >
       {/* Gradient Overlay */}
@@ -26,7 +27,7 @@ export function ComingSoonPage({
         <div className="relative">
           {/* Glowing Background Effect */}
           <div className="absolute -inset-40 -z-10">
-            <div className="absolute inset-0 rotate-180 bg-gradient-conic from-primary/20 via-primary/[0.05] to-primary/20 opacity-50 blur-[100px]" />
+            <div className="bg-gradient-conic absolute inset-0 rotate-180 from-primary/20 via-primary/[0.05] to-primary/20 opacity-50 blur-[100px]" />
           </div>
 
           {/* Content */}
@@ -37,11 +38,9 @@ export function ComingSoonPage({
               </div>
               <Icon className="relative h-24 w-24 text-primary" />
             </div>
-            
+
             <div className="flex flex-col items-center gap-2.5 text-center">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                {title}
-              </h2>
+              <h2 className="text-3xl font-semibold tracking-tight">{title}</h2>
               <p className="max-w-[500px] text-muted-foreground">
                 Coming soon... Stay tuned for updates!
               </p>
@@ -50,5 +49,5 @@ export function ComingSoonPage({
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -1,11 +1,33 @@
-import { getUserData, verifyUser } from '@/server/actions/user';
-import { defaultModel, defaultSystemPrompt, defaultTools } from '@/ai/providers';
-import { convertToCoreMessages, CoreMessage, CoreTool, generateObject, Message, NoSuchToolError, streamText } from 'ai';
-import { getMostRecentUserMessage, sanitizeResponseMessages } from '@/lib/utils/ai';
-import { dbDeleteConversation, dbGetConversation, dbCreateConversation, dbCreateMessages } from '@/server/db/queries';
-import { generateTitleFromUserMessage } from '@/server/actions/ai';
 import { revalidatePath } from 'next/cache';
+
+import {
+  CoreMessage,
+  CoreTool,
+  Message,
+  NoSuchToolError,
+  convertToCoreMessages,
+  generateObject,
+  streamText,
+} from 'ai';
 import { z } from 'zod';
+
+import {
+  defaultModel,
+  defaultSystemPrompt,
+  defaultTools,
+} from '@/ai/providers';
+import {
+  getMostRecentUserMessage,
+  sanitizeResponseMessages,
+} from '@/lib/utils/ai';
+import { generateTitleFromUserMessage } from '@/server/actions/ai';
+import { getUserData, verifyUser } from '@/server/actions/user';
+import {
+  dbCreateConversation,
+  dbCreateMessages,
+  dbDeleteConversation,
+  dbGetConversation,
+} from '@/server/db/queries';
 
 export const maxDuration = 30;
 
@@ -24,9 +46,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { id: conversationId, messages }: { id: string, messages: Array<Message> } = await req.json();
+    const {
+      id: conversationId,
+      messages,
+    }: { id: string; messages: Array<Message> } = await req.json();
     const coreMessages = convertToCoreMessages(messages);
-    const userMessage: CoreMessage | undefined = getMostRecentUserMessage(coreMessages);
+    const userMessage: CoreMessage | undefined =
+      getMostRecentUserMessage(coreMessages);
 
     if (!userMessage) {
       return new Response('No user message found', { status: 400 });
@@ -35,9 +61,11 @@ export async function POST(req: Request) {
     const conversation = await dbGetConversation({ conversationId });
 
     if (!conversation) {
-      const title = await generateTitleFromUserMessage({ message: userMessage });
+      const title = await generateTitleFromUserMessage({
+        message: userMessage,
+      });
       await dbCreateConversation({ conversationId, userId, title });
-      revalidatePath('/api/conversations')
+      revalidatePath('/api/conversations');
     }
 
     await dbCreateMessages({
@@ -45,24 +73,25 @@ export async function POST(req: Request) {
         {
           conversationId,
           role: userMessage.role,
-          content: JSON.parse(JSON.stringify(userMessage))
+          content: JSON.parse(JSON.stringify(userMessage)),
         },
       ],
     });
 
     // extract all attachments from the user message
     const attachments = messages
-      .filter(message => message.experimental_attachments)
-      .map(message => message.experimental_attachments)
+      .filter((message) => message.experimental_attachments)
+      .map((message) => message.experimental_attachments)
       .flat()
-      .map(attachment => {
+      .map((attachment) => {
         return {
           type: attachment?.contentType,
-          data: attachment?.url
-        }
+          data: attachment?.url,
+        };
       });
     // append to system prompt
-    const systemPrompt = defaultSystemPrompt +
+    const systemPrompt =
+      defaultSystemPrompt +
       `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
       `\n\nUser Solana wallet public key: ${publicKey}`;
 
@@ -93,7 +122,7 @@ export async function POST(req: Request) {
           schema: tool.parameters as z.ZodType<any>,
           prompt: [
             `The model tried to call the tool "${toolCall.toolName}"` +
-            ` with the following arguments:`,
+              ` with the following arguments:`,
             JSON.stringify(toolCall.args),
             `The tool accepts the following schema:`,
             JSON.stringify(parameterSchema(toolCall)),
@@ -113,24 +142,24 @@ export async function POST(req: Request) {
         if (!userId) return;
 
         try {
-          const sanitizedResponses = sanitizeResponseMessages(response.messages);
+          const sanitizedResponses = sanitizeResponseMessages(
+            response.messages,
+          );
           await dbCreateMessages({
-            messages: sanitizedResponses.map(
-              (message) => {
-                return {
-                  conversationId,
-                  role: message.role,
-                  content: JSON.parse(JSON.stringify(message.content))
-                };
-              },
-            ),
+            messages: sanitizedResponses.map((message) => {
+              return {
+                conversationId,
+                role: message.role,
+                content: JSON.parse(JSON.stringify(message.content)),
+              };
+            }),
           });
 
           revalidatePath('/api/conversations');
         } catch (error) {
-          console.error("[chat/route] Failed to save messages", error);
+          console.error('[chat/route] Failed to save messages', error);
         }
-      }
+      },
     });
 
     return result.toDataStreamResponse();
@@ -151,7 +180,7 @@ export async function DELETE(req: Request) {
   try {
     const { id: conversationId } = await req.json();
     await dbDeleteConversation({ conversationId, userId });
-    revalidatePath('/api/conversations')
+    revalidatePath('/api/conversations');
 
     return new Response('Conversation deleted', { status: 200 });
   } catch (error) {

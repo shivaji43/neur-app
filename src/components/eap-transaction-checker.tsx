@@ -1,51 +1,55 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from 'react';
+
+import { Loader2 } from 'lucide-react';
+
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
-import { Loader2 } from 'lucide-react'
-import { checkEAPTransaction } from '@/server/actions/eap'
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { checkEAPTransaction } from '@/server/actions/eap';
 
 export function EAPTransactionChecker() {
-  const [txHash, setTxHash] = useState('')
-  const [isChecking, setIsChecking] = useState(false)
+  const [txHash, setTxHash] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
   const [result, setResult] = useState<{
-    success: boolean
-    message: string
-  } | null>(null)
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   async function handleCheck() {
-    setIsChecking(true)
+    setIsChecking(true);
     try {
-      const response = await checkEAPTransaction({ txHash })
+      const response = await checkEAPTransaction({ txHash });
       if (response?.data?.success) {
         setResult({
           success: true,
-          message: `Transaction verified successfully. EAP should be granted to your account.`
-        })
+          message: `Transaction verified successfully. EAP should be granted to your account.`,
+        });
       } else {
-        console.log("response", response)
+        console.log('response', response);
         setResult({
           success: false,
-          message: 'Failed to verify transaction. Contact support if you think this is an error.'
-        })
+          message:
+            'Failed to verify transaction. Contact support if you think this is an error.',
+        });
       }
     } catch (error) {
       setResult({
         success: false,
-        message: 'Failed to verify transaction. Contact support if you think this is an error.'
-      })
+        message:
+          'Failed to verify transaction. Contact support if you think this is an error.',
+      });
     } finally {
-      setIsChecking(false)
+      setIsChecking(false);
     }
   }
 
@@ -57,10 +61,7 @@ export function EAPTransactionChecker() {
           value={txHash}
           onChange={(e) => setTxHash(e.target.value)}
         />
-        <Button
-          onClick={handleCheck}
-          disabled={isChecking || !txHash}
-        >
+        <Button onClick={handleCheck} disabled={isChecking || !txHash}>
           {isChecking ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -78,9 +79,7 @@ export function EAPTransactionChecker() {
             <AlertDialogTitle>
               {result?.success ? 'Transaction Verified' : 'Verification Failed'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {result?.message}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{result?.message}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Close</AlertDialogCancel>
@@ -88,5 +87,5 @@ export function EAPTransactionChecker() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
-} 
+  );
+}

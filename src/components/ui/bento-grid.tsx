@@ -1,8 +1,9 @@
-import { ReactNode } from "react";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { ReactNode } from 'react';
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ArrowRightIcon } from '@radix-ui/react-icons';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const BentoGrid = ({
   children,
@@ -14,7 +15,7 @@ const BentoGrid = ({
   return (
     <div
       className={cn(
-        "grid w-full auto-rows-[20rem] sm:auto-rows-[22rem] grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4",
+        'grid w-full auto-rows-[20rem] grid-cols-1 gap-3 sm:auto-rows-[22rem] sm:grid-cols-3 sm:gap-4',
         className,
       )}
     >
@@ -43,33 +44,42 @@ const BentoCard = ({
   <div
     key={name}
     className={cn(
-      "group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-xl",
+      'group relative col-span-1 flex flex-col justify-between overflow-hidden rounded-xl',
       // light styles
-      "bg-white [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]",
+      'bg-white [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]',
       // dark styles
-      "transform-gpu dark:bg-black dark:[border:1px_solid_rgba(255,255,255,.1)] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]",
+      'transform-gpu dark:bg-black dark:[border:1px_solid_rgba(255,255,255,.1)] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]',
       className,
     )}
   >
     <div>{background}</div>
-    <div className={cn(
-      "pointer-events-none z-10 flex transform-gpu flex-col gap-1 p-4 sm:p-6 transition-all duration-300",
-      href && cta ? "group-hover:-translate-y-10" : ""
-    )}>
-      <Icon className="h-8 w-8 sm:h-12 sm:w-12 origin-left transform-gpu text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75" />
-      <h3 className="text-lg sm:text-xl font-semibold text-neutral-700 dark:text-neutral-300">
+    <div
+      className={cn(
+        'pointer-events-none z-10 flex transform-gpu flex-col gap-1 p-4 transition-all duration-300 sm:p-6',
+        href && cta ? 'group-hover:-translate-y-10' : '',
+      )}
+    >
+      <Icon className="h-8 w-8 origin-left transform-gpu text-neutral-700 transition-all duration-300 ease-in-out group-hover:scale-75 sm:h-12 sm:w-12" />
+      <h3 className="text-lg font-semibold text-neutral-700 dark:text-neutral-300 sm:text-xl">
         {name}
       </h3>
-      <p className="max-w-lg text-sm sm:text-base text-neutral-400">{description}</p>
+      <p className="max-w-lg text-sm text-neutral-400 sm:text-base">
+        {description}
+      </p>
     </div>
 
     {href && cta && (
       <div
         className={cn(
-          "pointer-events-none absolute bottom-0 flex w-full translate-y-10 transform-gpu flex-row items-center p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100",
+          'pointer-events-none absolute bottom-0 flex w-full translate-y-10 transform-gpu flex-row items-center p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100',
         )}
       >
-        <Button variant="ghost" asChild size="sm" className="pointer-events-auto">
+        <Button
+          variant="ghost"
+          asChild
+          size="sm"
+          className="pointer-events-auto"
+        >
           <a href={href}>
             {cta}
             <ArrowRightIcon className="ml-2 h-4 w-4" />
