@@ -18,12 +18,14 @@ interface Token {
   image: string;
   holdersCount?: number;
   listedAt?: string;
+  change: number;
 }
 
 interface TokenGridProps {
   tokens: Token[];
   className?: string;
   isLoading?: boolean;
+  timeframe?: '1h' | '24h';
 }
 
 interface TokenCardProps {
@@ -76,6 +78,8 @@ function formatListedTime(date: string | undefined): string {
 }
 
 function TokenCard({ token, className }: TokenCardProps) {
+  const change = token.change ?? 0;
+
   return (
     <a
       href={`https://dexscreener.com/solana/${token.address}`}
@@ -105,9 +109,15 @@ function TokenCard({ token, className }: TokenCardProps) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-medium">{token.name}</h3>
-            <span className="shrink-0 rounded-full bg-muted/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {token.symbol}
-            </span>
+          </div>
+          <div
+            className={cn(
+              'mt-1 text-xs font-medium',
+              change >= 0 ? 'text-green-500' : 'text-red-500',
+            )}
+          >
+            {change >= 0 ? '+' : ''}
+            {change.toFixed(2)}%
           </div>
         </div>
       </div>
@@ -153,6 +163,7 @@ export function TokenGrid({
   tokens,
   className,
   isLoading = false,
+  timeframe = '24h',
 }: TokenGridProps) {
   if (isLoading) {
     return (

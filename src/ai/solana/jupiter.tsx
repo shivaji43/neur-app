@@ -67,6 +67,7 @@ function PriceCard({
   price: TokenPrice;
 }) {
   const priceValue = parseFloat(price.price);
+
   const formattedPrice =
     priceValue < 0.01
       ? priceValue.toExponential(2)
@@ -98,38 +99,7 @@ function PriceCard({
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="text-lg font-semibold">${formattedPrice}</span>
-            {price.extraInfo?.confidenceLevel && (
-              <span
-                className={
-                  price.extraInfo.confidenceLevel === 'high'
-                    ? 'rounded-md bg-green-500/10 px-1.5 py-0.5 text-xs text-green-500'
-                    : price.extraInfo.confidenceLevel === 'medium'
-                      ? 'rounded-md bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500'
-                      : 'rounded-md bg-red-500/10 px-1.5 py-0.5 text-xs text-red-500'
-                }
-              >
-                {price.extraInfo.confidenceLevel}
-              </span>
-            )}
           </div>
-          {price.extraInfo?.quotedPrice && (
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-              <div>
-                Buy: $
-                {formatNumber(
-                  parseFloat(price.extraInfo.quotedPrice.buyPrice),
-                  'currency',
-                )}
-              </div>
-              <div>
-                Sell: $
-                {formatNumber(
-                  parseFloat(price.extraInfo.quotedPrice.sellPrice),
-                  'currency',
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -139,6 +109,7 @@ function PriceCard({
 export const jupiterTools = {
   searchToken: {
     displayName: '🔍 Search Token',
+    isCollapsible: true,
     description:
       'Search for any Solana token by name or symbol to get its contract address (mint), along with detailed information like volume and logo. Useful for getting token addresses for further operations.',
     parameters: z.object({
@@ -223,6 +194,7 @@ export const jupiterTools = {
 
   getTokenPrice: {
     displayName: '💰 Get Token Price',
+    isCollapsible: true,
     description:
       'Get the current price of any Solana token in USDC, including detailed information like buy/sell prices and confidence level.',
     parameters: z.object({

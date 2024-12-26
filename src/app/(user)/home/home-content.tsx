@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { RiTwitterXFill } from '@remixicon/react';
 import { useChat } from 'ai/react';
-import { CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import BlurFade from '@/components/ui/blur-fade';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import TypingAnimation from '@/components/ui/typing-animation';
 import { useUser } from '@/hooks/use-user';
 import { SolanaUtils } from '@/lib/solana';
@@ -53,23 +52,25 @@ function SectionTitle({ children }: SectionTitleProps) {
 
 export function HomeContent() {
   const pathname = usePathname();
-  const router = useRouter();
   const suggestions = useMemo(() => getRandomSuggestions(4), []);
   const [showChat, setShowChat] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const chatId = useMemo(() => uuidv4(), []);
+  const [chatId, setChatId] = useState(() => uuidv4());
   const { user, isLoading } = useUser();
   const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
-  const MAX_VERIFICATION_ATTEMPTS = 20; // 20 attempts * 3s = 60s total
+  const MAX_VERIFICATION_ATTEMPTS = 20;
+
+  const resetChat = useCallback(() => {
+    setShowChat(false);
+    setChatId(uuidv4());
+  }, []);
 
   const { messages, input, handleSubmit, setInput } = useChat({
     id: chatId,
     initialMessages: [],
     body: { id: chatId },
-    onFinish: () => {
-      router.replace(`/chat/${chatId}`);
-    },
+    onFinish: () => {},
   });
 
   // Verification effect
@@ -119,12 +120,12 @@ export function HomeContent() {
       return;
     }
 
-    setShowChat(true);
-
     const fakeEvent = new Event('submit') as any;
     fakeEvent.preventDefault = () => {};
 
     await handleSubmit(fakeEvent, { data: { content: value } });
+    setShowChat(true);
+    window.history.replaceState(null, '', `/chat/${chatId}`);
   };
 
   const handlePurchase = async () => {
@@ -187,12 +188,26 @@ export function HomeContent() {
     }
   };
 
-  // Reset showChat when pathname changes to /home
+  // Reset chat when pathname changes to /home
   useEffect(() => {
     if (pathname === '/home') {
-      setShowChat(false);
+      resetChat();
     }
-  }, [pathname]);
+  }, [pathname, resetChat]);
+
+  // 监听浏览器的前进后退
+  useEffect(() => {
+    const handlePopState = () => {
+      if (location.pathname === '/home') {
+        resetChat();
+      } else if (location.pathname === `/chat/${chatId}`) {
+        setShowChat(true);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [chatId, resetChat]);
 
   if (isLoading) {
     return (
@@ -200,10 +215,6 @@ export function HomeContent() {
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (showChat) {
-    return <ChatInterface id={chatId} initialMessages={messages} />;
   }
 
   const hasEAP = user?.earlyAccess === true;
@@ -344,60 +355,24 @@ export function HomeContent() {
   }
 
   return (
-    <>
-      {mainContent}
+    <div className="relative h-screen">
+      <div
+        className={cn(
+          'absolute inset-0 transition-opacity duration-300',
+          showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
+        )}
+      >
+        {mainContent}
+      </div>
 
-      <Dialog open={!!verifyingTx} onOpenChange={() => setVerifyingTx(null)}>
-        <DialogContent className="sm:max-w-md">
-          <div className="space-y-4">
-            <div className="space-y-2 text-center">
-              <h2 className="text-lg font-semibold">Verifying Purchase</h2>
-              <p className="text-sm text-muted-foreground">
-                Please wait while we verify your EAP purchase.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between gap-2">
-                <span>Transaction Hash:</span>
-                <code className="text-xs">{verifyingTx}</code>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span>Verification Attempts:</span>
-                <span>
-                  {verificationAttempts} / {MAX_VERIFICATION_ATTEMPTS}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-between gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() =>
-                  window.open(`https://solscan.io/tx/${verifyingTx}`, '_blank')
-                }
-              >
-                View on Solscan
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setVerifyingTx(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      <div
+        className={cn(
+          'absolute inset-0 transition-opacity duration-300',
+          showChat ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+      >
+        <ChatInterface id={chatId} initialMessages={messages} />
+      </div>
+    </div>
   );
 }

@@ -221,7 +221,7 @@ const wallet = {
 
 const swap = {
   swapTokens: {
-    displayName: '💱 Swap Tokens',
+    displayName: '🪙 Swap Tokens',
     description: 'Swap tokens using Jupiter Exchange with the embedded wallet.',
     parameters: z.object({
       inputMint: publicKeySchema.describe('Source token mint address'),

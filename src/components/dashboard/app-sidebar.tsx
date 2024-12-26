@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSelectedLayoutSegment } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { BookOpen, Bot, Brain, HomeIcon, Workflow } from 'lucide-react';
 
@@ -91,7 +91,14 @@ const ExploreItems = [
 ] as const;
 
 export function AppSidebar() {
-  const segment = useSelectedLayoutSegment();
+  const pathname = usePathname();
+
+  const getIsActive = (itemSegment: string) => {
+    if (itemSegment === 'home') {
+      return pathname === '/home';
+    }
+    return pathname.startsWith(`/${itemSegment}`);
+  };
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
@@ -107,7 +114,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      isActive={segment === item.segment}
+                      isActive={getIsActive(item.segment)}
                     >
                       <Link
                         href={item.url}

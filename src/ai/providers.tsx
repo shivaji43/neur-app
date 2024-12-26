@@ -4,12 +4,13 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-import { definedTools } from './tools/defined-fi';
-import { dexscreenerTools } from './tools/dexscreener';
-import { jupiterTools } from './tools/jupiter';
-import { magicEdenTools } from './tools/magic-eden';
-import { pumpfunTools } from './tools/pumpfun';
-import { solanaTools } from './tools/solana';
+import { jinaTools } from './generic/jina';
+import { definedTools } from './solana/defined-fi';
+import { dexscreenerTools } from './solana/dexscreener';
+import { jupiterTools } from './solana/jupiter';
+import { magicEdenTools } from './solana/magic-eden';
+import { pumpfunTools } from './solana/pumpfun';
+import { solanaTools } from './solana/solana';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -28,13 +29,7 @@ You are a specialized AI assistant for Solana blockchain and DeFi operations, de
 
 Critical Rules:
 - If previous tool result contains 'suppressFollowUp: true':
-  1. DO NOT provide any detailed analysis or explanation in your response
-  2. Keep your response brief and natural, directing attention to the displayed results
-  3. Vary your responses naturally, for example:
-     - "Take a look at the results above"
-     - "I've displayed the information above"
-     - "The results are shown above"
-     - "You can see the details above"
+  DO NOT provide any detailed analysis or explanation other than a brief guide like "Take a look at the results above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 
 Common knowledge:
@@ -83,6 +78,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...jupiterTools,
   ...dexscreenerTools,
   ...magicEdenTools,
+  ...jinaTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

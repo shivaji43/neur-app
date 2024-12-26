@@ -66,35 +66,6 @@ export interface TokenPrice {
   id: string;
   type: string;
   price: string;
-  extraInfo?: {
-    lastSwappedPrice?: {
-      lastJupiterSellAt: number;
-      lastJupiterSellPrice: string;
-      lastJupiterBuyAt: number;
-      lastJupiterBuyPrice: string;
-    };
-    quotedPrice?: {
-      buyPrice: string;
-      buyAt: number;
-      sellPrice: string;
-      sellAt: number;
-    };
-    confidenceLevel?: string;
-    depth?: {
-      buyPriceImpactRatio?: {
-        depth: {
-          [key: string]: number;
-        };
-        timestamp: number;
-      };
-      sellPriceImpactRatio?: {
-        depth: {
-          [key: string]: number;
-        };
-        timestamp: number;
-      };
-    };
-  };
 }
 
 export interface TokenPriceResponse {
