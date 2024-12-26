@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { RiTwitterXFill } from '@remixicon/react';
 import { useChat } from 'ai/react';
@@ -53,6 +53,7 @@ function SectionTitle({ children }: SectionTitleProps) {
 
 export function HomeContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const suggestions = useMemo(() => getRandomSuggestions(4), []);
   const [showChat, setShowChat] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -67,7 +68,7 @@ export function HomeContent() {
     initialMessages: [],
     body: { id: chatId },
     onFinish: () => {
-      window.history.replaceState({}, '', `/chat/${chatId}`);
+      router.replace(`/chat/${chatId}`);
     },
   });
 
