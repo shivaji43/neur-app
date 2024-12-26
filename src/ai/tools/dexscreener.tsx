@@ -31,7 +31,7 @@ interface DexScreenerPair {
   };
   priceNative: string;
   priceUsd: string;
-  liquidity: {
+  liquidity?: {
     usd: number;
     base: number;
     quote: number;
@@ -179,7 +179,7 @@ const TokenProfile = ({ pair }: { pair: DexScreenerPair }) => {
         <div className="rounded-lg bg-background/50 p-3">
           <div className="text-sm font-medium">Liquidity</div>
           <div className="mt-1 text-2xl font-semibold">
-            ${pair.liquidity.usd.toLocaleString()}
+            ${pair.liquidity?.usd.toLocaleString() ?? 'Unknown'}
           </div>
         </div>
       </div>
@@ -387,7 +387,7 @@ export const dexscreenerTools = {
 
         // Use the first pair with the highest liquidity
         const sortedPairs = data.pairs.sort(
-          (a, b) => b.liquidity.usd - a.liquidity.usd,
+          (a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0),
         );
         return {
           suppressFollowUp: true,
