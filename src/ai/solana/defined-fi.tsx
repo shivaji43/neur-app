@@ -19,7 +19,11 @@ type FilterTokensParams = {
     | 'marketCap'
     | 'volume24'
     | 'liquidity'
-    | 'transactions24h';
+    | 'transactions24h'
+    | 'change1'
+    | 'change4'
+    | 'change12'
+    | 'change24';
   sortDirection: 'ASC' | 'DESC';
   limit: number;
   offset?: number;
@@ -31,6 +35,25 @@ type FilterTokensResponse = {
       results: TokenData[];
     };
   };
+};
+
+type TransformedToken = {
+  address: string;
+  name: string;
+  symbol: string;
+  marketCap: string;
+  volume24: string;
+  liquidity: string;
+  transactions24h: number;
+  trendingScore24: number;
+  image: string | null;
+  listedAt?: string;
+  holdersCount: number;
+  change: number;
+  change1: number;
+  change4: number;
+  change12: number;
+  change24: number;
 };
 
 export const definedTools = {
@@ -68,6 +91,10 @@ export const definedTools = {
           'volume24',
           'liquidity',
           'transactions24h',
+          'change1',
+          'change4',
+          'change12',
+          'change24',
         ])
         .default('trendingScore24')
         .describe('Sort results by this metric'),
@@ -136,7 +163,7 @@ export const definedTools = {
             filters,
             statsType: 'FILTERED',
             offset: 0,
-            limit: 50,
+            limit: 100,
             rankings: [
               {
                 attribute: 'trendingScore24',
@@ -149,24 +176,60 @@ export const definedTools = {
 
         const tokens = response.data.filterTokens.results
           .slice(0, limit)
-          .map((token: TokenData) => ({
-            address: token.token.address,
-            name: token.token.name,
-            symbol: token.token.symbol,
-            marketCap: token.marketCap,
-            volume24: token.volume24,
-            liquidity: token.liquidity,
-            transactions24h: token.uniqueTransactions24,
-            trendingScore24: token.uniqueTransactions24,
-            image: token.token.imageThumbUrl,
-            listedAt: token.createdAt
-              ? new Date(token.createdAt * 1000).toISOString()
-              : undefined,
-            holdersCount: token.holders,
-          }))
+          .map(
+            (token: TokenData): TransformedToken => ({
+              address: token.token.address,
+              name: token.token.name,
+              symbol: token.token.symbol,
+              marketCap: token.marketCap,
+              volume24: token.volume24,
+              liquidity: token.liquidity,
+              transactions24h: token.uniqueTransactions24,
+              trendingScore24: token.uniqueTransactions24,
+              image: token.token.imageThumbUrl,
+              listedAt: token.createdAt
+                ? new Date(token.createdAt * 1000).toISOString()
+                : undefined,
+              holdersCount: token.holders,
+              change: sortBy.startsWith('change')
+                ? parseFloat(
+                    token[
+                      sortBy as keyof Pick<
+                        TokenData,
+                        'change1' | 'change4' | 'change12' | 'change24'
+                      >
+                    ] || '0',
+                  ) * 100
+                : 0,
+              change1: parseFloat(token.change1) * 100,
+              change4: parseFloat(token.change4) * 100,
+              change12: parseFloat(token.change12) * 100,
+              change24: parseFloat(token.change24) * 100,
+            }),
+          )
           .sort((a, b) => {
-            const getValue = (obj: any, key: string) =>
-              parseFloat(obj[key] || '0');
+            const getValue = (
+              token: TransformedToken,
+              key: typeof sortBy,
+            ): number => {
+              if (key.startsWith('change')) {
+                return token.change;
+              }
+              switch (key) {
+                case 'trendingScore24':
+                case 'transactions24h':
+                  return token.transactions24h;
+                case 'marketCap':
+                  return parseFloat(token.marketCap);
+                case 'volume24':
+                  return parseFloat(token.volume24);
+                case 'liquidity':
+                  return parseFloat(token.liquidity);
+                default:
+                  return 0;
+              }
+            };
+
             if (sortDirection === 'ASC') {
               return getValue(a, sortBy) - getValue(b, sortBy);
             }
