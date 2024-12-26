@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ExternalLink, TrendingUp, Wallet } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -50,18 +49,23 @@ export function FloatingWallet({
   if (!mounted || !imagesLoaded) return null;
 
   return (
-    <div className={cn('absolute bottom-full right-4 z-50 mb-1', className)}>
+    <div
+      className={cn(
+        'absolute bottom-full right-4 z-50 mb-3 select-none',
+        className,
+      )}
+    >
       <motion.div
-        layout
+        layout="preserve-aspect"
         animate={{
           width: isExpanded ? 300 : 'auto',
         }}
         transition={{
           type: 'spring',
           bounce: 0,
-          duration: 0.3,
-          stiffness: 500,
-          damping: 40,
+          duration: 0.25,
+          stiffness: 400,
+          damping: 30,
         }}
         className="relative will-change-transform"
       >
@@ -75,17 +79,17 @@ export function FloatingWallet({
                 height: {
                   type: 'spring',
                   bounce: 0,
-                  duration: 0.3,
-                  stiffness: 500,
-                  damping: 40,
+                  duration: 0.25,
+                  stiffness: 400,
+                  damping: 30,
                 },
                 opacity: {
                   duration: 0.15,
                 },
               }}
-              className="absolute bottom-full left-0 right-0 mb-1 overflow-hidden rounded-2xl bg-muted will-change-transform"
+              className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl bg-black/[0.03] backdrop-blur-[20px] will-change-transform dark:bg-black/40 dark:backdrop-blur-2xl"
             >
-              <div className="flex h-[340px] flex-col">
+              <div className="flex h-[340px] flex-col bg-white/80 dark:bg-transparent">
                 <div className="flex flex-col gap-3 p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium">
@@ -124,7 +128,7 @@ export function FloatingWallet({
                             type: 'spring',
                             bounce: 0,
                             duration: 0.2,
-                            delay: index * 0.01,
+                            delay: Math.min(index * 0.015, 0.3),
                           },
                         }}
                         href={`https://solscan.io/account/${data.address}#portfolio`}
@@ -184,8 +188,8 @@ export function FloatingWallet({
         </AnimatePresence>
 
         <motion.div
-          layout
-          className="flex cursor-pointer items-center gap-1.5 rounded-2xl bg-muted px-3 py-2 transition-colors hover:bg-muted/80"
+          layout="preserve-aspect"
+          className="flex cursor-pointer items-center gap-1.5 rounded-2xl bg-black/[0.03] px-3 py-2 backdrop-blur-[20px] transition-colors hover:bg-black/[0.05] dark:bg-black/40 dark:backdrop-blur-2xl dark:hover:bg-black/50"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />
