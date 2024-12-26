@@ -288,9 +288,12 @@ export function HomeContent() {
                     Early Access Program
                   </h2>
                   <div className="text-muted-foreground">
-                    We&apos;re currently limiting <Badge>BETA</Badge> access to
-                    a limited number of users to ensure a stable service and
-                    while keep refining features.
+                    <Badge variant="destructive">PAUSED</Badge>
+                    <div className="mt-2">
+                      EAP purchases are temporarily paused. Please join our
+                      Discord community to receive updates when applications
+                      reopen.
+                    </div>
                   </div>
                 </div>
 
@@ -306,21 +309,6 @@ export function HomeContent() {
                   </div>
                 </Card>
 
-                <div className="rounded-lg bg-white/[0.01] p-4 backdrop-blur-sm dark:bg-black/[0.01]">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium">Payment</span>
-                    <span className="text-lg font-semibold">
-                      {EAP_PRICE} SOL
-                    </span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Funds will be allocated to cover expenses such as LLM
-                    integration, RPC data services, infrastructure maintenance,
-                    and other operational costs, all aimed at ensuring the
-                    platform&apos;s stability and reliability.
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-between gap-4">
                   <Link
                     href="https://x.com/neur_sh"
@@ -331,20 +319,15 @@ export function HomeContent() {
                     <RiTwitterXFill className="mr-2 h-4 w-4" />
                     Follow Updates
                   </Link>
-                  <Button
-                    onClick={handlePurchase}
-                    disabled={isProcessing}
-                    className="bg-teal-500/70 ring-offset-0 hover:bg-teal-500/90 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-teal-500/60 dark:hover:bg-teal-500/80"
+                  <Link
+                    href="https://discord.neur.sh"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing
-                      </>
-                    ) : (
-                      `Join EAP (${EAP_PRICE} SOL)`
-                    )}
-                  </Button>
+                    <Button className="bg-indigo-500/70 ring-offset-0 hover:bg-indigo-500/90 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-indigo-500/60 dark:hover:bg-indigo-500/80">
+                      Join Discord
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
