@@ -1,5 +1,12 @@
 # Changelogs
 
+## v0.1.6
+
+- Enhance token filtering with advanced metrics
+- Improve floating wallet UI
+- Optimize `getTokenPrice` tool
+- Optimize routing UX (creating new conversation)
+
 ## v0.1.5
 
 - Fixed placeholder image for tokens
