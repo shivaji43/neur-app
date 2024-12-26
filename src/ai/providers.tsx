@@ -4,6 +4,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
+import { jinaTools } from './generic/jina';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
 import { jupiterTools } from './solana/jupiter';
@@ -83,6 +84,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...jupiterTools,
   ...dexscreenerTools,
   ...magicEdenTools,
+  ...jinaTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
