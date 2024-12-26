@@ -34,8 +34,8 @@ export const CopyableText = ({ text, showSolscan = false }: Props) => {
 
   return (
     <div className="flex w-full select-none items-center gap-2">
-      <div className="min-w-0 flex-1">
-        <span className="block truncate font-mono text-sm">{text}</span>
+      <div className="min-w-0 flex-1 truncate">
+        <span className="block font-mono text-sm">{text}</span>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button

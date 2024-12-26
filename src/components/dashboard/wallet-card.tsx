@@ -290,7 +290,7 @@ export function WalletCard({ wallet }: { wallet: EmbeddedWallet }) {
 
           {/* Success State */}
           {sendStatus === 'success' && txHash && (
-            <div className="py-4">
+            <div className="truncate py-4">
               <div className="rounded-lg border bg-muted/30 p-4">
                 <p className="mb-2 text-sm font-medium">Transaction Hash:</p>
                 <CopyableText text={txHash} showSolscan={true} />
