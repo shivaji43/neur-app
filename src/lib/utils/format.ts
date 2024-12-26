@@ -34,3 +34,7 @@ export function formatPrivyId(id: string | undefined): string {
   if (!id) return '';
   return id.replace('did:privy:', '');
 }
+
+export function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
