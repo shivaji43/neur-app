@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { capitalize } from '@/lib/utils/format';
 
 // Types
 interface DexScreenerOrder {
@@ -41,8 +42,8 @@ interface DexScreenerPair {
   pairCreatedAt: number;
   info?: {
     imageUrl?: string;
-    websites?: { url: string }[];
-    socials?: { platform: string; handle: string }[];
+    websites?: { label: string; url: string }[];
+    socials?: { type: string; url: string }[];
   };
   boosts?: {
     active: number;
@@ -196,20 +197,20 @@ const TokenProfile = ({ pair }: { pair: DexScreenerPair }) => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-md bg-background px-2.5 py-1.5 text-sm hover:bg-accent"
               >
-                Website
-                <ExternalLink className="ml-1.5 h-3 w-3" />
+                {website.label}
+                <ExternalLink className="ml-1 h-3 w-3" />
               </a>
             ))}
             {pair.info?.socials?.map((social, index) => (
               <a
                 key={index}
-                href={`https://${social.platform}.com/${social.handle}`}
+                href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-md bg-background px-2.5 py-1.5 text-sm capitalize hover:bg-accent"
               >
-                {social.platform}
-                <ExternalLink className="ml-1.5 h-3 w-3" />
+                {capitalize(social.type)}
+                <ExternalLink className="ml-1 h-3 w-3" />
               </a>
             ))}
           </div>
@@ -292,7 +293,7 @@ const TokenProfiles = ({
                       className="inline-flex items-center rounded-md bg-background px-2.5 py-1.5 text-sm capitalize hover:bg-accent"
                     >
                       {link.type}
-                      <ExternalLink className="ml-1.5 h-3 w-3" />
+                      <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
                   ))}
                 </div>
