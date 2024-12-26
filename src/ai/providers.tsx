@@ -4,12 +4,12 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-import { definedTools } from './tools/defined-fi';
-import { dexscreenerTools } from './tools/dexscreener';
-import { jupiterTools } from './tools/jupiter';
-import { magicEdenTools } from './tools/magic-eden';
-import { pumpfunTools } from './tools/pumpfun';
-import { solanaTools } from './tools/solana';
+import { definedTools } from './solana/defined-fi';
+import { dexscreenerTools } from './solana/dexscreener';
+import { jupiterTools } from './solana/jupiter';
+import { magicEdenTools } from './solana/magic-eden';
+import { pumpfunTools } from './solana/pumpfun';
+import { solanaTools } from './solana/solana';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
