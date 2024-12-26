@@ -25,6 +25,11 @@ export const SUGGESTIONS: Suggestion[] = [
     title: "What's the price of SOL?",
     subtitle: 'find the current price of SOL',
   },
+  {
+    id: 'top-gainers-last-24h',
+    title: 'Top gainers in the last 24h',
+    subtitle: 'find the top gainers in the last 24 hours',
+  },
   // {
   //     id: "phantom-updates",
   //     title: "Any updates from @phantom recently?",
