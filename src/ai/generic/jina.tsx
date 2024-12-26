@@ -1,7 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { z } from 'zod';
 
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 // Types
 interface JinaWebReaderResponse {
@@ -10,26 +10,45 @@ interface JinaWebReaderResponse {
 }
 
 // Components
-const WebContent = ({ content }: { content: JinaWebReaderResponse }) => {
+const WebContent = ({
+  content,
+  className,
+}: {
+  content: JinaWebReaderResponse;
+  className?: string;
+}) => {
+  const wordCount = content.content.split(/\s+/).length;
+  const charCount = content.content.length;
+
   return (
-    <Card className="relative overflow-hidden p-4">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <a
-            href={content.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            {content.url}
-            <ExternalLink className="ml-1 h-3 w-3" />
-          </a>
-        </div>
-        <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-          {content.content}
+    <div
+      className={cn(
+        'group relative rounded-lg border border-border/50 bg-background/50 p-3 shadow-sm transition-colors hover:border-border/80 hover:bg-background/80',
+        className,
+      )}
+    >
+      <div className="flex flex-col gap-2">
+        <a
+          href={content.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-sm font-medium text-foreground/80 hover:text-foreground"
+        >
+          <ExternalLink className="mr-2 h-3.5 w-3.5" />
+          {content.url}
+        </a>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground/90">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">Characters:</span>
+            <span>{charCount.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">Words:</span>
+            <span>{wordCount.toLocaleString()}</span>
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
@@ -45,6 +64,7 @@ export const jinaTools = {
         .url()
         .describe('The URL of the web page to read and convert to text'),
     }),
+    isCollapsible: true,
     execute: async ({ url }: { url: string }) => {
       try {
         const response = await fetch(`https://r.jina.ai/${url}`, {
@@ -60,7 +80,6 @@ export const jinaTools = {
 
         const content = await response.text();
         return {
-          suppressFollowUp: true,
           data: {
             content,
             url,
