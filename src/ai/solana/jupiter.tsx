@@ -281,9 +281,6 @@ export const jupiterTools = {
         );
       }
 
-      console.log(`fetched price for ${typedResult.data.token.name}`);
-      console.log(typedResult.data.price);
-
       return (
         <PriceCard
           token={typedResult.data.token}

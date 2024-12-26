@@ -21,7 +21,7 @@ import {
   sanitizeResponseMessages,
 } from '@/lib/utils/ai';
 import { generateTitleFromUserMessage } from '@/server/actions/ai';
-import { getUserData, verifyUser } from '@/server/actions/user';
+import { verifyUser } from '@/server/actions/user';
 import {
   dbCreateConversation,
   dbCreateMessages,

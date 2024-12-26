@@ -1,3 +1,7 @@
+import { Brain } from 'lucide-react';
+
+import { ComingSoonPage } from '@/components/coming-soon';
+
 export default function MemoriesPage() {
-  return <div>Memories</div>;
+  return <ComingSoonPage icon={Brain} title="Agent's Personalized Memory" />;
 }
