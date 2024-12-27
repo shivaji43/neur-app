@@ -1,11 +1,41 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+import { chunkArray } from '@/lib/utils';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
 import { RPC_URL } from '../constants';
 
-type HeliusMethod = 'searchAssets' | 'getBalance';
+const PROGRAM_LABELS: Record<string, string> = {
+  '11111111111111111111111111111111': 'Wallet',
+  LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn: 'Jupiter Lock Program',
+};
+
+const ACCOUNT_LABELS: Record<string, string> = {
+  '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1': 'Raydium Authority V4',
+};
+
+export interface Holder {
+  owner: string;
+  balance: number;
+  classification?: string; // optional, assigned later
+}
+
+interface MintInfo {
+  mint: string;
+  decimals: number;
+  supply: bigint;
+  isInitialized: boolean;
+  freezeAuthority: string;
+  mintAuthority: string;
+}
+
+type HeliusMethod =
+  | 'searchAssets'
+  | 'getBalance'
+  | 'getTokenAccounts'
+  | 'getAccountInfo'
+  | 'getMultipleAccounts';
 
 const fetchHelius = async (method: HeliusMethod, params: any) => {
   try {
@@ -17,7 +47,7 @@ const fetchHelius = async (method: HeliusMethod, params: any) => {
         jsonrpc: '2.0',
         id: 'request-id',
         method: method,
-        params: { ...params },
+        params: params, // some methods require objects, some require arrays
       }),
     });
 
@@ -211,3 +241,164 @@ export const searchWalletAssets: (walletAddress: string) => Promise<{
     throw new Error('Failed to search wallet assets with unknown error');
   }
 };
+
+export async function getMintAccountInfo(mint: string): Promise<MintInfo> {
+  const data = await fetchHelius('getAccountInfo', [
+    mint,
+    { encoding: 'jsonParsed' },
+  ]);
+
+  if (!data.result || !data.result.value) {
+    throw new Error(`No account info found for mint: ${mint}`);
+  }
+
+  const value = data.result.value;
+  if (!value.data || !value.data.parsed || value.data.parsed.type !== 'mint') {
+    throw new Error(`Account is not a valid SPL mint: ${mint}`);
+  }
+
+  const info = value.data.parsed.info;
+  return {
+    mint,
+    decimals: info.decimals,
+    supply: BigInt(info.supply),
+    isInitialized: info.isInitialized,
+    freezeAuthority: info.freezeAuthority,
+    mintAuthority: info.mintAuthority,
+  };
+}
+
+/**
+ * Fetches all holders for a given mint (via "getTokenAccounts"),
+ * returning a Map of `address -> Holder`.
+ */
+export async function getTokenHolders(
+  mintInfo: MintInfo,
+): Promise<Map<string, Holder>> {
+  let page = 1;
+  const holderMap = new Map<string, Holder>();
+
+  while (true) {
+    const data = await fetchHelius('getTokenAccounts', {
+      page,
+      limit: 1000,
+      displayOptions: {},
+      mint: mintInfo.mint,
+    });
+
+    if (!data.result || data.result.token_accounts.length === 0) {
+      break; // no more results
+    }
+
+    data.result.token_accounts.forEach((account: any) => {
+      const owner = account.owner;
+      const balanceRaw = BigInt(account.amount || '0');
+      const balance = Number(balanceRaw) / 10 ** mintInfo.decimals;
+
+      if (holderMap.has(owner)) {
+        const h = holderMap.get(owner)!;
+        h.balance += balance;
+      } else {
+        holderMap.set(owner, {
+          owner,
+          balance: balance,
+        });
+      }
+    });
+
+    page++;
+  }
+
+  return holderMap;
+}
+
+/**
+ * Use "getMultipleAccounts" in a single RPC call for a list of addresses
+ */
+async function getMultipleAccountsInfoHelius(addresses: string[]) {
+  return await fetchHelius('getMultipleAccounts', [
+    addresses,
+    { encoding: 'jsonParsed' },
+  ]);
+}
+
+/**
+ * Classify a list of addresses (subset of holders).
+ * - If address is in ACCOUNT_LABELS, use that.
+ * - Else look at the account's `owner` program → PROGRAM_LABELS or fallback.
+ * - Mutates the `Holder.classification` in `holderMap`.
+ */
+async function classifyAddresses(
+  holderMap: Map<string, Holder>,
+  addresses: string[],
+  chunkSize = 20,
+) {
+  const addressChunks = chunkArray(addresses, chunkSize);
+
+  for (const chunk of addressChunks) {
+    const response = await getMultipleAccountsInfoHelius(chunk);
+    const accountInfos = response?.result?.value;
+
+    if (!accountInfos || !Array.isArray(accountInfos)) {
+      continue;
+    }
+
+    for (let i = 0; i < chunk.length; i++) {
+      const addr = chunk[i];
+      const accInfo = accountInfos[i];
+      const holder = holderMap.get(addr);
+      if (!holder) continue;
+
+      // (1) If address is in ACCOUNT_LABELS
+      if (ACCOUNT_LABELS[addr]) {
+        holder.classification = ACCOUNT_LABELS[addr];
+        continue;
+      }
+
+      // (2) Otherwise check `accInfo.owner`
+      if (accInfo && accInfo.owner) {
+        const programId = accInfo.owner;
+        holder.classification =
+          PROGRAM_LABELS[programId] ??
+          `Unrecognized / Custom Program: ${programId}`;
+      } else {
+        holder.classification = "Unknown or Doesn't Exist";
+      }
+    }
+  }
+}
+
+/**
+ * 1) Fetch mint info
+ * 2) Fetch all holders (Map)
+ * 3) Sort them by descending balance
+ * 4) Classify only the top limit holders (minimize RPC calls)
+ * 5) Return a sorted array (with classification for top 20)
+ */
+export async function getHoldersClassification(
+  mint: string,
+  limit: number = 10,
+) {
+  // 1) Mint info
+  const mintAccountInfo = await getMintAccountInfo(mint);
+
+  // 2) Holder map
+  const holderMap = await getTokenHolders(mintAccountInfo);
+
+  // 3) Sort once by balance desc (turn the map into an array)
+  const sortedHolders = Array.from(holderMap.values()).sort((a, b) => {
+    return b.balance > a.balance ? 1 : b.balance < a.balance ? -1 : 0;
+  });
+
+  const topHolders = sortedHolders.slice(0, limit);
+  await classifyAddresses(
+    holderMap,
+    topHolders.map((h) => h.owner),
+    limit,
+  );
+
+  return {
+    topHolders,
+    totalHolders: holderMap.size,
+  };
+}

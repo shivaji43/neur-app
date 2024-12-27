@@ -5,8 +5,13 @@ import { AlertCircle, ArrowRightLeft, ExternalLink } from 'lucide-react';
 import { z } from 'zod';
 
 import { WalletPortfolio } from '@/components/message/wallet-portfolio';
+import { Card } from '@/components/ui/card';
 import { SolanaUtils } from '@/lib/solana';
-import { searchWalletAssets } from '@/lib/solana/helius';
+import {
+  type Holder,
+  getHoldersClassification,
+  searchWalletAssets,
+} from '@/lib/solana/helius';
 import { cn } from '@/lib/utils';
 import { retrieveAgentKit } from '@/server/actions/ai';
 import { transformToPortfolio } from '@/types/helius/portfolio';
@@ -32,6 +37,19 @@ interface SwapResult {
     outputMint: string;
     amount: number;
     slippageBps: number;
+  };
+  error?: string;
+}
+
+interface TokenParams {
+  mint: string;
+}
+
+interface TokenHoldersResult {
+  success: boolean;
+  data?: {
+    totalHolders: number;
+    topHolders: Holder[];
   };
   error?: string;
 }
@@ -161,6 +179,97 @@ const SwapResult = ({ result }: { result: SwapResult }) => {
   );
 };
 
+export function TokenHoldersResult({
+  holdersResult,
+}: {
+  holdersResult: TokenHoldersResult;
+}) {
+  // Handle error or loading states:
+  if (!holdersResult.success) {
+    return (
+      <Card className="space-y-4 bg-muted/50 p-4">
+        <h3 className="text-lg font-medium">Holders Information</h3>
+        <p className="text-red-500">
+          {holdersResult.error ?? 'Failed to load holder data.'}
+        </p>
+      </Card>
+    );
+  }
+
+  const { totalHolders, topHolders } = holdersResult.data ?? {
+    totalHolders: 0,
+    topHolders: [],
+  };
+
+  return (
+    <Card className="space-y-4 bg-muted/50 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Holders Information</h3>
+        <div className="text-sm text-muted-foreground">
+          Total Holders: {totalHolders}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-muted-foreground">
+              <th className="p-2 text-left">Rank</th>
+              <th className="p-2 text-left">Owner / Classification</th>
+              <th className="p-2 text-right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topHolders.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-4 text-center">
+                  No top holders found.
+                </td>
+              </tr>
+            ) : (
+              topHolders.map((holder, index) => (
+                <tr
+                  key={holder.owner}
+                  className="border-b last:border-0 hover:bg-accent/10"
+                >
+                  <td className="p-2 align-middle">{index + 1}</td>
+                  <td className="max-w-xs break-words p-2 align-middle">
+                    {/* Owner address */}
+                    <div className="font-mono leading-tight">
+                      <a
+                        key={index}
+                        href={`https://solscan.io/account/${holder.owner}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-md hover:bg-accent"
+                      >
+                        {holder.owner.slice(0, 4)}...
+                        {holder.owner.slice(-4)}
+                        <ExternalLink className="ml-1 h-3 w-3" />
+                      </a>
+                    </div>
+                    {/* Classification */}
+                    {holder.classification && (
+                      <div className="text-xs text-muted-foreground">
+                        {holder.classification}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-2 text-right align-middle">
+                    {holder.balance.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
 const wallet = {
   resolveWalletAddressFromDomain: {
     displayName: '🔍 Resolve Solana Domain',
@@ -285,7 +394,40 @@ const swap = {
   },
 };
 
+const token = {
+  holders: {
+    displayName: '💼 Token Holder Stats',
+    description: 'Get the token holder stats for a Solana token',
+    parameters: z.object({
+      mint: publicKeySchema.describe('Token mint address'),
+    }),
+    execute: async ({ mint }: TokenParams): Promise<TokenHoldersResult> => {
+      try {
+        const tokenHolderStats = await getHoldersClassification(mint);
+        return {
+          success: true,
+          data: {
+            totalHolders: tokenHolderStats.totalHolders,
+            topHolders: tokenHolderStats.topHolders,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error.message : 'Failed to execute swap',
+        };
+      }
+    },
+    render: (raw: unknown) => {
+      const result = raw as TokenHoldersResult;
+      return <TokenHoldersResult holdersResult={result} />;
+    },
+  },
+};
+
 export const solanaTools = {
   ...wallet,
   ...swap,
+  ...token,
 };
