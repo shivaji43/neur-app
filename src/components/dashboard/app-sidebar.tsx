@@ -105,7 +105,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant="sidebar" collapsible="icon" className="hidden md:flex">
       <AppSidebarHeader />
 
       <SidebarContent>
