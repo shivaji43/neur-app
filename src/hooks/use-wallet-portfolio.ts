@@ -29,7 +29,7 @@ export function useWalletPortfolio() {
 
   const refresh = throttle(() => {
     mutate();
-  }, 15000); // Throttle to once every 15 seconds
+  }, 1000);
 
   return { data, refresh, isLoading };
 }
