@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { BookOpen, Bot, Brain, HomeIcon, Workflow } from 'lucide-react';
+import { BookOpen, Brain, HomeIcon } from 'lucide-react';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   Sidebar,
   SidebarContent,
@@ -29,15 +30,18 @@ const AppSidebarHeader = () => {
         <span className="pl-2 text-lg font-medium tracking-tight group-data-[collapsible=icon]:hidden">
           neur.sh
         </span>
-        <div className="flex items-center gap-1.5 group-data-[collapsible=icon]:hidden">
-          {IS_BETA && (
-            <span className="select-none rounded-md bg-primary/90 px-1.5 py-0.5 text-xs text-primary-foreground">
-              BETA
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
+          <div className="flex items-center gap-1.5 group-data-[collapsible=icon]:hidden">
+            {IS_BETA && (
+              <span className="select-none rounded-md bg-primary/90 px-1.5 py-0.5 text-xs text-primary-foreground">
+                BETA
+              </span>
+            )}
+            <span className="select-none rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+              {APP_VERSION}
             </span>
-          )}
-          <span className="select-none rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-            {APP_VERSION}
-          </span>
+          </div>
         </div>
       </div>
     </SidebarHeader>
@@ -101,7 +105,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant="sidebar" collapsible="icon" className="hidden md:flex">
       <AppSidebarHeader />
 
       <SidebarContent>

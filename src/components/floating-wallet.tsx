@@ -87,9 +87,9 @@ export function FloatingWallet({
                   duration: 0.15,
                 },
               }}
-              className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl bg-black/[0.08] backdrop-blur-[20px] will-change-transform dark:bg-black/40 dark:backdrop-blur-2xl"
+              className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl bg-black/[0.02] backdrop-blur-[12px] will-change-transform dark:bg-black/10 dark:backdrop-blur-xl"
             >
-              <div className="flex h-[340px] flex-col bg-white/90 shadow-sm dark:bg-transparent">
+              <div className="flex h-[340px] flex-col bg-white/60 shadow-sm dark:bg-transparent">
                 <div className="flex flex-col gap-3 p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium">
@@ -134,7 +134,7 @@ export function FloatingWallet({
                         href={`https://solscan.io/account/${data.address}#portfolio`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group block rounded-xl transition-colors duration-150 ease-out hover:bg-black/[0.06] dark:hover:bg-white/[0.06]"
+                        className="group block rounded-xl transition-colors duration-150 ease-out hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
                       >
                         <div className="flex items-center justify-between p-2">
                           <div className="flex min-w-0 items-center gap-2">
@@ -189,7 +189,7 @@ export function FloatingWallet({
 
         <motion.div
           layout="preserve-aspect"
-          className="flex cursor-pointer items-center gap-1.5 rounded-2xl bg-black/[0.08] px-3 py-2 backdrop-blur-[20px] transition-colors hover:bg-black/[0.12] dark:bg-black/40 dark:backdrop-blur-2xl dark:hover:bg-black/50"
+          className="flex cursor-pointer items-center gap-1.5 rounded-2xl bg-black/[0.02] px-3 py-2 backdrop-blur-[12px] transition-colors hover:bg-black/[0.04] dark:bg-black/10 dark:backdrop-blur-xl dark:hover:bg-black/20"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <Wallet className="h-4 w-4 shrink-0 text-muted-foreground" />

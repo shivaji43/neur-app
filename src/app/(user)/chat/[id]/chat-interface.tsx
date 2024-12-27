@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn } from '@/lib/utils';
+import { cn, throttle } from '@/lib/utils';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -558,6 +558,8 @@ export default function ChatInterface({
       body: { id },
       onFinish: () => {
         window.history.replaceState({}, '', `/chat/${id}`);
+        // Refresh wallet portfolio after AI response
+        refresh();
       },
     });
 
@@ -567,8 +569,11 @@ export default function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { attachments, setAttachments, handleImageUpload, removeAttachment } =
     useImageUpload();
-  const { data: portfolio, isLoading: isPortfolioLoading } =
-    useWalletPortfolio();
+  const {
+    data: portfolio,
+    isLoading: isPortfolioLoading,
+    refresh,
+  } = useWalletPortfolio();
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {

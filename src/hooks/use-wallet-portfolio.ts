@@ -3,13 +3,14 @@
 import useSWR from 'swr';
 
 import { useUser } from '@/hooks/use-user';
+import { throttle } from '@/lib/utils';
 import { WalletPortfolio } from '@/types/helius/portfolio';
 
 export function useWalletPortfolio() {
   const { user } = useUser();
   const walletAddress = user?.wallets?.[0]?.publicKey;
 
-  return useSWR<WalletPortfolio>(
+  const { data, mutate, isLoading } = useSWR<WalletPortfolio>(
     walletAddress ? ['wallet-portfolio', walletAddress] : null,
     async () => {
       if (!walletAddress) throw new Error('No wallet address');
@@ -20,9 +21,15 @@ export function useWalletPortfolio() {
       return response.json();
     },
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
+      refreshInterval: 60000, // Refresh every 60 seconds
       revalidateOnFocus: true,
       keepPreviousData: true,
     },
   );
+
+  const refresh = throttle(() => {
+    mutate();
+  }, 15000); // Throttle to once every 15 seconds
+
+  return { data, refresh, isLoading };
 }
