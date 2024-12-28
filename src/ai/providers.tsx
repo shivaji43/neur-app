@@ -64,6 +64,7 @@ export interface ToolConfig {
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
+  agentKit?: any;
 }
 
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {

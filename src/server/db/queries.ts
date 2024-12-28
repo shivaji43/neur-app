@@ -162,3 +162,42 @@ export async function dbGetConversations({ userId }: { userId: string }) {
     return [];
   }
 }
+
+/**
+ * Retrieves all conversations for a specific user
+ * @param {Object} params - The parameters object
+ * @param {boolean} params.triggered - Boolean to filter triggered actions
+ * @param {boolean} params.paused - Boolean to filter paused actions
+ * @param {boolean} params.completed - Boolean to filter completed actions
+ * @param {number} params.frequency - The frequency of the action
+ * @returns {Promise<Conversation[]>} Array of conversations
+ */
+export async function getActions({
+  triggered,
+  paused,
+  completed,
+  frequency,
+}: {
+  triggered: boolean;
+  paused: boolean;
+  completed: boolean;
+  frequency: number;
+}) {
+  try {
+    return await prisma.action.findMany({
+      where: {
+        triggered,
+        paused,
+        completed,
+        frequency,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { include: { wallets: true } } },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to get actions:', {
+      error,
+    });
+    return [];
+  }
+}
