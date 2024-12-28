@@ -28,6 +28,21 @@ export function formatWalletAddress(
 }
 
 /**
+ * Helper function to format a number to short notation:
+ * e.g. 1_100_000 => 1.1M, 466_800 => 466.8K
+ */
+export function formatShortNumber(value: number): string {
+  if (value >= 1_000_000_000) {
+    return (value / 1_000_000_000).toFixed(2) + 'B';
+  } else if (value >= 1_000_000) {
+    return (value / 1_000_000).toFixed(1) + 'M';
+  } else if (value >= 1_000) {
+    return (value / 1_000).toFixed(1) + 'K';
+  }
+  return value.toFixed(2);
+}
+
+/**
  * Format Privy ID by removing prefix
  */
 export function formatPrivyId(id: string | undefined): string {
