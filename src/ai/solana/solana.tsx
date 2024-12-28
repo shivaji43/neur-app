@@ -209,7 +209,7 @@ export function TokenHoldersResult({
     <Card className="space-y-4 bg-muted/50 p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Holders Information</h3>
-        <div className="text-sm text-muted-foreground">
+        <div className="ml-2 text-sm text-muted-foreground">
           Total Holders: {totalHolders}
         </div>
       </div>
