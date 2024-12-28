@@ -1,19 +1,11 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { chunkArray } from '@/lib/utils';
+import rawKnownAddresses from '@/lib/utils/known-addresses.json';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
 import { RPC_URL } from '../constants';
-
-const PROGRAM_LABELS: Record<string, string> = {
-  '11111111111111111111111111111111': 'Wallet',
-  LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn: 'Jupiter Lock Program',
-};
-
-const ACCOUNT_LABELS: Record<string, string> = {
-  '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1': 'Raydium Authority V4',
-};
 
 export interface Holder {
   owner: string;
@@ -36,6 +28,11 @@ type HeliusMethod =
   | 'getTokenAccounts'
   | 'getAccountInfo'
   | 'getMultipleAccounts';
+
+const KNOWN_ADDRESSES: Record<string, string> = rawKnownAddresses as Record<
+  string,
+  string
+>;
 
 const fetchHelius = async (method: HeliusMethod, params: any) => {
   try {
@@ -350,8 +347,8 @@ async function classifyAddresses(
       if (!holder) continue;
 
       // (1) If address is in ACCOUNT_LABELS
-      if (ACCOUNT_LABELS[addr]) {
-        holder.classification = ACCOUNT_LABELS[addr];
+      if (addr in KNOWN_ADDRESSES) {
+        holder.classification = KNOWN_ADDRESSES[addr];
         continue;
       }
 
@@ -359,7 +356,7 @@ async function classifyAddresses(
       if (accInfo && accInfo.owner) {
         const programId = accInfo.owner;
         holder.classification =
-          PROGRAM_LABELS[programId] ??
+          KNOWN_ADDRESSES[programId] ??
           `Unrecognized / Custom Program: ${programId}`;
       } else {
         holder.classification = "Unknown or Doesn't Exist";
@@ -381,6 +378,8 @@ export async function getHoldersClassification(
 ) {
   // 1) Mint info
   const mintAccountInfo = await getMintAccountInfo(mint);
+  const totalSupply =
+    Number(mintAccountInfo.supply) / 10 ** mintAccountInfo.decimals;
 
   // 2) Holder map
   const holderMap = await getTokenHolders(mintAccountInfo);
@@ -400,5 +399,6 @@ export async function getHoldersClassification(
   return {
     topHolders,
     totalHolders: holderMap.size,
+    totalSupply,
   };
 }

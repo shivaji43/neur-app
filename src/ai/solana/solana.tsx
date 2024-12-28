@@ -13,6 +13,7 @@ import {
   searchWalletAssets,
 } from '@/lib/solana/helius';
 import { cn } from '@/lib/utils';
+import { formatShortNumber } from '@/lib/utils/format';
 import { retrieveAgentKit } from '@/server/actions/ai';
 import { transformToPortfolio } from '@/types/helius/portfolio';
 
@@ -50,6 +51,7 @@ interface TokenHoldersResult {
   data?: {
     totalHolders: number;
     topHolders: Holder[];
+    totalSupply: number;
   };
   error?: string;
 }
@@ -196,9 +198,11 @@ export function TokenHoldersResult({
     );
   }
 
-  const { totalHolders, topHolders } = holdersResult.data ?? {
+  // Destructure out data
+  const { totalHolders, topHolders, totalSupply } = holdersResult.data ?? {
     totalHolders: 0,
     topHolders: [],
+    totalSupply: 1,
   };
 
   return (
@@ -214,54 +218,61 @@ export function TokenHoldersResult({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-muted-foreground">
-              <th className="p-2 text-left">Rank</th>
-              <th className="p-2 text-left">Owner / Classification</th>
-              <th className="p-2 text-right">Balance</th>
+              <th className="p-2 text-left">Owner</th>
+              <th className="p-2 text-left">Balance</th>
             </tr>
           </thead>
           <tbody>
             {topHolders.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-4 text-center">
+                <td colSpan={2} className="p-4 text-center">
                   No top holders found.
                 </td>
               </tr>
             ) : (
-              topHolders.map((holder, index) => (
-                <tr
-                  key={holder.owner}
-                  className="border-b last:border-0 hover:bg-accent/10"
-                >
-                  <td className="p-2 align-middle">{index + 1}</td>
-                  <td className="max-w-xs break-words p-2 align-middle">
-                    {/* Owner address */}
-                    <div className="font-mono leading-tight">
-                      <a
-                        key={index}
-                        href={`https://solscan.io/account/${holder.owner}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-md hover:bg-accent"
-                      >
-                        {holder.owner.slice(0, 4)}...
-                        {holder.owner.slice(-4)}
-                        <ExternalLink className="ml-1 h-3 w-3" />
-                      </a>
-                    </div>
-                    {/* Classification */}
-                    {holder.classification && (
-                      <div className="text-xs text-muted-foreground">
-                        {holder.classification}
+              topHolders.map((holder, index) => {
+                const ownedPct = ((holder.balance / totalSupply) * 100).toFixed(
+                  2,
+                );
+                const shortBalance = formatShortNumber(holder.balance);
+
+                return (
+                  <tr
+                    key={holder.owner}
+                    className="border-b last:border-0 hover:bg-accent/10"
+                  >
+                    {/* Owner + Classification */}
+                    <td className="max-w-xs break-words p-2 align-middle">
+                      <div className="font-mono leading-tight">
+                        <a
+                          key={index}
+                          href={`https://solscan.io/account/${holder.owner}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center rounded-md hover:bg-accent"
+                        >
+                          {holder.owner.slice(0, 4)}...
+                          {holder.owner.slice(-4)}
+                          <ExternalLink className="ml-1 h-3 w-3" />
+                        </a>
                       </div>
-                    )}
-                  </td>
-                  <td className="p-2 text-right align-middle">
-                    {holder.balance.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
-                    })}
-                  </td>
-                </tr>
-              ))
+                      {holder.classification && (
+                        <div className="text-xs text-muted-foreground">
+                          {holder.classification}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Owned% + Short Balance */}
+                    <td className="p-2 align-middle">
+                      <div className="text-sm font-medium">{ownedPct}%</div>
+                      <div className="text-xs text-muted-foreground">
+                        {shortBalance}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -409,6 +420,7 @@ const token = {
           data: {
             totalHolders: tokenHolderStats.totalHolders,
             topHolders: tokenHolderStats.topHolders,
+            totalSupply: tokenHolderStats.totalSupply,
           },
         };
       } catch (error) {
