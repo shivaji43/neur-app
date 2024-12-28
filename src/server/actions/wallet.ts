@@ -2,6 +2,7 @@
 
 import {
   Keypair,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
@@ -77,7 +78,7 @@ export const embeddedWalletSendSOL = actionClient
         const keyPair = Keypair.fromSecretKey(bs58.decode(privateKey));
         const recipientPublicKey = new PublicKey(recipientAddress);
         const connection = createConnection();
-        const lamportsToSend = 1_000_000;
+        const lamportsToSend = amount * LAMPORTS_PER_SOL;
 
         const transferTransaction = new Transaction().add(
           SystemProgram.transfer({

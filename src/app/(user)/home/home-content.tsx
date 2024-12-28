@@ -289,8 +289,8 @@ export function HomeContent() {
                   </h2>
                   <div className="text-muted-foreground">
                     We&apos;re currently limiting <Badge>BETA</Badge> access to
-                    a limited number of users to ensure a stable service and
-                    while keep refining features.
+                    a limited amount of users to ensure stable service while
+                    continuing to refine features.
                   </div>
                 </div>
 

@@ -25,11 +25,10 @@ import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn } from '@/lib/utils';
+import { cn, throttle } from '@/lib/utils';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -559,6 +558,8 @@ export default function ChatInterface({
       body: { id },
       onFinish: () => {
         window.history.replaceState({}, '', `/chat/${id}`);
+        // Refresh wallet portfolio after AI response
+        refresh();
       },
     });
 
@@ -568,8 +569,11 @@ export default function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { attachments, setAttachments, handleImageUpload, removeAttachment } =
     useImageUpload();
-  const { data: portfolio, isLoading: isPortfolioLoading } =
-    useWalletPortfolio();
+  const {
+    data: portfolio,
+    isLoading: isPortfolioLoading,
+    refresh,
+  } = useWalletPortfolio();
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -625,27 +629,25 @@ export default function ChatInterface({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="relative flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="mx-auto w-full max-w-3xl">
-            <div className="space-y-4 px-4 pb-36 pt-4">
-              {messages.map((message, index) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  index={index}
-                  messages={messages}
-                  onPreviewImage={setPreviewImage}
-                />
-              ))}
-              {isLoading &&
-                messages[messages.length - 1]?.role !== 'assistant' && (
-                  <LoadingMessage />
-                )}
-              <div ref={messagesEndRef} />
-            </div>
+      <div className="no-scrollbar relative flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="space-y-4 px-4 pb-36 pt-4">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                message={message}
+                index={index}
+                messages={messages}
+                onPreviewImage={setPreviewImage}
+              />
+            ))}
+            {isLoading &&
+              messages[messages.length - 1]?.role !== 'assistant' && (
+                <LoadingMessage />
+              )}
+            <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       <div className="sticky bottom-0 z-10">

@@ -250,7 +250,7 @@ const features = [
     Icon: BrainCircuitIcon,
     name: 'Cutting-Edge AI Intelligence',
     description:
-      'Harness the power of the world&apos;s most advanced AI models, including Claude 3.5-Sonnet and GPT-4o, to intelligently analyze your Solana transactions in real-time, providing data-driven insights and seamless automated actions.',
+      "Harness the power of the world's most advanced AI models, including Claude 3.5-Sonnet and GPT-4o, to intelligently analyze your Solana transactions in real-time, providing data-driven insights and seamless automated actions.",
     className: 'col-span-1 sm:col-span-3 lg:col-span-2',
     background: (
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
