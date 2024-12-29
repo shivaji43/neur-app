@@ -1,6 +1,8 @@
-import { Prisma, Message as PrismaMessage } from '@prisma/client';
+import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
+import { NewAction } from '@/types/db';
 
 /**
  * Retrieves a conversation by its ID
@@ -172,7 +174,7 @@ export async function dbGetConversations({ userId }: { userId: string }) {
  * @param {number} params.frequency - The frequency of the action
  * @returns {Promise<Conversation[]>} Array of conversations
  */
-export async function getActions({
+export async function dbGetActions({
   triggered,
   paused,
   completed,
@@ -196,6 +198,32 @@ export async function getActions({
     });
   } catch (error) {
     console.error('[DB Error] Failed to get actions:', {
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbCreateAction(action: NewAction) {
+  try {
+    return await prisma.action.create({
+      data: {
+        ..._.omit(action, 'conversationId', 'userId'),
+        params: action.params as Prisma.JsonObject,
+        user: {
+          connect: {
+            id: action.userId,
+          },
+        },
+        conversation: {
+          connect: {
+            id: action.conversationId,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to create action:', {
       error,
     });
     return [];

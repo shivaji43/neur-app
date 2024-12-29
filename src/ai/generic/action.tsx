@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { Card } from '@/components/ui/card';
 import { verifyUser } from '@/server/actions/user';
+import { dbCreateAction } from '@/server/db/queries';
 
 interface CreateActionResultProps {
   id: string;
@@ -94,8 +95,7 @@ function CreateActionResult({
 }
 
 const createActionTool = {
-  description:
-    'Create an action in the database (check for requiresConfirmation)',
+  description: 'Create an action in the database (requiresConfirmation)',
   displayName: '⚡ Create Action',
   parameters: z.object({
     requiresConfirmation: z.boolean().optional().default(true),
@@ -127,15 +127,14 @@ const createActionTool = {
         return { success: false, error: 'Unauthorized' };
       }
 
-      // FIXME: Create action in the database
-      const action = {
-        id: '1234567890',
+      const action = await dbCreateAction({
         userId,
         conversationId: params.conversationId,
         description: `${params.description}${NO_CONFIRMATION_MESSAGE}`,
+        actionType: 'default',
         frequency: params.frequency,
         maxExecutions: params.maxExecutions ?? null,
-        triggered: false,
+        triggered: true,
         paused: false,
         completed: false,
         priority: 0,
@@ -143,7 +142,10 @@ const createActionTool = {
         updatedAt: new Date(),
         triggeredBy: [],
         stoppedBy: [],
-      };
+        params: {},
+        timesExecuted: 0,
+        lastExecutedAt: null,
+      });
 
       if (!action) {
         return { success: false, error: 'Failed to create action' };

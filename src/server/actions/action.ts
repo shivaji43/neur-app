@@ -1,4 +1,3 @@
-import { type Action, Prisma } from '@prisma/client';
 import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
 import { SolanaAgentKit } from 'solana-agent-kit';
 import { z } from 'zod';
@@ -12,22 +11,9 @@ import { RPC_URL } from '@/lib/constants';
 import prisma from '@/lib/prisma';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
 import { sanitizeResponseMessages } from '@/lib/utils/ai';
+import { ActionWithUser } from '@/types/db';
 
 import { dbCreateMessages, dbGetConversation } from '../db/queries';
-
-type ActionWithUser = Prisma.ActionGetPayload<{
-  include: {
-    user: {
-      include: {
-        wallets: true;
-      };
-    };
-  };
-}>;
-
-type ActionFull = Prisma.ActionGetPayload<{
-  select: { [K in keyof Required<Prisma.ActionSelect>]: true };
-}>;
 
 export async function processAction(action: ActionWithUser) {
   console.log(

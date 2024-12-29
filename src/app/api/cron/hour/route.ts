@@ -1,5 +1,5 @@
 import { processAction } from '@/server/actions/action';
-import { getActions } from '@/server/db/queries';
+import { dbGetActions } from '@/server/db/queries';
 
 export const dynamic = 'force-dynamic'; // static by default, unless reading the request
 
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
   // Hourly cron job
   // Get all Actions that are not completed or paused, and have a frequency of daily (86400 seconds)
-  const actions = await getActions({
+  const actions = await dbGetActions({
     triggered: true,
     completed: false,
     paused: false,
