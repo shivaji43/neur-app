@@ -16,6 +16,7 @@ import {
   defaultSystemPrompt,
   defaultTools,
 } from '@/ai/providers';
+import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
@@ -95,6 +96,11 @@ export async function POST(req: Request) {
       `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
       `\n\nUser Solana wallet public key: ${publicKey}`;
 
+    // Filter to relevant messages for context sizing
+    const relevantMessages: CoreMessage[] = coreMessages.slice(
+      -MAX_TOKEN_MESSAGES,
+    ) as CoreMessage[];
+
     const result = streamText({
       model: defaultModel,
       system: systemPrompt,
@@ -137,7 +143,7 @@ export async function POST(req: Request) {
       },
 
       maxSteps: 15,
-      messages,
+      messages: relevantMessages,
       async onFinish({ response }) {
         if (!userId) return;
 
