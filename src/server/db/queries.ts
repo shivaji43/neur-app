@@ -164,7 +164,7 @@ export async function dbGetConversations({ userId }: { userId: string }) {
 }
 
 /**
- * Retrieves all conversations for a specific user
+ * Retrieves all actions that match the specified filters
  * @param {Object} params - The parameters object
  * @param {boolean} params.triggered - Boolean to filter triggered actions
  * @param {boolean} params.paused - Boolean to filter paused actions

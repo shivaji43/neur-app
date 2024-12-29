@@ -4,6 +4,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
+import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
 import { utilTools } from './generic/util';
 import { definedTools } from './solana/defined-fi';
@@ -94,6 +95,7 @@ export function DefaultToolResultRenderer({ result }: { result: unknown }) {
 }
 
 export const defaultTools: Record<string, ToolConfig> = {
+  ...actionTools,
   ...solanaTools,
   ...definedTools,
   ...pumpfunTools,
