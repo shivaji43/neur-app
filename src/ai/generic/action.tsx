@@ -72,10 +72,10 @@ function CreateActionResult({
             <span>{frequencyLabel}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-medium text-muted-foreground">
+            <span className="mr-2 font-medium text-muted-foreground">
               Next Execution
             </span>
-            <span>{nextExecution}</span>
+            <span className="ml-2">{nextExecution}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium text-muted-foreground">
