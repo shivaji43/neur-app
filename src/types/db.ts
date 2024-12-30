@@ -29,7 +29,7 @@ export type NeurUser = Pick<
   hasEAP: boolean;
 };
 
-export interface NewAction extends Omit<Action, 'id'> {}
+export type NewAction = Omit<Action, 'id'>;
 
 export type ActionWithUser = Prisma.ActionGetPayload<{
   include: {
