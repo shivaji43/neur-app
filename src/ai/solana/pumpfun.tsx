@@ -88,6 +88,7 @@ export const pumpfunTools = {
     description: 'Launch a token on PumpFun',
     displayName: '💊 Deploy new token',
     parameters: z.object({
+      requiresConfirmation: z.boolean().optional().default(true),
       name: z.string().describe('The name of the token'),
       symbol: z.string().describe('The symbol of the token'),
       description: z.string().describe('The description of the token'),

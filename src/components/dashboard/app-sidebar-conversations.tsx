@@ -182,11 +182,6 @@ export const AppSidebarConversations = () => {
       ? pathname.split('/')[2]
       : null;
     setActiveId(chatId);
-
-    // Only refresh if we have a new conversation that's not in the list
-    if (chatId && !conversations?.find((conv) => conv.id === chatId)) {
-      refreshConversations();
-    }
   }, [pathname, setActiveId, conversations, refreshConversations]);
 
   if (isUserLoading) {

@@ -5,6 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 import { jinaTools } from './generic/jina';
+import { utilTools } from './generic/util';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
 import { jupiterTools } from './solana/jupiter';
@@ -35,6 +36,12 @@ Critical Rules:
      - "The results are shown above"
      - "You can see the details above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
+- Always use the \`askForConfirmation\` tool to get user confirmation before executing tools that contain the parameter "requiresConfirmation" set to "true", or are potentially risky. After calling \`askForConfirmation\`:
+     - STOP your response immediately
+     - Wait for the user to explicitly reply with a confirmation or rejection
+     - Only proceed with the tool execution in a NEW response after receiving an explicit confirmation
+     - If rejected, acknowledge the rejection and stop
+     - Never chain the confirmation request and the tool execution in the same response
 
 Response Formatting:
 - Use proper line breaks between different sections of your response for better readability
@@ -64,6 +71,7 @@ export interface ToolConfig {
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
+  requiresConfirmation?: boolean;
 }
 
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {
@@ -92,6 +100,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...dexscreenerTools,
   ...magicEdenTools,
   ...jinaTools,
+  ...utilTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

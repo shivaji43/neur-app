@@ -17,6 +17,7 @@ import BlurFade from '@/components/ui/blur-fade';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import TypingAnimation from '@/components/ui/typing-animation';
+import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
@@ -61,6 +62,8 @@ export function HomeContent() {
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const MAX_VERIFICATION_ATTEMPTS = 20;
 
+  const { conversations, refreshConversations } = useConversations(user?.id);
+
   const resetChat = useCallback(() => {
     setShowChat(false);
     setChatId(uuidv4());
@@ -70,7 +73,12 @@ export function HomeContent() {
     id: chatId,
     initialMessages: [],
     body: { id: chatId },
-    onFinish: () => {},
+    onFinish: () => {
+      // Only refresh if we have a new conversation that's not in the list
+      if (chatId && !conversations?.find((conv) => conv.id === chatId)) {
+        refreshConversations();
+      }
+    },
   });
 
   // Verification effect
