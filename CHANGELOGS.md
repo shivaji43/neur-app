@@ -1,5 +1,11 @@
 # Changelogs
 
+## v0.1.8
+
+- Improve conversation API route usage
+- Limit messages in context for AI model usage
+- Add confirmation tool for messages that require additional confirmation before executing
+
 ## v0.1.7
 
 - Top 10 token holder analysis
