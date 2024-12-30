@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       `\n\nUser Solana wallet public key: ${publicKey}`;
 
     // Filter to relevant messages for context sizing
-    const relevantMessages: CoreMessage[] = coreMessages.slice(
+    const relevantMessages: CoreMessage[] = messages.slice(
       -MAX_TOKEN_MESSAGES,
     ) as CoreMessage[];
 

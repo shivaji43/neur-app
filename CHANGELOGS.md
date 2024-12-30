@@ -1,5 +1,9 @@
 # Changelogs
 
+## v0.1.9
+
+- Use correct messages when trimming the message context for gpt4o
+
 ## v0.1.8
 
 - Improve conversation API route usage
