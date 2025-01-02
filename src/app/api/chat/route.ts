@@ -165,7 +165,7 @@ export async function POST(req: Request) {
           });
 
           // Save the token stats
-          if (messages && newUserMessage) {
+          if (messages && newUserMessage && !isNaN(usage.totalTokens)) {
             const messageIds = newUserMessage
               .concat(messages)
               .map((message) => message.id);

@@ -65,7 +65,7 @@ model Message {
 
 model TokenStat {
   id                  String   @id @default(cuid())
-  userId              String   @unique
+  userId              String
   messageIds          String[]
   totalTokens         Int
   createdAt           DateTime @default(now())
