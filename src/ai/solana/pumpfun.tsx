@@ -86,7 +86,7 @@ function LaunchResult({ signature, mint, metadataUri }: LaunchResultProps) {
 export const pumpfunTools = {
   launchToken: {
     agentKit: null,
-    description: 'Launch a token on PumpFun',
+    description: 'Launch a token on PumpFun (requires confirmation)',
     displayName: '💊 Deploy new token',
     parameters: z.object({
       requiresConfirmation: z.boolean().optional().default(true),

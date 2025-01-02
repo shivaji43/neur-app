@@ -1,4 +1,3 @@
-import { describe } from 'node:test';
 import { z } from 'zod';
 
 import { Card } from '@/components/ui/card';
@@ -12,34 +11,44 @@ interface CreateActionResultProps {
   maxExecutions: number | null;
 }
 
-function getFrequencyLabel(frequency: number) {
+function getFrequencyLabel(frequency: number): string {
   if (frequency === 3600) return 'Hourly';
   if (frequency === 86400) return 'Daily';
-  return `${frequency} seconds`;
+  if (frequency === 604800) return 'Weekly';
+  if (frequency === 2592000) return 'Monthly'; // Approx. 30 days
+  if (frequency < 3600) {
+    const minutes = Math.floor(frequency / 60);
+    return `Every ${minutes} Minute${minutes > 1 ? 's' : ''}`;
+  } else if (frequency < 86400) {
+    const hours = Math.floor(frequency / 3600);
+    return `Every ${hours} Hour${hours > 1 ? 's' : ''}`;
+  } else {
+    const days = Math.floor(frequency / 86400);
+    return `Every ${days} Day${days > 1 ? 's' : ''}`;
+  }
 }
 
 const NO_CONFIRMATION_MESSAGE = ' (Does not require confirmation)';
 function getNextExecutionTime(frequency: number): string {
+  // TODO: improve this - currently server executes actions every 15 minutes
   const now = new Date();
 
-  // If daily (86400 seconds), move to next midnight:
-  if (frequency === 86400) {
-    const nextMidnight = new Date(now);
-    nextMidnight.setDate(nextMidnight.getDate() + 1);
-    nextMidnight.setHours(0, 0, 0, 0);
-    return nextMidnight.toLocaleString();
-  }
+  // Set to next 15 minute interval
+  const next15 = new Date(now);
+  next15.setMilliseconds(0);
+  next15.setSeconds(0);
 
-  // If hourly (3600 seconds), move to the start of the next hour:
-  if (frequency === 3600) {
-    const nextHour = new Date(now);
-    nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
-    return nextHour.toLocaleString();
-  }
+  const minutes = next15.getMinutes();
+  const remainder = minutes % 15;
 
-  // Otherwise, just do current time + frequency
-  const next = new Date(now.getTime() + frequency * 1000);
-  return next.toLocaleString();
+  if (remainder === 0) {
+    // Already on a quarter-hour mark; move to the next one
+    next15.setMinutes(minutes + 15);
+  } else {
+    // Round up to the next quarter-hour
+    next15.setMinutes(minutes + (15 - remainder));
+  }
+  return next15.toLocaleString();
 }
 
 function CreateActionResult({
@@ -95,7 +104,7 @@ function CreateActionResult({
 }
 
 const createActionTool = {
-  description: 'Create an action in the database (requiresConfirmation)',
+  description: 'Create an action in the database (requires confirmation)',
   displayName: '⚡ Create Action',
   parameters: z.object({
     requiresConfirmation: z.boolean().optional().default(true),
@@ -109,7 +118,7 @@ const createActionTool = {
     frequency: z
       .number()
       .describe(
-        'Frequency in seconds (3600 for hourly, 86400 for daily, or any custom seconds)',
+        'Frequency in seconds (3600 for hourly, 86400 for daily, or any custom intervals of 15 minutes (900))',
       ),
     maxExecutions: z
       .number()

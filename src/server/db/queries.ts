@@ -178,12 +178,10 @@ export async function dbGetActions({
   triggered,
   paused,
   completed,
-  frequency,
 }: {
   triggered: boolean;
   paused: boolean;
   completed: boolean;
-  frequency: number;
 }) {
   try {
     return await prisma.action.findMany({
@@ -191,7 +189,6 @@ export async function dbGetActions({
         triggered,
         paused,
         completed,
-        frequency,
       },
       orderBy: { createdAt: 'desc' },
       include: { user: { include: { wallets: true } } },
@@ -226,6 +223,6 @@ export async function dbCreateAction(action: NewAction) {
     console.error('[DB Error] Failed to create action:', {
       error,
     });
-    return [];
+    return undefined;
   }
 }
