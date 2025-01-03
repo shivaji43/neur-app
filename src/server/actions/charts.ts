@@ -34,7 +34,7 @@ export const getTokenId = async (contractAddress: string): Promise<string> => {
   return parsed.id;
 };
 
-export const getPriceHistory = async (tokenId: string, days: number = 7): Promise<{ time: number; value: number }[]> => {
+export const getPriceHistory = async (tokenId: string, days: number = 7): Promise<{ time: string; value: number }[]> => {
    if(!API_KEY){
     throw new Error('API key not found');
    }
@@ -55,5 +55,5 @@ export const getPriceHistory = async (tokenId: string, days: number = 7): Promis
   const data = await response.json();
   const parsed = priceHistorySchema.parse(data);
   console.log(parsed);
-  return parsed.prices.map(([time, value]) => ({ time, value }));
+  return parsed.prices.map(([time, value]) => ({ time: new Date(time).toLocaleString(), value }));
 };

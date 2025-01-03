@@ -13,7 +13,7 @@ import {
 
 interface PriceChartProps {
   data: {
-    time: number;
+    time: string;
     value: number;
   }[];
 }
@@ -21,7 +21,7 @@ interface PriceChartProps {
 const PriceChart: React.FC<PriceChartProps> = ({ data }) => {
   // Transform data to match chart requirements
   const transformedData = data.map(point => ({
-    date: new Date(point.time).toLocaleString(), // Convert seconds to milliseconds
+    date: point.time,
     price: point.value
   }));
 

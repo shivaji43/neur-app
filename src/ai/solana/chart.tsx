@@ -29,7 +29,7 @@ export const chartTool = {
   render: (result: unknown) => {
     const typedResult = result as {
       success: boolean;
-      data?: { time: number; value: number }[];
+      data?: { time: string; value: number }[];
       error?: string;
     };
 
