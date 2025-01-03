@@ -23,7 +23,7 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
 });
-const gpt4o = openai('gpt-4o-mini');
+const gpt4o = openai('gpt-4o');
 
 export const defaultSystemPrompt = `
 Your name is Neur (Agent).
