@@ -165,13 +165,25 @@ export async function POST(req: Request) {
           });
 
           // Save the token stats
-          if (messages && newUserMessage && !isNaN(usage.totalTokens)) {
+          if (
+            messages &&
+            newUserMessage &&
+            !isNaN(usage.promptTokens) &&
+            !isNaN(usage.completionTokens) &&
+            !isNaN(usage.totalTokens)
+          ) {
             const messageIds = newUserMessage
               .concat(messages)
               .map((message) => message.id);
-            const totalTokens = usage.totalTokens;
+            const { promptTokens, completionTokens, totalTokens } = usage;
 
-            await dbCreateTokenStat({ userId, messageIds, totalTokens });
+            await dbCreateTokenStat({
+              userId,
+              messageIds,
+              promptTokens,
+              completionTokens,
+              totalTokens,
+            });
           }
 
           revalidatePath('/api/conversations');

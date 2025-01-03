@@ -67,6 +67,8 @@ model TokenStat {
   id                  String   @id @default(cuid())
   userId              String
   messageIds          String[]
+  promptTokens        Int
+  completionTokens    Int
   totalTokens         Int
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

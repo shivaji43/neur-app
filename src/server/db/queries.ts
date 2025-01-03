@@ -167,10 +167,14 @@ export async function dbCreateTokenStat({
   userId,
   messageIds,
   totalTokens,
+  promptTokens,
+  completionTokens,
 }: {
   userId: string;
   messageIds: string[];
   totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
 }) {
   try {
     return await prisma.tokenStat.create({
@@ -178,6 +182,8 @@ export async function dbCreateTokenStat({
         userId,
         messageIds,
         totalTokens,
+        promptTokens,
+        completionTokens,
       },
     });
   } catch (error) {
