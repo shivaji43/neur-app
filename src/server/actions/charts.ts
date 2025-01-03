@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const API_KEY = process.env.CG_API_KEY;
+const BASE_URL = process.env.CG_BASE_URL || 'https://api.coingecko.com/api/v3';
 
 const tokenSchema = z.object({
   id: z.string(),
@@ -14,7 +15,7 @@ export const getTokenId = async (contractAddress: string): Promise<string> => {
   if(!API_KEY){
     throw new Error('API key not found');
   }
-  const url = `https://api.coingecko.com/api/v3/coins/solana/contract/${contractAddress}`;
+  const url = `${BASE_URL}/coins/solana/contract/${contractAddress}`;
   const options = {
     method: 'GET',
     headers: {
@@ -37,7 +38,7 @@ export const getPriceHistory = async (tokenId: string, days: number = 7): Promis
    if(!API_KEY){
     throw new Error('API key not found');
    }
-  const url = `https://api.coingecko.com/api/v3/coins/${tokenId}/market_chart?vs_currency=usd&days=${days}&precision=18`;
+  const url = `${BASE_URL}/coins/${tokenId}/market_chart?vs_currency=usd&days=${days}&precision=18`;
   const options = {
     method: 'GET',
     headers: {
