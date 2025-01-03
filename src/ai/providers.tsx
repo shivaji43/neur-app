@@ -12,6 +12,7 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
+import { chartTool } from './solana/chart';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -22,7 +23,7 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
 });
-const gpt4o = openai('gpt-4o');
+const gpt4o = openai('gpt-4o-mini');
 
 export const defaultSystemPrompt = `
 Your name is Neur (Agent).
@@ -101,6 +102,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...magicEdenTools,
   ...jinaTools,
   ...utilTools,
+  chartTools: chartTool
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
