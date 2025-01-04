@@ -223,7 +223,7 @@ function MessageToolInvocations({
               <ToolResult
                 toolName={toolName}
                 result={result}
-                expanded={config.isCollapsible === false}
+                expanded={false}
                 header={header}
               />
             ) : (

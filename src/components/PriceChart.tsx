@@ -26,36 +26,50 @@ const PriceChart: React.FC<PriceChartProps> = ({ data }) => {
   }));
 
   return (
-    <div className="w-auto h-96 min-w-[600px] min-h-[400px]">
+    <div className="w-auto h-96 min-w-[600px] min-h-[400px] p-4 bg-gray-900">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={transformedData}
           margin={{
             top: 20,
             right: 30,
-            left: 20,
-            bottom: 10
+            left: 60,
+            bottom: 60
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
+          <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+          <XAxis
             dataKey="date"
-            label={{ 
-              value: 'Date', 
+            angle={-45}
+            textAnchor="end"
+            height={60}
+            tick={{
+              fontSize: 12,
+              fill: '#fff'
+            }}
+            stroke="#666"
+            label={{
+              value: 'Date',
               position: 'bottom',
-              offset: 0
+              offset: 45,
+              fill: '#fff'
             }}
           />
           <YAxis
-            label={{ 
-              value: 'Price (USD)', 
-              angle: -90, 
-              position: 'left',
-              offset: 0
+            label={{
+              value: 'Price (USD)',
+              angle: -90,
+              position: 'insideLeft',
+              offset: -40,
+              fill: '#fff'
             }}
+            tick={{
+              fontSize: 12,
+              fill: '#fff'
+            }}
+            stroke="#666"
           />
           <Tooltip />
-          <Legend />
           <Line
             type="monotone"
             dataKey="price"
