@@ -2,7 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 
-import { Discord, OAuthTokens, Twitter, useOAuthTokens, User } from '@privy-io/react-auth';
+import {
+  Discord,
+  OAuthTokens,
+  Twitter,
+  User,
+  useOAuthTokens,
+} from '@privy-io/react-auth';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,7 +43,7 @@ export function AccountContent() {
   } = useUser();
 
   const { reauthorize } = useOAuthTokens({
-    onOAuthTokenGrant: (tokens: OAuthTokens, {user}: {user: User}) => {
+    onOAuthTokenGrant: (tokens: OAuthTokens, { user }: { user: User }) => {
       // Grant Discord role
       handleGrantDiscordRole(tokens.accessToken);
     },
