@@ -11,7 +11,6 @@ Neur is an **open-source**, full-stack application that brings together the powe
 [![Last commit](https://img.shields.io/github/last-commit/NeurProjects/neur-app?style=flat-square)](https://github.com/NeurProjects/neur-app/commits/main)
 [![Contributors](https://img.shields.io/github/contributors/NeurProjects/neur-app?style=flat-square)](https://github.com/NeurProjects/neur-app/graphs/contributors)
 
-
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
@@ -99,3 +98,7 @@ We welcome contributions from the community! Please see our [CONTRIBUTING.md](CO
 ## Development
 
 Information about setting up a local development environment can be found in [LOCAL_DEV.md](LOCAL_DEV.md).
+
+## Acknowledgements
+
+SendAI. (2024). Solana Agent Kit (Version 1.2.0) [Computer software]. https://github.com/sendaifun/solana-agent-kit
