@@ -54,6 +54,5 @@ export const getPriceHistory = async (tokenId: string, days: number = 7): Promis
 
   const data = await response.json();
   const parsed = priceHistorySchema.parse(data);
-  console.log(parsed);
   return parsed.prices.map(([time, value]) => ({ time: new Date(time).toLocaleString(), value }));
 };

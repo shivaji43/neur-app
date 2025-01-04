@@ -43,7 +43,6 @@ export const chartTool = {
 
     return (
       <Card className="bg-muted/50 p-4">
-        <h3>Token Price Chart</h3>
         <PriceChart data={typedResult.data} />
       </Card>
     );
