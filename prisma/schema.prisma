@@ -15,6 +15,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   earlyAccess Boolean @default(false)
+  telegram_id String? 
 
   wallets       Wallet[]
   conversations Conversation[]

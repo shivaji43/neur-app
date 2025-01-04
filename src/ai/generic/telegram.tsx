@@ -5,32 +5,40 @@ import { sendTelegramNotification } from '@/server/actions/telegram';
 export const telegramTools = {
   sendNotification: {
     displayName: '📨 Send Telegram Notification',
-    description: 'Send a notification message to a specified Telegram chat ID.',
+    isCollapsible: true,
+    description: 'Send a notification message to a Telegram user. Username and chat ID are optional as we may have saved them in the database',
     parameters: z.object({
+      username: z
+        .string()
+        .optional()
+        .describe('The Telegram username to send the message to. You can leave this empty if the user did not provide a username'),
       chatId: z
         .string()
-        .describe('The Telegram chat ID to send the message to'),
+        .optional()
+        .describe('The Telegram chat ID to send the message to. You can leave this empty if the user did not provide a chat ID'),
       message: z.string().describe('The message to send'),
     }),
     execute: async ({
+      username,
       chatId,
       message,
     }: {
-      chatId: string;
+      username?: string;
+      chatId?: string;
       message: string;
     }) => {
       try {
         const response = await sendTelegramNotification({
+          username,
           chatId,
           text: message,
         });
-        if (!response || !response.data || !('success' in response.data)) {
+        if (!response || !response.data || !('success' in response.data && response.data.success === true)) {
           throw new Error(
             response?.data?.error || 'Failed to send notification',
           );
         }
-        console.log('\n');
-        console.log('Notification sent successfully');
+        
         return {
           success: true,
           data: 'Notification sent successfully',

@@ -9,7 +9,6 @@ import { RPC_URL } from '@/lib/constants';
 import prisma from '@/lib/prisma';
 import { ActionEmptyResponse, actionClient } from '@/lib/safe-action';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
-import { sendTelegramNotification } from '@/server/actions/telegram';
 
 import { verifyUser } from './user';
 
