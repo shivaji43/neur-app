@@ -6,16 +6,21 @@ export const telegramTools = {
   sendNotification: {
     displayName: '📨 Send Telegram Notification',
     isCollapsible: true,
-    description: 'Send a notification message to a Telegram user. Username and chat ID are optional as we may have saved them in the database',
+    description:
+      'Send a notification message to a Telegram user. Username and chat ID are optional as we may have saved them in the database',
     parameters: z.object({
       username: z
         .string()
         .optional()
-        .describe('The Telegram username to send the message to. You can leave this empty if the user did not provide a username'),
+        .describe(
+          'The Telegram username to send the message to. You can leave this empty if the user did not provide a username',
+        ),
       chatId: z
         .string()
         .optional()
-        .describe('The Telegram chat ID to send the message to. You can leave this empty if the user did not provide a chat ID'),
+        .describe(
+          'The Telegram chat ID to send the message to. You can leave this empty if the user did not provide a chat ID',
+        ),
       message: z.string().describe('The message to send'),
     }),
     execute: async ({
@@ -33,12 +38,16 @@ export const telegramTools = {
           chatId,
           text: message,
         });
-        if (!response || !response.data || !('success' in response.data && response.data.success === true)) {
+        if (
+          !response ||
+          !response.data ||
+          !('success' in response.data && response.data.success === true)
+        ) {
           throw new Error(
             response?.data?.error || 'Failed to send notification',
           );
         }
-        
+
         return {
           success: true,
           data: 'Notification sent successfully',

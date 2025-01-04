@@ -20,7 +20,7 @@ const getBotUsername = async (): Promise<string> => {
   const data = await response.json();
 
   return data.result.username;
-}
+};
 
 const getChatIdByUsername = async (
   username: string,

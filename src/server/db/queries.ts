@@ -229,11 +229,7 @@ export async function dbUpdateUserTelegramId({
  * @param {string} params.userId - The ID of the user
  * @returns {Promise<string | null>} The Telegram ID or null if not found/error occurs
  */
-export async function dbGetUserTelegramId({
-  userId,
-}: {
-  userId: string;
-}) {
+export async function dbGetUserTelegramId({ userId }: { userId: string }) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
