@@ -1,6 +1,7 @@
 import { processAction } from '@/server/actions/action';
 import { dbGetActions } from '@/server/db/queries';
 
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic'; // static by default, unless reading the request
 
 export async function GET(request: Request) {
@@ -40,12 +41,11 @@ export async function GET(request: Request) {
     const nextExecutionAt = new Date(
       action.lastExecutedAt.getTime() + action.frequency * 1000,
     );
+
     return now >= nextExecutionAt;
   });
 
-  for (const action of actionsToProcess) {
-    await processAction(action);
-  }
+  await Promise.all(actionsToProcess.map((action) => processAction(action)));
 
   return Response.json({ success: true });
 }

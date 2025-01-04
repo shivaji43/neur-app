@@ -124,6 +124,9 @@ export async function dbDeleteConversation({
 }) {
   try {
     await prisma.$transaction([
+      prisma.action.deleteMany({
+        where: { conversationId },
+      }),
       prisma.message.deleteMany({
         where: { conversationId },
       }),
@@ -165,7 +168,6 @@ export async function dbGetConversations({ userId }: { userId: string }) {
   }
 }
 
-<<<<<<< HEAD
 /**
  * Retrieves all actions that match the specified filters
  * @param {Object} params - The parameters object
@@ -225,7 +227,9 @@ export async function dbCreateAction(action: NewAction) {
       error,
     });
     return undefined;
-=======
+  }
+}
+
 export async function dbCreateTokenStat({
   userId,
   messageIds,
@@ -254,6 +258,5 @@ export async function dbCreateTokenStat({
       error,
     });
     return null;
->>>>>>> beta
   }
 }
