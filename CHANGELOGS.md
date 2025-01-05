@@ -1,5 +1,9 @@
 # Changelogs
 
+## v0.1.12
+
+- Utilize PPQ for AI model endpoint
+
 ## v0.1.11
 
 - Initial implementation of price charts

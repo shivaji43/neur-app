@@ -25,7 +25,8 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: 'strict',
 });
-const gpt4o = openai('gpt-4o');
+
+const openAiModel = openai(process.env.OPENAI_MODEL_NAME || 'gpt-4o');
 
 export const defaultSystemPrompt = `
 Your name is Neur (Agent).
@@ -82,7 +83,7 @@ Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
 `;
 
-export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
+export const defaultModel = usingAntropic ? claude35Sonnet : openAiModel;
 
 export interface ToolConfig {
   displayName?: string;
