@@ -356,8 +356,7 @@ async function classifyAddresses(
       if (accInfo && accInfo.owner) {
         const programId = accInfo.owner;
         holder.classification =
-          KNOWN_ADDRESSES[programId] ??
-          `Unrecognized Program`;
+          KNOWN_ADDRESSES[programId] ?? `Unrecognized Program`;
       } else {
         holder.classification = "Unknown or Doesn't Exist";
       }
