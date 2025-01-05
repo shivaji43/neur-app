@@ -4,17 +4,9 @@ const DISCORD_API_BASE_URL = 'https://discordapp.com/api';
  * Grants a role to a user in a Discord guild if they have early access.
  *
  * @param userId
- * @param hasEarlyAccess
  * @returns
  */
-export async function grantDiscordRole(
-  userId: string,
-  hasEarlyAccess: boolean,
-): Promise<void> {
-  if (!hasEarlyAccess) {
-    throw new Error('User does not have early access');
-  }
-
+export async function grantDiscordRole(userId: string): Promise<void> {
   const response = await fetch('/api/discord/grant-role', {
     method: 'POST',
     headers: {

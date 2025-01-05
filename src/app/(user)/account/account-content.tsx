@@ -73,7 +73,7 @@ export function AccountContent() {
   const handleGrantDiscordRole = async (accessToken: string) => {
     try {
       const discordUserId = await getUserID(accessToken);
-      await grantDiscordRole(discordUserId, user?.earlyAccess || false);
+      await grantDiscordRole(discordUserId);
     } catch (error) {
       throw new Error(`Failed to grant Discord role: ${error}`);
     }

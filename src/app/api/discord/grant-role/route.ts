@@ -1,3 +1,4 @@
+import { getUserData } from '@/server/actions/user';
 import fetch from 'node-fetch';
 
 const DISCORD_API_BASE_URL = 'https://discordapp.com/api';
@@ -8,6 +9,13 @@ const ROLE_ID = process.env.DISCORD_ROLE_ID;
 export async function POST(req: Request) {
   if (!BOT_TOKEN || !GUILD_ID || !ROLE_ID) {
     throw new Error('Discord environment variables not set');
+  }
+
+  const userData = await getUserData();
+  const hasEarlyAccess = userData?.data?.data?.earlyAccess;
+
+  if (!hasEarlyAccess) {
+    return new Response('User does not have early access', { status: 403 });
   }
 
   const { userId } = await req.json();
