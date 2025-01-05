@@ -1,5 +1,6 @@
-import { getUserData } from '@/server/actions/user';
 import fetch from 'node-fetch';
+
+import { getUserData } from '@/server/actions/user';
 
 const DISCORD_API_BASE_URL = 'https://discordapp.com/api';
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
