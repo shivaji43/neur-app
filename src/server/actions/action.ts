@@ -14,6 +14,7 @@ import { sanitizeResponseMessages } from '@/lib/utils/ai';
 import { ActionWithUser } from '@/types/db';
 
 import { dbCreateMessages, dbGetConversation } from '../db/queries';
+import _ from 'lodash';
 
 export async function processAction(action: ActionWithUser) {
   console.log(
@@ -48,7 +49,7 @@ export async function processAction(action: ActionWithUser) {
     const openaiKey = process.env.OPENAI_API_KEY!;
     const agent = new SolanaAgentKit(privateKey, RPC_URL, openaiKey);
 
-    const tools = { ...defaultTools };
+    const tools = _.cloneDeep(defaultTools);
     for (const toolName in tools) {
       const tool = tools[toolName as keyof typeof tools];
       tools[toolName as keyof typeof tools] = {

@@ -175,7 +175,7 @@ export async function dbGetConversations({ userId }: { userId: string }) {
  * @param {boolean} params.paused - Boolean to filter paused actions
  * @param {boolean} params.completed - Boolean to filter completed actions
  * @param {number} params.frequency - The frequency of the action
- * @returns {Promise<Conversation[]>} Array of conversations
+ * @returns {Promise<Action[]>} Array of actions
  */
 export async function dbGetActions({
   triggered,
