@@ -5,7 +5,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 import { jinaTools } from './generic/jina';
-import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
@@ -103,7 +102,6 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...magicEdenTools,
   ...jinaTools,
   ...utilTools,
-  ...telegramTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
