@@ -1,18 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import {
-  ChevronDown,
-  Image as ImageIcon,
-  Loader2,
-  SendHorizontal,
-  X,
-} from 'lucide-react';
+import { Image as ImageIcon, Loader2, SendHorizontal, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -28,8 +22,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn, throttle } from '@/lib/utils';
-import { type ToolActionResult } from '@/types/util';
+import { cn } from '@/lib/utils';
+import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -77,7 +71,10 @@ interface ToolInvocation {
   toolCallId: string;
   toolName: string;
   displayName?: string;
-  result?: unknown;
+  result?: {
+    result?: string;
+    message: string;
+  };
 }
 
 // Constants
@@ -112,6 +109,29 @@ const getImageStyle = (index: number, total: number) => {
   if (total === 2) return 'aspect-square';
   if (total === 3 && index === 0) return 'col-span-2 aspect-[2/1]';
   return 'aspect-square';
+};
+
+const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
+  while (toolUpdates.length > 0) {
+    const update = toolUpdates.pop();
+    if (!update) {
+      continue;
+    }
+
+    if (update.type === 'tool-update') {
+      messages.forEach((msg) => {
+        const toolInvocation = msg.toolInvocations?.find(
+          (tool) => tool.toolCallId === update.toolCallId,
+        ) as ToolInvocation | undefined;
+
+        if (toolInvocation && toolInvocation.result) {
+          toolInvocation.result.result = update.result;
+        }
+      });
+    }
+  }
+
+  return messages;
 };
 
 const useAnimationEffect = () => {
@@ -578,12 +598,13 @@ export default function ChatInterface({
   initialMessages?: Message[];
 }) {
   const {
-    messages,
+    messages: chatMessages,
     input,
     handleSubmit,
     handleInputChange,
     isLoading,
     addToolResult,
+    data,
   } = useChat({
     id,
     initialMessages,
@@ -594,6 +615,17 @@ export default function ChatInterface({
       refresh();
     },
   });
+
+  const messages = useMemo(() => {
+    const toolUpdates = data as unknown as ToolUpdate[];
+    if (!toolUpdates || toolUpdates.length === 0) {
+      return chatMessages;
+    }
+
+    const updatedMessages = applyToolUpdates(chatMessages, toolUpdates);
+
+    return updatedMessages;
+  }, [chatMessages, data]);
 
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

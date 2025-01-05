@@ -44,7 +44,6 @@ export const utilTools = {
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  console.log('%c%s', 'color: #e50000', 'we are DENYING');
                   addResultUtility({ result: 'deny', message });
                 }}
               >
@@ -56,7 +55,6 @@ export const utilTools = {
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  console.log('%c%s', 'color: #00a3cc', 'WE ARE CONFIRMING');
                   addResultUtility({ result: 'confirm', message });
                 }}
               >
