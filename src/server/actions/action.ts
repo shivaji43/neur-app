@@ -58,6 +58,9 @@ export async function processAction(action: ActionWithUser) {
       };
     }
 
+    // Remove createActionTool from tools, prevent recursive action creation
+    delete tools.createActionTool;
+
     // Call the AI model
     const { response } = await generateText({
       model: defaultModel,
