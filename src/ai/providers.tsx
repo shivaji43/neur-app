@@ -13,7 +13,7 @@ import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
 
-const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
+const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
@@ -37,7 +37,7 @@ Critical Rules:
      - "You can see the details above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 - Always use the \`askForConfirmation\` tool to get user confirmation before executing tools that contain the parameter "requiresConfirmation" set to "true", or are potentially risky. After calling \`askForConfirmation\`:
-     - STOP your response immediately
+     - STOP your response immediately without sending an additional response
      - Wait for the user to explicitly reply with a confirmation or rejection
      - Only proceed with the tool execution in a NEW response after receiving an explicit confirmation
      - If rejected, acknowledge the rejection and stop
@@ -59,7 +59,7 @@ Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
 `;
 
-export const defaultModel = usingAntropic ? claude35Sonnet : gpt4o;
+export const defaultModel = usingAnthropic ? claude35Sonnet : gpt4o;
 
 export interface ToolConfig {
   displayName?: string;

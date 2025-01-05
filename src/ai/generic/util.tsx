@@ -22,7 +22,6 @@ export const utilTools = {
     },
     render: (raw: unknown) => {
       const { message, addResultUtility, result } = raw as ToolActionResult;
-
       return (
         <Card className="flex flex-col gap-3 bg-card p-6">
           <div className="flex items-center gap-3">
@@ -30,32 +29,38 @@ export const utilTools = {
           </div>
 
           <div className="flex justify-end space-x-2">
-            {result === 'confirm' && (
-              <Button variant="secondary" size="sm" disabled>
-                Confirmed
-              </Button>
-            )}
             {result === 'deny' && (
               <Button variant="destructive" size="sm" disabled>
                 Denied
               </Button>
             )}
-            {!result && addResultUtility && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => addResultUtility({ result: 'confirm', message })}
-              >
-                Confirm
+            {result === 'confirm' && (
+              <Button variant="secondary" size="sm" disabled>
+                Confirmed
               </Button>
             )}
             {!result && addResultUtility && (
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => addResultUtility({ result: 'deny', message })}
+                onClick={() => {
+                  console.log('%c%s', 'color: #e50000', 'we are DENYING');
+                  addResultUtility({ result: 'deny', message });
+                }}
               >
                 Deny
+              </Button>
+            )}
+            {!result && addResultUtility && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  console.log('%c%s', 'color: #00a3cc', 'WE ARE CONFIRMING');
+                  addResultUtility({ result: 'confirm', message });
+                }}
+              >
+                Confirm
               </Button>
             )}
           </div>

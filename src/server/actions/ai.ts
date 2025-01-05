@@ -30,6 +30,19 @@ export async function generateTitleFromUserMessage({
   return title;
 }
 
+export async function convertUserResponseToBoolean(message: CoreUserMessage) {
+  const { text: rawBool } = await generateText({
+    model: defaultModel,
+    system: `\n
+      - you will generate a boolean response based on a user's message content
+      - only return true or false
+      - if an explicit affirmative response cannot be determined, return false`,
+    prompt: JSON.stringify(message),
+  });
+
+  return rawBool === 'true';
+}
+
 const renameSchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(100),

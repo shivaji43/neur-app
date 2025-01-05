@@ -18,11 +18,17 @@ import {
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import {
+  getMostRecentConfirmationMessage,
   getMostRecentToolResultMessage,
   getMostRecentUserMessage,
+  getToolMessageResult,
   sanitizeResponseMessages,
+  updateConfirmationMessageResult,
 } from '@/lib/utils/ai';
-import { generateTitleFromUserMessage } from '@/server/actions/ai';
+import {
+  convertUserResponseToBoolean,
+  generateTitleFromUserMessage,
+} from '@/server/actions/ai';
 import { verifyUser } from '@/server/actions/user';
 import {
   dbCreateConversation,
@@ -72,6 +78,27 @@ export async function POST(req: Request) {
       });
       await dbCreateConversation({ conversationId, userId, title });
       revalidatePath('/api/conversations');
+    }
+
+    const mostRecentConfirmationMessage =
+      getMostRecentConfirmationMessage(coreMessages);
+    if (mostRecentConfirmationMessage) {
+      const result = getToolMessageResult(mostRecentConfirmationMessage);
+      // If confirmation message has not been interacted with, update it based on next user message
+      if (!result?.result) {
+        const userMessage = getMostRecentUserMessage(coreMessages);
+        if (userMessage) {
+          const didUserConfirm =
+            await convertUserResponseToBoolean(userMessage);
+
+          const updatedMessage = updateConfirmationMessageResult(
+            mostRecentConfirmationMessage,
+            didUserConfirm,
+          );
+
+          await updateToolCallResults(conversationId, updatedMessage);
+        }
+      }
     }
 
     if (mostRecentToolResultMessage) {
