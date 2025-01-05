@@ -3482,8 +3482,8 @@ packages:
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
-  fast-equals@5.0.1:
-    resolution: {integrity: sha512-WF1Wi8PwwSY7/6Kx0vKXtw8RwuSGoM1bvDaJbu7MxDlR1vovZjIAKrnzyrThgAjm6JDTu0fVgWXDlMGspodfoQ==}
+  fast-equals@5.1.3:
+    resolution: {integrity: sha512-6117/nJPFyrTjoCBQI7lpRFf+Oda4mH8HtlNMi28os+URb7MQU/dXUTrKhA2KR4G0O1MCfdi/KExIVEmzEh3qA==}
     engines: {node: '>=6.0.0'}
 
   fast-glob@3.3.1:
@@ -10917,7 +10917,7 @@ snapshots:
 
   fast-deep-equal@3.1.3: {}
 
-  fast-equals@5.0.1: {}
+  fast-equals@5.1.3: {}
 
   fast-glob@3.3.1:
     dependencies:
@@ -12765,7 +12765,7 @@ snapshots:
 
   react-smooth@4.0.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
-      fast-equals: 5.0.1
+      fast-equals: 5.1.3
       prop-types: 15.8.1
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
