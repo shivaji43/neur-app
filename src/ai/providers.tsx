@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { jinaTools } from './generic/jina';
 import { utilTools } from './generic/util';
+import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
 import { jupiterTools } from './solana/jupiter';
@@ -66,6 +67,7 @@ export interface ToolConfig {
   displayName?: string;
   icon?: ReactNode;
   isCollapsible?: boolean;
+  isExpandedByDefault?: boolean;
   description: string;
   parameters: z.ZodType<any>;
   execute: <T>(
@@ -102,6 +104,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...magicEdenTools,
   ...jinaTools,
   ...utilTools,
+  ...chartTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
