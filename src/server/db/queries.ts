@@ -1,6 +1,8 @@
-import { Prisma, Message as PrismaMessage } from '@prisma/client';
+import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
+import { NewAction } from '@/types/db';
 
 /**
  * Retrieves a conversation by its ID
@@ -122,6 +124,9 @@ export async function dbDeleteConversation({
 }) {
   try {
     await prisma.$transaction([
+      prisma.action.deleteMany({
+        where: { conversationId },
+      }),
       prisma.message.deleteMany({
         where: { conversationId },
       }),
@@ -160,6 +165,68 @@ export async function dbGetConversations({ userId }: { userId: string }) {
       error,
     });
     return [];
+  }
+}
+
+/**
+ * Retrieves all actions that match the specified filters
+ * @param {Object} params - The parameters object
+ * @param {boolean} params.triggered - Boolean to filter triggered actions
+ * @param {boolean} params.paused - Boolean to filter paused actions
+ * @param {boolean} params.completed - Boolean to filter completed actions
+ * @param {number} params.frequency - The frequency of the action
+ * @returns {Promise<Action[]>} Array of actions
+ */
+export async function dbGetActions({
+  triggered,
+  paused,
+  completed,
+}: {
+  triggered: boolean;
+  paused: boolean;
+  completed: boolean;
+}) {
+  try {
+    return await prisma.action.findMany({
+      where: {
+        triggered,
+        paused,
+        completed,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { include: { wallets: true } } },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to get actions:', {
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbCreateAction(action: NewAction) {
+  try {
+    return await prisma.action.create({
+      data: {
+        ..._.omit(action, 'conversationId', 'userId'),
+        params: action.params as Prisma.JsonObject,
+        user: {
+          connect: {
+            id: action.userId,
+          },
+        },
+        conversation: {
+          connect: {
+            id: action.conversationId,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to create action:', {
+      error,
+    });
+    return undefined;
   }
 }
 

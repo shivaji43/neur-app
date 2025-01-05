@@ -1,5 +1,10 @@
 # Changelogs
 
+## v0.1.11
+
+- Initial implementation of price charts
+- Initial implementation of automated actions (recurring actions configured and executed by the agent)
+
 ## v0.1.10
 
 - Message token tracking (model usage) for backend analysis

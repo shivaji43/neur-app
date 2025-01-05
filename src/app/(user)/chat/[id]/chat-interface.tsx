@@ -220,12 +220,7 @@ function MessageToolInvocations({
         return (
           <div key={toolCallId} className="group">
             {isCompleted ? (
-              <ToolResult
-                toolName={toolName}
-                result={result}
-                expanded={false}
-                header={header}
-              />
+              <ToolResult toolName={toolName} result={result} header={header} />
             ) : (
               <>
                 {header}
