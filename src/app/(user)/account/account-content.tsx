@@ -2,7 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 
-import { Twitter } from '@privy-io/react-auth';
+import {
+  Discord,
+  OAuthTokens,
+  Twitter,
+  User,
+  useOAuthTokens,
+} from '@privy-io/react-auth';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -18,6 +24,7 @@ import {
   formatUserCreationDate,
   formatWalletAddress,
 } from '@/lib/utils/format';
+import { getUserID, grantDiscordRole } from '@/lib/utils/grant-discord-role';
 import { EmbeddedWallet } from '@/types/db';
 
 import { LoadingStateSkeleton } from './loading-skeleton';
@@ -31,7 +38,16 @@ export function AccountContent() {
     unlinkTwitter,
     linkEmail,
     unlinkEmail,
+    linkDiscord,
+    unlinkDiscord,
   } = useUser();
+
+  const { reauthorize } = useOAuthTokens({
+    onOAuthTokenGrant: (tokens: OAuthTokens, { user }: { user: User }) => {
+      // Grant Discord role
+      handleGrantDiscordRole(tokens.accessToken);
+    },
+  });
 
   if (isLoading || !user) {
     return <LoadingStateSkeleton />;
@@ -46,12 +62,22 @@ export function AccountContent() {
     phone: privyUser?.phone?.number,
     walletAddress: privyUser?.wallet?.address || 'No wallet connected',
     createdAt: formatUserCreationDate(user?.createdAt?.toString()),
+    discord: privyUser?.discord as Discord | undefined,
   };
 
   const wallets = user?.wallets || [];
   const avatarLabel = userData.walletAddress
     ? userData.walletAddress.substring(0, 2).toUpperCase()
     : '?';
+
+  const handleGrantDiscordRole = async (accessToken: string) => {
+    try {
+      const discordUserId = await getUserID(accessToken);
+      await grantDiscordRole(discordUserId);
+    } catch (error) {
+      throw new Error(`Failed to grant Discord role: ${error}`);
+    }
+  };
 
   return (
     <div className="flex flex-1 flex-col py-8">
@@ -224,6 +250,45 @@ export function AccountContent() {
                       )}
                     >
                       {userData.email ? 'Disconnect' : 'Connect'}
+                    </Button>
+                  </div>
+
+                  {/* Discord Connection */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent/50">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-4 w-4"
+                          fill="currentColor"
+                        >
+                          <path d="M20.317 4.369a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.211.375-.444.864-.608 1.249a18.27 18.27 0 00-5.487 0 12.505 12.505 0 00-.617-1.249.077.077 0 00-.079-.037c-1.6.363-3.15.915-4.885 1.515a.07.07 0 00-.032.027C.533 9.045-.32 13.579.099 18.057a.082.082 0 00.031.056 19.908 19.908 0 005.993 3.04.078.078 0 00.084-.027c.464-.641.875-1.317 1.226-2.02a.076.076 0 00-.041-.105 13.098 13.098 0 01-1.872-.9.078.078 0 01-.008-.13c.126-.094.252-.192.373-.291a.074.074 0 01.077-.01c3.927 1.793 8.18 1.793 12.061 0a.073.073 0 01.078.009c.121.099.247.198.373.292a.078.078 0 01-.006.13 12.39 12.39 0 01-1.873.899.076.076 0 00-.04.106c.36.703.772 1.379 1.226 2.02a.077.077 0 00.084.028 19.876 19.876 0 005.994-3.04.077.077 0 00.031-.055c.5-5.177-.838-9.657-4.268-13.661a.061.061 0 00-.031-.028zM8.02 15.331c-1.18 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.175 1.095 2.156 2.418 0 1.334-.955 2.419-2.156 2.419zm7.975 0c-1.18 0-2.156-1.085-2.156-2.419 0-1.333.955-2.418 2.156-2.418 1.21 0 2.175 1.095 2.156 2.418 0 1.334-.946 2.419-2.156 2.419z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Discord</p>
+                        <p className="text-xs text-muted-foreground">
+                          {userData.discord
+                            ? `@${userData.discord.username}`
+                            : 'Not connected'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={
+                        userData.discord
+                          ? () => unlinkDiscord(userData.discord!.subject)
+                          : linkDiscord
+                      }
+                      className={cn(
+                        'min-w-[100px] text-xs',
+                        userData.discord &&
+                          'hover:bg-destructive hover:text-destructive-foreground',
+                      )}
+                    >
+                      {userData.discord ? 'Disconnect' : 'Connect'}
                     </Button>
                   </div>
                 </div>
