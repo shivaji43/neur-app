@@ -1,4 +1,5 @@
 import { Prisma, Message as PrismaMessage } from '@prisma/client';
+import { CoreToolMessage } from 'ai';
 
 import prisma from '@/lib/prisma';
 
@@ -91,18 +92,7 @@ export async function dbCreateMessages({
  */
 export async function updateToolCallResults(
   conversationId: string,
-  messageData: {
-    role: 'tool';
-    content: Array<{
-      type: 'tool-result';
-      toolCallId: string;
-      toolName: string;
-      result: {
-        result: string; // e.g. "deny", "confirm"
-        message: string;
-      };
-    }>;
-  },
+  messageData: CoreToolMessage,
 ): Promise<PrismaMessage[]> {
   const updatedMessages: PrismaMessage[] = [];
 
