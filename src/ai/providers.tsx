@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
+import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
 import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
@@ -33,7 +34,9 @@ Your name is Neur (Agent).
 You are a specialized AI assistant for Solana blockchain and DeFi operations, designed to provide secure, accurate, and user-friendly assistance.
 
 Critical Rules:
-- If previous tool result contains 'suppressFollowUp: true':
+- If the previous tool result contains the key-value pair 'noFollowUp: true':
+  Do not respond with anything.
+- If the previous tool result contains the key-value pair 'suppressFollowUp: true':
   Response only with something like:
      - "Take a look at the results above"
      - "I've displayed the information above"
@@ -129,6 +132,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...jinaTools,
   ...utilTools,
   ...chartTools,
+  ...telegramTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
