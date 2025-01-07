@@ -260,3 +260,54 @@ export async function dbCreateTokenStat({
     return null;
   }
 }
+
+/**
+ * Updates the Telegram ID for a user
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user
+ * @param {string} params.telegramId - The new Telegram ID to set
+ * @returns {Promise<User | null>} The updated user object or null if update fails
+ */
+export async function dbUpdateUserTelegramId({
+  userId,
+  telegramId,
+}: {
+  userId: string;
+  telegramId: string;
+}) {
+  try {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { telegramId: telegramId },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update user Telegram ID:', {
+      userId,
+      telegramId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Retrieves the Telegram ID for a user
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user
+ * @returns {Promise<string | null>} The Telegram ID or null if not found/error occurs
+ */
+export async function dbGetUserTelegramId({ userId }: { userId: string }) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { telegramId: true },
+    });
+    return user?.telegramId || null;
+  } catch (error) {
+    console.error('[DB Error] Failed to get user Telegram ID:', {
+      userId,
+      error,
+    });
+    return null;
+  }
+}

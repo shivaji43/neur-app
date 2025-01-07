@@ -27,6 +27,7 @@ export type NeurUser = Pick<
 > & {
   privyUser: PrivyUser;
   hasEAP: boolean;
+  telegramId?: string;
 };
 
 export type NewAction = Omit<Action, 'id'>;
