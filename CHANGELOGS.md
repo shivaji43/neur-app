@@ -1,5 +1,10 @@
 # Changelogs
 
+## v0.1.13
+
+- Telegram notification tool
+- Discord Privy config, EAP role linking
+
 ## v0.1.12
 
 - Utilize PPQ for AI model endpoint
