@@ -156,7 +156,7 @@ export async function POST(req: Request) {
           );
 
           // Create messages and get their IDs back
-          const messages = await dbCreateMessages({
+          const newMessages = await dbCreateMessages({
             messages: sanitizedResponses.map((message) => {
               return {
                 conversationId,
@@ -168,14 +168,14 @@ export async function POST(req: Request) {
 
           // Save the token stats
           if (
-            messages &&
+            newMessages &&
             newUserMessage &&
             !isNaN(usage.promptTokens) &&
             !isNaN(usage.completionTokens) &&
             !isNaN(usage.totalTokens)
           ) {
             const messageIds = newUserMessage
-              .concat(messages)
+              .concat(newMessages)
               .map((message) => message.id);
             const { promptTokens, completionTokens, totalTokens } = usage;
 

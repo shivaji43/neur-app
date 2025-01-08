@@ -29,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
+import usePolling from '@/hooks/use-polling';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -552,7 +553,7 @@ export default function ChatInterface({
   id: string;
   initialMessages?: Message[];
 }) {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, isLoading, setMessages } =
     useChat({
       id,
       initialMessages,
@@ -563,6 +564,16 @@ export default function ChatInterface({
         refresh();
       },
     });
+
+  // Use polling for fetching new messages
+  usePolling({
+    id,
+    onUpdate: (messages) => {
+      if (messages && messages.length) {
+        setMessages(messages);
+      }
+    }
+  });
 
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
