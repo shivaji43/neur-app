@@ -55,6 +55,7 @@ export async function processAction(action: ActionWithUser) {
       tools[toolName as keyof typeof tools] = {
         ...tool,
         agentKit: agent,
+        userId: action.userId,
       };
     }
 
