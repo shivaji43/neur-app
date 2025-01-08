@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card';
 import {
   BOT_NOT_STARTED_ERROR,
   MISSING_USERNAME_ERROR,
-  checkTelegramUsername,
   sendTelegramNotification,
   verifyTelegramSetupAction,
 } from '@/server/actions/telegram';
@@ -51,7 +50,10 @@ function renderTelegramResponse({
           Bot Not Started
         </h2>
         <div className="space-y-3 text-sm text-muted-foreground">
-          <p>You need to start the bot before using Telegram notifications.</p>
+          <p>
+            You need to start the bot before using Telegram notifications. Try
+            sending /start again so we can sync your chat ID
+          </p>
           <p className="flex items-center gap-1">
             <span>Click here to start:</span>
             <a
@@ -152,15 +154,8 @@ export const telegramTools = {
       message: string;
     }) {
       try {
-        const usernameCheck = await checkTelegramUsername(
-          this.userId || undefined,
-        );
-        if (!username && !usernameCheck.username) {
-          return { success: false, error: MISSING_USERNAME_ERROR };
-        }
-        const finalUsername = username || usernameCheck.username;
         const response = await sendTelegramNotification({
-          username: finalUsername,
+          username,
           userId: this.userId || undefined,
           text: message,
         });

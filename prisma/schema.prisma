@@ -15,13 +15,13 @@ model User {
   updatedAt DateTime @updatedAt
 
   earlyAccess Boolean @default(false)
-  telegramId  String?
 
   wallets       Wallet[]
   conversations Conversation[]
   Rule          Rule[]
   Action        Action[]
   tokenStats    TokenStat[]
+  TelegramChat  TelegramChat[]
 
   @@map("users")
 }
@@ -136,4 +136,16 @@ model TokenStat {
 enum Visibility {
   PRIVATE
   PUBLIC
+}
+
+model TelegramChat {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  username  String
+  chatId    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("telegram_chats")
 }

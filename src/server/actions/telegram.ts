@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import { ActionResponse, actionClient } from '@/lib/safe-action';
 import {
-  dbGetUserTelegramId,
-  dbUpdateUserTelegramId,
+  dbGetUserTelegramChat,
+  dbUpdateUserTelegramChat,
 } from '@/server/db/queries';
 
 import { verifyUser } from './user';
@@ -31,6 +31,7 @@ interface TelegramActionData {
   error?: string;
   botId?: string;
   username?: string;
+  chatId?: string | null;
 }
 
 const getBotUsername = async (): Promise<string> => {
@@ -49,7 +50,7 @@ const getChatIdByUsername = async (
   const chat = data.result.find(
     (msg: any) => msg?.message?.from?.username === username,
   );
-  return chat ? chat.message.chat.id : null;
+  return chat ? chat.message.chat.id.toString() : null;
 };
 
 const sendTelegramMessage = async (chatId: string, text: string) => {
@@ -78,28 +79,38 @@ export async function checkUserTelegramSetup(
   if (!authUserId) return { success: false, error: 'UNAUTHORIZED' };
 
   const botId = TELEGRAM_BOT_USERNAME ?? (await getBotUsername());
-  const dbUsername = await dbGetUserTelegramId({ userId: authUserId });
-  const finalUsername = username || dbUsername;
+  const userTelegramChat = await dbGetUserTelegramChat({ userId: authUserId });
+  const finalUsername = (username || userTelegramChat?.username)?.replaceAll(
+    '@',
+    '',
+  );
 
   if (!finalUsername) {
     return { success: false, error: MISSING_USERNAME_ERROR, userId, botId };
   }
 
-  const sanitizedUsername = finalUsername.replaceAll('@', '');
-  const chatId = await getChatIdByUsername(sanitizedUsername);
+  const chatId =
+    userTelegramChat?.chatId ?? (await getChatIdByUsername(finalUsername));
+
   if (!chatId) {
     return { success: false, error: BOT_NOT_STARTED_ERROR, userId, botId };
   }
 
-  // Update DB if the username is not already stored or is outdated
-  if (!dbUsername || dbUsername !== sanitizedUsername) {
-    await dbUpdateUserTelegramId({
+  // Update DB if the username or chat id is not already stored or is outdated
+  if (
+    !userTelegramChat?.username ||
+    userTelegramChat?.username !== finalUsername ||
+    !userTelegramChat?.chatId ||
+    userTelegramChat?.chatId !== chatId
+  ) {
+    await dbUpdateUserTelegramChat({
       userId: authUserId,
-      telegramId: sanitizedUsername,
+      username: finalUsername,
+      chatId,
     });
   }
 
-  return { success: true, userId, username: sanitizedUsername, chatId, botId };
+  return { success: true, userId, username: finalUsername, chatId, botId };
 }
 
 export const verifyTelegramSetupAction = actionClient
@@ -169,22 +180,3 @@ export const sendTelegramNotification = actionClient
       };
     }
   });
-
-export const checkTelegramUsername = async (
-  userId?: string,
-): Promise<TelegramActionData> => {
-  const authUserId =
-    userId ||
-    (await (async () => {
-      const authResult = await verifyUser();
-      return authResult?.data?.data?.id;
-    })());
-
-  if (!authUserId) return { success: false, error: 'UNAUTHORIZED' };
-
-  const username = await dbGetUserTelegramId({ userId: authUserId });
-  if (!username) {
-    return { success: false, error: MISSING_USERNAME_ERROR };
-  }
-  return { success: true, username };
-};
