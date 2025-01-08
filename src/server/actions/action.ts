@@ -1,4 +1,5 @@
 import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
+import _ from 'lodash';
 import { SolanaAgentKit } from 'solana-agent-kit';
 import { z } from 'zod';
 
@@ -14,7 +15,6 @@ import { sanitizeResponseMessages } from '@/lib/utils/ai';
 import { ActionWithUser } from '@/types/db';
 
 import { dbCreateMessages, dbGetConversation } from '../db/queries';
-import _ from 'lodash';
 
 export async function processAction(action: ActionWithUser) {
   console.log(
