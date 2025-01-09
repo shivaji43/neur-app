@@ -100,6 +100,7 @@ export interface ToolConfig {
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
   agentKit?: any;
+  userId?: any;
   requiresConfirmation?: boolean;
 }
 

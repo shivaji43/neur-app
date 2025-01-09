@@ -71,6 +71,7 @@ export const jinaTools = {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${process.env.JINA_API_KEY}`,
+            'X-Retain-Images': 'none',
           },
         });
 

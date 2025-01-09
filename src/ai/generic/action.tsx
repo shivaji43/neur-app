@@ -104,7 +104,8 @@ function CreateActionResult({
 }
 
 const createActionTool = {
-  description: 'Create an action in the database (requires confirmation)',
+  description:
+    'Create an action in the database (requires confirmation). Do proper checks if the action requires additional setup before creating an action',
   displayName: '⚡ Create Action',
   parameters: z.object({
     requiresConfirmation: z.boolean().optional().default(true),
@@ -114,7 +115,9 @@ const createActionTool = {
       .describe('Conversation that the action belongs to'),
     description: z
       .string()
-      .describe('Action description to display as the main content'),
+      .describe(
+        'Action description to display as the main content. Should not contain the frequency or max executions',
+      ),
     frequency: z
       .number()
       .describe(

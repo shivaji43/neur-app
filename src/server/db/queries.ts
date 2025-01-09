@@ -262,28 +262,17 @@ export async function dbCreateTokenStat({
 }
 
 /**
- * Updates the Telegram ID for a user
- * @param {Object} params - The parameters object
- * @param {string} params.userId - The ID of the user
- * @param {string} params.telegramId - The new Telegram ID to set
- * @returns {Promise<User | null>} The updated user object or null if update fails
+ * Retrieves the Telegram ID for a user
  */
-export async function dbUpdateUserTelegramId({
-  userId,
-  telegramId,
-}: {
-  userId: string;
-  telegramId: string;
-}) {
+export async function dbGetUserTelegramChat({ userId }: { userId: string }) {
   try {
-    return await prisma.user.update({
-      where: { id: userId },
-      data: { telegramId: telegramId },
+    return await prisma.telegramChat.findUnique({
+      where: { userId },
+      select: { username: true, chatId: true },
     });
   } catch (error) {
-    console.error('[DB Error] Failed to update user Telegram ID:', {
+    console.error('[DB Error] Failed to get user Telegram Chat:', {
       userId,
-      telegramId,
       error,
     });
     return null;
@@ -291,22 +280,28 @@ export async function dbUpdateUserTelegramId({
 }
 
 /**
- * Retrieves the Telegram ID for a user
- * @param {Object} params - The parameters object
- * @param {string} params.userId - The ID of the user
- * @returns {Promise<string | null>} The Telegram ID or null if not found/error occurs
+ * Updates the Telegram Chat for a user
  */
-export async function dbGetUserTelegramId({ userId }: { userId: string }) {
+export async function dbUpdateUserTelegramChat({
+  userId,
+  username,
+  chatId,
+}: {
+  userId: string;
+  username: string;
+  chatId?: string;
+}) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { telegramId: true },
+    return await prisma.telegramChat.upsert({
+      where: { userId },
+      update: { username, chatId },
+      create: { userId, username, chatId },
     });
-    return user?.telegramId || null;
   } catch (error) {
-    console.error('[DB Error] Failed to get user Telegram ID:', {
+    console.error('[DB Error] Failed to update user Telegram Chat:', {
       userId,
-      error,
+      username,
+      error: `${error}`,
     });
     return null;
   }

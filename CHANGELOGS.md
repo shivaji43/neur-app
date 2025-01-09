@@ -1,5 +1,11 @@
 # Changelogs
 
+## v0.1.14
+
+- Removed images from Jina scraping results to reduce context bloat
+- Improved check for telegram setup when creating an action
+- Ensure the telegram botId is passed back into the context when guiding the user on the initial setup
+
 ## v0.1.13
 
 - Telegram notification tool
