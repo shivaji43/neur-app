@@ -1,18 +1,59 @@
 diff --git a/dist/tools/trade.js b/dist/tools/trade.js
-index 280aa7564613238857477f791f7f7522a8faca83..47ad1ffee7884cb6a2e19e00d410fb2677ad8e2c 100644
+index 280aa7564613238857477f791f7f7522a8faca83..eb7941e18944ae15d566435a898b63b4c8c4b1fd 100644
 --- a/dist/tools/trade.js
 +++ b/dist/tools/trade.js
-@@ -29,7 +29,7 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
+@@ -4,6 +4,9 @@ exports.trade = trade;
+ const web3_js_1 = require("@solana/web3.js");
+ const constants_1 = require("../constants");
+ const spl_token_1 = require("@solana/spl-token");
++const { Helius } = require("helius-sdk");
++
++const helius = new Helius(process.env.HELIUS_API_KEY);
+ /**
+  * Swap tokens using Jupiter Exchange
+  * @param agent SolanaAgentKit instance
+@@ -29,7 +32,8 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
              `&amount=${scaledAmount}` +
              `&slippageBps=${slippageBps}` +
              `&onlyDirectRoutes=true` +
 -            `&maxAccounts=20` +
 +            `&maxAccounts=64` +
++            `&asLegacyTransaction=true` +
              `${agent.config.JUPITER_FEE_BPS ? `&platformFeeBps=${agent.config.JUPITER_FEE_BPS}` : ""}`)).json();
          // Get serialized transaction
          let feeAccount;
+@@ -49,17 +53,25 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
+                 quoteResponse,
+                 userPublicKey: agent.wallet_address.toString(),
+                 wrapAndUnwrapSol: true,
+-                dynamicComputeUnitLimit: true,
++                dynamicComputeUnitLimit: false,
+                 prioritizationFeeLamports: "auto",
+                 feeAccount: feeAccount ? feeAccount.toString() : null,
++                asLegacyTransaction: true,
+             }),
+         })).json();
+         // Deserialize transaction
+         const swapTransactionBuf = Buffer.from(swapTransaction, "base64");
+-        const transaction = web3_js_1.VersionedTransaction.deserialize(swapTransactionBuf);
++        const transaction = web3_js_1.Transaction.from(swapTransactionBuf);
++
++        // Remove the instruction that sets the compute unit price/limit
++        const filteredInstructions = transaction.instructions.filter((instruction) => {
++            const programId = instruction.programId;
++            return !programId.equals(web3_js_1.ComputeBudgetProgram.programId);
++        });
++
+         // Sign and send transaction
+-        transaction.sign([agent.wallet]);
+-        const signature = await agent.connection.sendTransaction(transaction);
++        const signature = await helius.rpc.sendSmartTransaction(filteredInstructions, [agent.wallet]);
++
+         return signature;
+     }
+     catch (error) {
 diff --git a/dist/tools/transfer.js b/dist/tools/transfer.js
-index c05ec05fb3144d6ec6fcbedfd77946ad052f2ce7..488866aaef9658fd01f42e75ff8b64f7aae44147 100644
+index c05ec05fb3144d6ec6fcbedfd77946ad052f2ce7..3b3e5501ed9f4afed7d436ad4e4d135f06ec6592 100644
 --- a/dist/tools/transfer.js
 +++ b/dist/tools/transfer.js
 @@ -4,6 +4,9 @@ exports.transfer = transfer;
@@ -25,11 +66,13 @@ index c05ec05fb3144d6ec6fcbedfd77946ad052f2ce7..488866aaef9658fd01f42e75ff8b64f7
  /**
   * Transfer SOL or SPL tokens to a recipient
   * @param agent SolanaAgentKit instance
-@@ -22,17 +25,22 @@ async function transfer(agent, to, amount, mint) {
+@@ -21,18 +24,23 @@ async function transfer(agent, to, amount, mint) {
+                 fromPubkey: agent.wallet_address,
                  toPubkey: to,
                  lamports: amount * web3_js_2.LAMPORTS_PER_SOL,
-             }));
+-            }));
 -            tx = await agent.connection.sendTransaction(transaction, [agent.wallet]);
++            })); 
 +            tx = await helius.rpc.sendSmartTransaction(transaction.instructions, [agent.wallet]);
          }
          else {

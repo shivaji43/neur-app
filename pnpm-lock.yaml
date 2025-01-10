@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   solana-agent-kit:
-    hash: iqdy2dmkr3p4265gu2aaju2d7u
+    hash: 5dexfjjzbjulgexdasttb72ixy
     path: patches/solana-agent-kit.patch
 
 importers:
@@ -162,7 +162,7 @@ importers:
         version: 4.0.0
       solana-agent-kit:
         specifier: ^1.3.7
-        version: 1.3.7(patch_hash=iqdy2dmkr3p4265gu2aaju2d7u)(@noble/hashes@1.7.0)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10)
+        version: 1.3.7(patch_hash=5dexfjjzbjulgexdasttb72ixy)(@noble/hashes@1.7.0)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10)
       sonner:
         specifier: ^1.7.1
         version: 1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -15193,7 +15193,7 @@ snapshots:
       typedarray-to-buffer: 3.1.5
       xsalsa20: 1.2.0
 
-  solana-agent-kit@1.3.7(patch_hash=iqdy2dmkr3p4265gu2aaju2d7u)(@noble/hashes@1.7.0)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10):
+  solana-agent-kit@1.3.7(patch_hash=5dexfjjzbjulgexdasttb72ixy)(@noble/hashes@1.7.0)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10):
     dependencies:
       '@ai-sdk/openai': 1.0.16(zod@3.24.1)
       '@bonfida/spl-name-service': 3.0.7(@solana/web3.js@1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10)
