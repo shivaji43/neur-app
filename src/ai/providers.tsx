@@ -136,6 +136,94 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...telegramTools,
 };
 
+export const coreTools: Record<string, ToolConfig> = {
+  ...actionTools,
+  ...utilTools,
+  ...jinaTools,
+};
+
+const allTools: Record<string, Record<string, ToolConfig>> = {
+  actionTools,
+  solanaTools,
+  definedTools,
+  pumpfunTools,
+  jupiterTools,
+  dexscreenerTools,
+  magicEdenTools,
+  jinaTools,
+  utilTools,
+  chartTools,
+  telegramTools,
+};
+
+export const toolsets: Record<
+  string,
+  { tools: string[]; description: string }
+> = {
+  coreTools: {
+    tools: ['actionTools', 'utilTools', 'jinaTools'],
+    description:
+      'Core utility tools for general operations, including actions, utility functions, and fun interactions.',
+  },
+  defiTools: {
+    tools: [
+      'solanaTools',
+      'jupiterTools',
+      'dexscreenerTools',
+      'pumpfunTools',
+      'definedTools',
+    ],
+    description:
+      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions, and pump tracking.',
+  },
+  chartTools: {
+    tools: ['chartTools'],
+    description: 'Tools for generating and displaying various types of charts.',
+  },
+  nftTools: {
+    tools: ['magicEdenTools'],
+    description:
+      'Tools for interacting with NFTs, including Magic Eden integrations.',
+  },
+  socialTools: {
+    tools: ['telegramTools'],
+    description:
+      'Tools for interacting with Telegram for notifications and messaging.',
+  },
+};
+
+// Function to get tools for the selected toolsets
+export function getToolsForToolsets(
+  toolsetNames: string[],
+): Record<string, ToolConfig> {
+  return toolsetNames
+    .flatMap((toolsetName) => toolsets[toolsetName]?.tools || [])
+    .reduce(
+      (acc, toolGroupName) => ({ ...acc, ...allTools[toolGroupName] }),
+      {},
+    );
+}
+
+export const orchestrationPrompt = `
+Your name is Neur (Agent).
+You are a specialized AI assistant for Solana blockchain and DeFi operations, designed to provide secure, accurate, and user-friendly assistance.
+
+Your Task:
+Given a user message and a list of available toolsets, select the minimum necessary toolsets that cover the user's needs.
+Return the toolsets as a **JSON array of strings** with no additional text or explanation.
+You are not responding to the message, only providing the toolsets.
+Use the \`determineToolsets\` tool to complete this task.
+
+Rules:
+- Only return the toolsets in the format: ["toolset1", "toolset2", ...].
+- Do not provide any additional commentary, context, or explanation.
+
+Available Toolsets:
+${Object.entries(toolsets)
+  .map(([name, { description }]) => `  - **${name}**: ${description}`)
+  .join("\n")}
+`;
+
 export function getToolConfig(toolName: string): ToolConfig | undefined {
   return defaultTools[toolName];
 }

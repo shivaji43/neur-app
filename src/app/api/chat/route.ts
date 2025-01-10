@@ -15,6 +15,7 @@ import {
   defaultModel,
   defaultSystemPrompt,
   defaultTools,
+  getToolsForToolsets,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import {
@@ -30,6 +31,7 @@ import {
   dbDeleteConversation,
   dbGetConversation,
 } from '@/server/db/queries';
+import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 
 export const maxDuration = 30;
 
@@ -104,10 +106,18 @@ export async function POST(req: Request) {
       -MAX_TOKEN_MESSAGES,
     ) as CoreMessage[];
 
+    // Run messages through orchestration
+    const orchestratorResponse = await getToolsFromOrchestrator(relevantMessages);
+    console.log('[chat/route] orchestratorResponse', orchestratorResponse);
+
+    const tools = orchestratorResponse ? getToolsForToolsets(orchestratorResponse) : defaultTools;
+
+    console.log('[chat/route] tools', tools);
+
     const result = streamText({
       model: defaultModel,
       system: systemPrompt,
-      tools: defaultTools as Record<string, CoreTool<any, any>>,
+      tools: tools as Record<string, CoreTool<any, any>>,
       experimental_toolCallStreaming: true,
       experimental_telemetry: {
         isEnabled: true,
