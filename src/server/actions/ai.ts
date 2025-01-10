@@ -73,7 +73,9 @@ export const retrieveAgentKit = actionClient.action(async () => {
 
   const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
   const openaiKey = process.env.OPENAI_API_KEY!;
-  const agent = new SolanaAgentKit(privateKey, RPC_URL, openaiKey);
+  const agent = new SolanaAgentKit(privateKey, RPC_URL, {
+    OPENAI_API_KEY: openaiKey,
+  });
 
   return { success: true, data: { agent } };
 });
