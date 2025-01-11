@@ -1,64 +1,31 @@
-import { CoreMessage, CoreTool, generateText } from 'ai';
+import { CoreMessage, LanguageModelUsage, generateObject } from 'ai';
 import _ from 'lodash';
 import { z } from 'zod';
 
-import {
-  coreTools,
-  defaultModel,
-  orchestrationPrompt,
-  toolsets,
-} from '@/ai/providers';
-import { sanitizeResponseMessages } from '@/lib/utils/ai';
+import { defaultModel, orchestrationPrompt } from '@/ai/providers';
 
 export async function getToolsFromOrchestrator(
   messages: CoreMessage[] | undefined,
-): Promise<string[] | undefined> {
-  const { response } = await generateText({
+): Promise<{ usage: LanguageModelUsage; toolsets: string[] | undefined }> {
+  const { object: toolsets, usage } = await generateObject({
     model: defaultModel,
     system: orchestrationPrompt,
-    tools: {
-      determineToolsets: {
-        description: `Determine which toolsets to use based on the user message. Available Toolsets:
-${Object.entries(toolsets)
-  .map(([name, { description }]) => `  - **${name}**: ${description}`)
-  .join('\n')}`,
-        parameters: z.object({
-          toolsets: z.array(z.string()),
-        }),
-      },
-    },
+    output: 'array',
+    schema: z
+      .string()
+      .describe(
+        'The toolset name, describing a group of tools needed to handle the user request.',
+      ),
     experimental_telemetry: {
       isEnabled: true,
-      functionId: 'stream-text',
+      functionId: 'generate-object',
     },
-    maxSteps: 15,
     messages,
   });
 
-  const sanitizedResponses = sanitizeResponseMessages(response.messages);
-
-  console.log(sanitizedResponses);
-
-  if (sanitizedResponses.length === 0) {
-    console.log('[orchestrator] No toolsets found');
-    return undefined;
-  }
-
-  try {
-    console.log(
-      '[orchestrator] sanitizedResponses',
-      console.dir(sanitizedResponses),
-    );
-    const toolsetMessage = sanitizedResponses[0].content[0] as {
-      type: string;
-      text: string;
-    };
-    console.log('[orchestrator] toolsetMessage', toolsetMessage);
-    const toolsets = JSON.parse(toolsetMessage.text) as string[];
-
-    return toolsets;
-  } catch (error) {
-    console.error('[orchestrator] Failed to parse toolsets', error);
-    return undefined;
+  if (toolsets.length === 0) {
+    return { usage, toolsets: undefined };
+  } else {
+    return { usage, toolsets };
   }
 }

@@ -23,6 +23,7 @@ import {
   sanitizeResponseMessages,
 } from '@/lib/utils/ai';
 import { generateTitleFromUserMessage } from '@/server/actions/ai';
+import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 import { verifyUser } from '@/server/actions/user';
 import {
   dbCreateConversation,
@@ -31,7 +32,6 @@ import {
   dbDeleteConversation,
   dbGetConversation,
 } from '@/server/db/queries';
-import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 
 export const maxDuration = 30;
 
@@ -107,12 +107,10 @@ export async function POST(req: Request) {
     ) as CoreMessage[];
 
     // Run messages through orchestration
-    const orchestratorResponse = await getToolsFromOrchestrator(relevantMessages);
-    console.log('[chat/route] orchestratorResponse', orchestratorResponse);
+    const { toolsets, usage: orchestratorUsage } =
+      await getToolsFromOrchestrator(relevantMessages);
 
-    const tools = orchestratorResponse ? getToolsForToolsets(orchestratorResponse) : defaultTools;
-
-    console.log('[chat/route] tools', tools);
+    const tools = toolsets ? getToolsForToolsets(toolsets) : defaultTools;
 
     const result = streamText({
       model: defaultModel,
@@ -187,7 +185,19 @@ export async function POST(req: Request) {
             const messageIds = newUserMessage
               .concat(messages)
               .map((message) => message.id);
-            const { promptTokens, completionTokens, totalTokens } = usage;
+            let { promptTokens, completionTokens, totalTokens } = usage;
+
+            // Attach orchestrator usage
+            if (
+              orchestratorUsage &&
+              !isNaN(orchestratorUsage.promptTokens) &&
+              !isNaN(orchestratorUsage.completionTokens) &&
+              !isNaN(orchestratorUsage.totalTokens)
+            ) {
+              promptTokens += orchestratorUsage.promptTokens;
+              completionTokens += orchestratorUsage.completionTokens;
+              totalTokens += orchestratorUsage.totalTokens;
+            }
 
             await dbCreateTokenStat({
               userId,

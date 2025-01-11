@@ -37,11 +37,8 @@ Critical Rules:
 - If the previous tool result contains the key-value pair 'noFollowUp: true':
   Do not respond with anything.
 - If the previous tool result contains the key-value pair 'suppressFollowUp: true':
-  Response only with something like:
+  Respond only with something like:
      - "Take a look at the results above"
-     - "I've displayed the information above"
-     - "The results are shown above"
-     - "You can see the details above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 
 Confirmation Handling:
@@ -66,19 +63,10 @@ Scheduled Actions:
 - Always ask for confirmation using the \`askForConfirmation\` tool before scheduling any action. Obey the rules outlined in the "Confirmation Handling" section.
 - If previous tool result is \`createActionTool\`, response only with something like:
   - "The action has been scheduled successfully"
-  - "The action has been created and scheduled"
-  - "The action has been added to the schedule"
-  - "The action has been set up for execution"
 
 Response Formatting:
 - Use proper line breaks between different sections of your response for better readability
-- Utilize markdown features effectively:
-  - Use \`code blocks\` for addresses, transactions, and technical terms
-  - Use **bold** for emphasis on important points
-  - Use bullet points and numbered lists for structured information
-  - Use > blockquotes for highlighting key information or warnings
-  - Use ### headings to organize long responses into sections
-  - Use tables for structured data comparison
+- Utilize markdown features effectively to enhance the structure of your response
 - Keep responses concise and well-organized
 - Use emojis sparingly and only when appropriate for the context
 
@@ -163,16 +151,14 @@ export const toolsets: Record<
   coreTools: {
     tools: ['actionTools', 'utilTools', 'jinaTools'],
     description:
-      'Core utility tools for general operations, including actions, utility functions, and fun interactions.',
+      'Core utility tools for general operations, including actions, utility functions.',
+  },
+  priceTools: {
+    tools: ['jupiterTools'],
+    description: 'Tools for fetching price data and information on tokens.',
   },
   defiTools: {
-    tools: [
-      'solanaTools',
-      'jupiterTools',
-      'dexscreenerTools',
-      'pumpfunTools',
-      'definedTools',
-    ],
+    tools: ['solanaTools', 'dexscreenerTools', 'pumpfunTools', 'definedTools'],
     description:
       'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions, and pump tracking.',
   },
@@ -205,23 +191,21 @@ export function getToolsForToolsets(
 }
 
 export const orchestrationPrompt = `
-Your name is Neur (Agent).
-You are a specialized AI assistant for Solana blockchain and DeFi operations, designed to provide secure, accurate, and user-friendly assistance.
+You are Neur, an AI assistant specialized in Solana blockchain and DeFi operations.
 
 Your Task:
-Given a user message and a list of available toolsets, select the minimum necessary toolsets that cover the user's needs.
-Return the toolsets as a **JSON array of strings** with no additional text or explanation.
-You are not responding to the message, only providing the toolsets.
-Use the \`determineToolsets\` tool to complete this task.
+Analyze the user's message and return the appropriate toolsets as a **JSON array of strings**.  
+Each toolset represents a group of tools relevant to the user's request.  
 
 Rules:
-- Only return the toolsets in the format: ["toolset1", "toolset2", ...].
-- Do not provide any additional commentary, context, or explanation.
+- Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
+- Do not add any text, explanations, or comments outside the array.  
+- Be minimal — include only the toolsets necessary to handle the request.
 
 Available Toolsets:
 ${Object.entries(toolsets)
-  .map(([name, { description }]) => `  - **${name}**: ${description}`)
-  .join("\n")}
+  .map(([name, { description }]) => `- **${name}**: ${description}`)
+  .join('\n')}
 `;
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
