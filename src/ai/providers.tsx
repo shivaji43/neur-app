@@ -84,6 +84,9 @@ Response Formatting:
 
 Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
+
+Realtime knowledge:
+- { approximateCurrentTime: ${new Date().toISOString()}}
 `;
 
 export const defaultModel = usingAntropic ? claude35Sonnet : openAiModel;
