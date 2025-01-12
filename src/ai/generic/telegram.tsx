@@ -94,17 +94,18 @@ function renderTelegramResponse({
 
 export const telegramTools = {
   verifyTelegramSetup: {
+    userId: null,
     displayName: '🔍 Verify Telegram Setup',
     isCollapsible: true,
     isExpandedByDefault: true,
     description:
-      'Verifies the users telegram setup before creating an action that sends a telegram notification. Not required if this is not for an action',
+      'Verifies the users telegram setup before creating an action that sends a telegram notification.',
     parameters: z.object({
       username: z.string().optional(),
     }),
-    execute: async ({ username }: { username?: string }) => {
+    execute: async function ({ username }: { username?: string }) {
       try {
-        const response = await verifyTelegramSetupAction({ username });
+        const response = await verifyTelegramSetupAction({ username, userId: this.userId || undefined });
         if (!response?.data?.data) {
           return { success: false, error: 'No response from Telegram action' };
         }
@@ -141,7 +142,7 @@ export const telegramTools = {
     isCollapsible: true,
     isExpandedByDefault: true,
     description:
-      'Sends a Telegram message. Requires a Telegram username to be passed in or saved in the database.',
+      'Sends a Telegram message. Requires a Telegram username to be passed in or saved in the database. Run verifyTelegramSetup before this tool to ensure proper setup.',
     parameters: z.object({
       username: z.string().optional(),
       message: z.string(),
