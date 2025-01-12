@@ -16,6 +16,7 @@ import {
   defaultSystemPrompt,
   defaultTools,
   getToolsForToolsets,
+  getToolsFromRequiredTools,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import {
@@ -107,10 +108,12 @@ export async function POST(req: Request) {
     ) as CoreMessage[];
 
     // Run messages through orchestration
-    const { toolsets, usage: orchestratorUsage } =
+    const { toolsRequired, usage: orchestratorUsage } =
       await getToolsFromOrchestrator(relevantMessages);
 
-    const tools = toolsets ? getToolsForToolsets(toolsets) : defaultTools;
+    const tools = toolsRequired
+      ? getToolsFromRequiredTools(toolsRequired)
+      : defaultTools;
 
     const result = streamText({
       model: defaultModel,

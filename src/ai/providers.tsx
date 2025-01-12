@@ -27,6 +27,8 @@ const openai = createOpenAI({
   compatibility: 'strict',
 });
 
+export const orchestratorModel = openai('gpt-4o-mini');
+
 const openAiModel = openai(process.env.OPENAI_MODEL_NAME || 'gpt-4o');
 
 export const defaultSystemPrompt = `
@@ -202,12 +204,24 @@ Rules:
 - Do not add any text, explanations, or comments outside the array.  
 - Be minimal — include only the toolsets necessary to handle the request.
 
-Available Toolsets:
-${Object.entries(toolsets)
+Available Tools:
+${Object.entries(defaultTools)
   .map(([name, { description }]) => `- **${name}**: ${description}`)
   .join('\n')}
 `;
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {
   return defaultTools[toolName];
+}
+
+export function getToolsFromRequiredTools(
+  toolNames: string[],
+): Record<string, ToolConfig> {
+  return toolNames.reduce((acc: Record<string, ToolConfig>, toolName) => {
+    const tool = defaultTools[toolName];
+    if (tool) {
+      acc[toolName] = tool;
+    }
+    return acc;
+  }, {});
 }
