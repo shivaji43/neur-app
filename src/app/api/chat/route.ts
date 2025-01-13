@@ -15,7 +15,6 @@ import {
   defaultModel,
   defaultSystemPrompt,
   defaultTools,
-  getToolsForToolsets,
   getToolsFromRequiredTools,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
@@ -33,6 +32,7 @@ import {
   dbDeleteConversation,
   dbGetConversation,
 } from '@/server/db/queries';
+import { isValidTokenUsage } from '@/lib/utils';
 
 export const maxDuration = 30;
 
@@ -111,6 +111,8 @@ export async function POST(req: Request) {
     const { toolsRequired, usage: orchestratorUsage } =
       await getToolsFromOrchestrator(relevantMessages);
 
+    console.log('[chat/route] toolsRequired', toolsRequired);
+
     const tools = toolsRequired
       ? getToolsFromRequiredTools(toolsRequired)
       : defaultTools;
@@ -178,25 +180,14 @@ export async function POST(req: Request) {
           });
 
           // Save the token stats
-          if (
-            messages &&
-            newUserMessage &&
-            !isNaN(usage.promptTokens) &&
-            !isNaN(usage.completionTokens) &&
-            !isNaN(usage.totalTokens)
-          ) {
+          if (messages && newUserMessage && isValidTokenUsage(usage)) {
             const messageIds = newUserMessage
               .concat(messages)
               .map((message) => message.id);
             let { promptTokens, completionTokens, totalTokens } = usage;
 
             // Attach orchestrator usage
-            if (
-              orchestratorUsage &&
-              !isNaN(orchestratorUsage.promptTokens) &&
-              !isNaN(orchestratorUsage.completionTokens) &&
-              !isNaN(orchestratorUsage.totalTokens)
-            ) {
+            if (isValidTokenUsage(orchestratorUsage)) {
               promptTokens += orchestratorUsage.promptTokens;
               completionTokens += orchestratorUsage.completionTokens;
               totalTokens += orchestratorUsage.totalTokens;

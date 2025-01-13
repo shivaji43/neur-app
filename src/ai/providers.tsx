@@ -132,37 +132,33 @@ export const coreTools: Record<string, ToolConfig> = {
   ...jinaTools,
 };
 
-const allTools: Record<string, Record<string, ToolConfig>> = {
-  actionTools,
-  solanaTools,
-  definedTools,
-  pumpfunTools,
-  jupiterTools,
-  dexscreenerTools,
-  magicEdenTools,
-  jinaTools,
-  utilTools,
-  chartTools,
-  telegramTools,
-};
-
 export const toolsets: Record<
   string,
   { tools: string[]; description: string }
 > = {
   coreTools: {
-    tools: ['actionTools', 'utilTools', 'jinaTools'],
+    tools: ['actionTools', 'utilTools', 'jupiterTools'],
     description:
-      'Core utility tools for general operations, including actions, utility functions.',
+      'Core utility tools for general operations, including actions, searching token info, utility functions.',
   },
-  priceTools: {
-    tools: ['jupiterTools'],
-    description: 'Tools for fetching price data and information on tokens.',
+  webTools: {
+    tools: ['jinaTools'],
+    description:
+      'Web scraping and content extraction tools for reading web pages and extracting content.',
   },
   defiTools: {
-    tools: ['solanaTools', 'dexscreenerTools', 'pumpfunTools', 'definedTools'],
+    tools: ['solanaTools', 'dexscreenerTools'],
     description:
-      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions, and pump tracking.',
+      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions.',
+  },
+  financeTools: {
+    tools: ['definedTools'],
+    description: 'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
+  },
+  tokenLaunchTools: {
+    tools: ['pumpfunTools'],
+    description:
+      'Tools for launching tokens on PumpFun, including token deployment and management.',
   },
   chartTools: {
     tools: ['chartTools'],
@@ -179,18 +175,6 @@ export const toolsets: Record<
       'Tools for interacting with Telegram for notifications and messaging.',
   },
 };
-
-// Function to get tools for the selected toolsets
-export function getToolsForToolsets(
-  toolsetNames: string[],
-): Record<string, ToolConfig> {
-  return toolsetNames
-    .flatMap((toolsetName) => toolsets[toolsetName]?.tools || [])
-    .reduce(
-      (acc, toolGroupName) => ({ ...acc, ...allTools[toolGroupName] }),
-      {},
-    );
-}
 
 export const orchestrationPrompt = `
 You are Neur, an AI assistant specialized in Solana blockchain and DeFi operations.
