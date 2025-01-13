@@ -45,7 +45,15 @@ export async function GET(request: Request) {
     return now >= nextExecutionAt;
   });
 
-  await Promise.all(actionsToProcess.map((action) => processAction(action)));
+  await Promise.all(
+    actionsToProcess.map((action) =>
+      processAction(action).catch((error) => {
+        console.error(`Error processing action ${action.id}:`, error);
+      }),
+    ),
+  );
+
+  console.log(`[cron/action] Processed ${actionsToProcess.length} actions`);
 
   return Response.json({ success: true });
 }

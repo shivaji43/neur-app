@@ -1,5 +1,6 @@
 import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
 import _ from 'lodash';
+import moment from 'moment';
 import { SolanaAgentKit } from 'solana-agent-kit';
 import { z } from 'zod';
 
@@ -16,10 +17,15 @@ import { ActionWithUser } from '@/types/db';
 
 import { dbCreateMessages, dbGetConversation } from '../db/queries';
 
+const ACTION_PAUSE_THRESHOLD = 3;
+
 export async function processAction(action: ActionWithUser) {
   console.log(
     `[action:${action.id}] Processing action ${action.id} with prompt "${action.description}"`,
   );
+
+  // flag for successful execution
+  let successfulExecution = false;
 
   try {
     const conversation = await dbGetConversation({
@@ -117,25 +123,71 @@ export async function processAction(action: ActionWithUser) {
         };
       }),
     });
+
+    console.log(
+      `[action:${action.id}] Processed action successfully ${action.id}`,
+    );
+
+    successfulExecution = true;
   } catch (error) {
     console.error(
       `[action:${action.id}] Failed to process action ${action.id}`,
       error,
     );
+    successfulExecution = false;
   } finally {
-    // TODO: maybe don't update if the action failed?
     // Increment the action's execution count and state
+    const now = new Date();
+
+    const update = {
+      timesExecuted: { increment: 1 },
+      lastExecutedAt: now,
+      completed:
+        !!action.maxExecutions &&
+        action.timesExecuted + 1 >= action.maxExecutions,
+      lastSuccessAt: successfulExecution ? now : undefined,
+      lastFailureAt: !successfulExecution ? now : undefined,
+      paused: action.paused,
+    };
+
+    if (!successfulExecution && action.lastSuccessAt) {
+      // Action failed, but has succeeded before. If lastSuccessAt is more than 1 day ago, pause the action
+      const lastSuccessAt = moment(action.lastSuccessAt);
+      const oneDayAgo = moment().subtract(1, 'days');
+
+      if (lastSuccessAt.isBefore(oneDayAgo)) {
+        update.paused = true;
+      }
+
+      await dbCreateMessages({
+        messages: [
+          {
+            conversationId: action.conversationId,
+            role: 'assistant',
+            content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
+          },
+        ],
+      });
+    } else if (!successfulExecution && !action.lastSuccessAt) {
+      // Action failed and has never succeeded before. If execution count is more than 3, pause the action
+      if (action.timesExecuted > ACTION_PAUSE_THRESHOLD) {
+        update.paused = true;
+      }
+
+      await dbCreateMessages({
+        messages: [
+          {
+            conversationId: action.conversationId,
+            role: 'assistant',
+            content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
+          },
+        ],
+      });
+    }
+
     await prisma.action.update({
       where: { id: action.id },
-      data: {
-        timesExecuted: {
-          increment: 1,
-        },
-        lastExecutedAt: new Date(),
-        ...(action.maxExecutions && {
-          completed: action.timesExecuted + 1 >= action.maxExecutions,
-        }),
-      },
+      data: update,
     });
   }
 }
