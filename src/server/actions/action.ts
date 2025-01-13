@@ -24,8 +24,9 @@ export async function processAction(action: ActionWithUser) {
     `[action:${action.id}] Processing action ${action.id} with prompt "${action.description}"`,
   );
 
-  // flag for successful execution
+  // flags for successful execution
   let successfulExecution = false;
+  let noToolExecution = false;
 
   try {
     const conversation = await dbGetConversation({
@@ -108,7 +109,11 @@ export async function processAction(action: ActionWithUser) {
 
         return { ...toolCall, args: JSON.stringify(repairedArgs) };
       },
-
+      onStepFinish({ toolResults, stepType }) {
+        if (stepType === 'initial' && toolResults.length === 0) {
+          noToolExecution = true;
+        }
+      },
       maxSteps: 15,
       prompt: action.description,
     });
@@ -124,11 +129,12 @@ export async function processAction(action: ActionWithUser) {
       }),
     });
 
-    console.log(
-      `[action:${action.id}] Processed action successfully ${action.id}`,
-    );
+    console.log(`[action:${action.id}] Processed action ${action.id}`);
 
-    successfulExecution = true;
+    // If no tool was executed, mark the action as failure
+    if (!noToolExecution) {
+      successfulExecution = true;
+    }
   } catch (error) {
     console.error(
       `[action:${action.id}] Failed to process action ${action.id}`,
@@ -157,32 +163,40 @@ export async function processAction(action: ActionWithUser) {
 
       if (lastSuccessAt.isBefore(oneDayAgo)) {
         update.paused = true;
-      }
 
-      await dbCreateMessages({
-        messages: [
-          {
-            conversationId: action.conversationId,
-            role: 'assistant',
-            content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
-          },
-        ],
-      });
+        console.log(
+          `[action:${action.id}] paused - execution failed and no recent success`,
+        );
+
+        await dbCreateMessages({
+          messages: [
+            {
+              conversationId: action.conversationId,
+              role: 'assistant',
+              content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
+            },
+          ],
+        });
+      }
     } else if (!successfulExecution && !action.lastSuccessAt) {
-      // Action failed and has never succeeded before. If execution count is more than 3, pause the action
-      if (action.timesExecuted > ACTION_PAUSE_THRESHOLD) {
+      // Action failed and has never succeeded before. If execution count is more than N, pause the action
+      if (action.timesExecuted >= ACTION_PAUSE_THRESHOLD) {
         update.paused = true;
-      }
 
-      await dbCreateMessages({
-        messages: [
-          {
-            conversationId: action.conversationId,
-            role: 'assistant',
-            content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
-          },
-        ],
-      });
+        console.log(
+          `[action:${action.id}] paused - execution failed repeatedly`,
+        );
+
+        await dbCreateMessages({
+          messages: [
+            {
+              conversationId: action.conversationId,
+              role: 'assistant',
+              content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
+            },
+          ],
+        });
+      }
     }
 
     await prisma.action.update({
