@@ -5,12 +5,19 @@ import { dbDeleteAction, dbUpdateAction } from '@/server/db/queries';
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
 ) {
   try {
     const session = await verifyUser();
     const userId = session?.data?.data?.id;
-    const { id } = await params;
+
+    const id = req.nextUrl.pathname.split('/').pop();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Missing action ID' },
+        { status: 400 }
+      );
+    }
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,12 +44,19 @@ export async function DELETE(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
 ) {
   try {
     const session = await verifyUser();
     const userId = session?.data?.data?.id;
-    const { id } = await params;
+
+    const id = req.nextUrl.pathname.split('/').pop();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Missing action ID' },
+        { status: 400 }
+      );
+    }
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
