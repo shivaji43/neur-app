@@ -159,8 +159,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       solana-agent-kit:
-        specifier: git+https://github.com/slimeonmyhead/solana-agent-kit.git#7bcf99e3f88892fea4345c1544b84dea88e011c0
-        version: https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/7bcf99e3f88892fea4345c1544b84dea88e011c0(@noble/hashes@1.7.0)(@types/node@20.17.12)(arweave@1.15.5)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10)
+        specifier: git+https://github.com/slimeonmyhead/solana-agent-kit.git#feature/wallet-adapter
+        version: https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/25dadf2817a4b0c20a09186a79aee0653f259050(@noble/hashes@1.7.0)(@types/node@20.17.12)(arweave@1.15.5)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10)
       sonner:
         specifier: ^1.7.1
         version: 1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -6128,8 +6128,8 @@ packages:
     peerDependencies:
       sodium-native: ^3.2.0
 
-  solana-agent-kit@https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/7bcf99e3f88892fea4345c1544b84dea88e011c0:
-    resolution: {tarball: https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/7bcf99e3f88892fea4345c1544b84dea88e011c0}
+  solana-agent-kit@https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/25dadf2817a4b0c20a09186a79aee0653f259050:
+    resolution: {tarball: https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/25dadf2817a4b0c20a09186a79aee0653f259050}
     version: 1.4.0
     engines: {node: '>=22.0.0', pnpm: '>=8.0.0'}
 
@@ -15314,7 +15314,7 @@ snapshots:
       typedarray-to-buffer: 3.1.5
       xsalsa20: 1.2.0
 
-  solana-agent-kit@https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/7bcf99e3f88892fea4345c1544b84dea88e011c0(@noble/hashes@1.7.0)(@types/node@20.17.12)(arweave@1.15.5)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10):
+  solana-agent-kit@https://codeload.github.com/slimeonmyhead/solana-agent-kit/tar.gz/25dadf2817a4b0c20a09186a79aee0653f259050(@noble/hashes@1.7.0)(@types/node@20.17.12)(arweave@1.15.5)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.0.0)(sodium-native@3.4.1)(typescript@5.7.3)(utf-8-validate@5.0.10):
     dependencies:
       '@3land/listings-sdk': 0.0.4(@types/node@20.17.12)(arweave@1.15.5)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10)
       '@ai-sdk/openai': 1.0.16(zod@3.24.1)
