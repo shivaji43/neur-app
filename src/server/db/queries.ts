@@ -13,7 +13,7 @@ import { NewAction } from '@/types/db';
  */
 export async function dbGetConversation({
   conversationId,
-  includeMessages
+  includeMessages,
 }: {
   conversationId: string;
   includeMessages?: boolean;

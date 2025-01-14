@@ -1,11 +1,15 @@
 'use client';
 
+import { Action } from '@prisma/client';
 import useSWR from 'swr';
 
-import { Action } from '@prisma/client';
-
 export function useActions(userId?: string) {
-  const { data: actions, isLoading, error, mutate } = useSWR<Action[]>(
+  const {
+    data: actions,
+    isLoading,
+    error,
+    mutate,
+  } = useSWR<Action[]>(
     userId ? '/api/actions' : null,
     async (url) => {
       console.log('[Actions Hook] Fetching actions for user:', userId);
@@ -16,7 +20,7 @@ export function useActions(userId?: string) {
     },
     {
       revalidateOnFocus: false,
-    }
+    },
   );
 
   if (error) {
@@ -30,9 +34,3 @@ export function useActions(userId?: string) {
     mutate,
   };
 }
-
-// Add this export to allow other components to trigger a refresh
-export const refreshActions = () => {
-  const event = new CustomEvent('refresh-actions');
-  window.dispatchEvent(event);
-}; 
