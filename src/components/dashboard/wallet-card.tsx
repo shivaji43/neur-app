@@ -1,14 +1,11 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { useState } from 'react';
+
+import Link from 'next/link';
+
+import { useDelegatedActions } from '@privy-io/react-auth';
+import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
 import {
   ArrowRightFromLine,
   ArrowUpDown,
@@ -20,26 +17,31 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CopyableText } from '@/components/ui/copyable-text';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SolanaUtils } from '@/lib/solana';
+import { cn } from '@/lib/utils';
 import {
   embeddedWalletSendSOL,
   setActiveWallet,
 } from '@/server/actions/wallet';
-import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
-
-import { Button } from '@/components/ui/button';
-import { CopyableText } from '@/components/ui/copyable-text';
 import { EmbeddedWallet } from '@/types/db';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
-import { Skeleton } from '@/components/ui/skeleton';
-import { SolanaUtils } from '@/lib/solana';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useDelegatedActions } from '@privy-io/react-auth';
-import useSWR from 'swr';
-import { useState } from 'react';
 
 /**
  * Constants for wallet operations
@@ -289,7 +291,7 @@ export function WalletCard({ wallet, mutateWallets }: WalletCardProps) {
                   variant="outline"
                   className={cn(
                     'w-full sm:w-auto',
-                    wallet?.delegated ? 'hover:bg-destructive' : 'bg-primary',
+                    wallet?.delegated ? 'hover:bg-destructive' : '',
                   )}
                   onClick={handleDelegationToggle}
                   disabled={isLoading}
