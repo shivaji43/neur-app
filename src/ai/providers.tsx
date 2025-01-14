@@ -4,8 +4,11 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
+import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
+import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
+import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
 import { jupiterTools } from './solana/jupiter';
@@ -21,27 +24,51 @@ const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
 const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
+  compatibility: 'strict',
 });
-const gpt4o = openai('gpt-4o');
+
+const openAiModel = openai(process.env.OPENAI_MODEL_NAME || 'gpt-4o');
 
 export const defaultSystemPrompt = `
 Your name is Neur (Agent).
 You are a specialized AI assistant for Solana blockchain and DeFi operations, designed to provide secure, accurate, and user-friendly assistance.
 
 Critical Rules:
-- If previous tool result contains 'suppressFollowUp: true':
+- If the previous tool result contains the key-value pair 'noFollowUp: true':
+  Do not respond with anything.
+- If the previous tool result contains the key-value pair 'suppressFollowUp: true':
   Response only with something like:
      - "Take a look at the results above"
      - "I've displayed the information above"
      - "The results are shown above"
      - "You can see the details above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
-- Always use the \`askForConfirmation\` tool to get user confirmation before executing tools that contain the parameter "requiresConfirmation" set to "true", or are potentially risky. After calling \`askForConfirmation\`:
-     - STOP your response immediately without sending an additional response
-     - Wait for the user to explicitly reply with a confirmation or rejection
-     - Only proceed with the tool execution in a NEW response after receiving an explicit confirmation
-     - If rejected, acknowledge the rejection and stop
-     - Never chain the confirmation request and the tool execution in the same response
+
+Confirmation Handling:
+- Before executing any tool where the parameter "requiresConfirmation" is true or the description contains the term "requiresConfirmation":
+  1. Always call the \`askForConfirmation\` tool to request explicit user confirmation.
+  2. STOP your response immediately after calling \`askForConfirmation\` without providing any additional information or context.
+  3. Wait for the user to explicitly confirm or reject the action in a separate response.
+- Post-Confirmation Execution:
+  - If the user confirms:
+    1. Only proceed with executing the tool in a new response after the confirmation.
+  - If the user rejects:
+    1. Acknowledge the rejection (e.g., "Understood, the action will not be executed").
+    2. Do not attempt the tool execution.
+- Behavioral Guidelines:
+  1. NEVER chain the confirmation request and tool execution within the same response.
+  2. NEVER execute the tool without explicit confirmation from the user.
+  3. Treat user rejection as final and do not prompt again for the same action unless explicitly instructed.
+
+Scheduled Actions:
+- Scheduled actions are automated tasks that are executed at specific intervals.
+- These actions are designed to perform routine operations without manual intervention.
+- Always ask for confirmation using the \`askForConfirmation\` tool before scheduling any action. Obey the rules outlined in the "Confirmation Handling" section.
+- If previous tool result is \`createActionTool\`, response only with something like:
+  - "The action has been scheduled successfully"
+  - "The action has been created and scheduled"
+  - "The action has been added to the schedule"
+  - "The action has been set up for execution"
 
 Response Formatting:
 - Use proper line breaks between different sections of your response for better readability
@@ -57,20 +84,26 @@ Response Formatting:
 
 Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
+
+Realtime knowledge:
+- { approximateCurrentTime: ${new Date().toISOString()}}
 `;
 
-export const defaultModel = usingAnthropic ? claude35Sonnet : gpt4o;
+export const defaultModel = usingAnthropic ? claude35Sonnet : openAiModel;
 
 export interface ToolConfig {
   displayName?: string;
   icon?: ReactNode;
   isCollapsible?: boolean;
+  isExpandedByDefault?: boolean;
   description: string;
   parameters: z.ZodType<any>;
   execute: <T>(
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
+  agentKit?: any;
+  userId?: any;
   requiresConfirmation?: boolean;
 }
 
@@ -93,6 +126,7 @@ export function DefaultToolResultRenderer({ result }: { result: unknown }) {
 }
 
 export const defaultTools: Record<string, ToolConfig> = {
+  ...actionTools,
   ...solanaTools,
   ...definedTools,
   ...pumpfunTools,
@@ -101,6 +135,8 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...magicEdenTools,
   ...jinaTools,
   ...utilTools,
+  ...chartTools,
+  ...telegramTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

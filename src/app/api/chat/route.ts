@@ -34,6 +34,7 @@ import { verifyUser } from '@/server/actions/user';
 import {
   dbCreateConversation,
   dbCreateMessages,
+  dbCreateTokenStat,
   dbDeleteConversation,
   dbGetConversation,
   updateToolCallResults,
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
     }
 
     let toolUpdates: Array<ToolUpdate> = [];
+    let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>>;
 
     const mostRecentConfirmationMessage =
       getMostRecentConfirmationMessage(coreMessages);
@@ -119,7 +121,7 @@ export async function POST(req: Request) {
     if (mostRecentToolResultMessage) {
       await updateToolCallResults(conversationId, mostRecentToolResultMessage);
     } else {
-      await dbCreateMessages({
+      newUserMessage = await dbCreateMessages({
         messages: [
           {
             conversationId,
@@ -145,7 +147,9 @@ export async function POST(req: Request) {
     const systemPrompt =
       defaultSystemPrompt +
       `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
-      `\n\nUser Solana wallet public key: ${publicKey}`;
+      `\n\nUser Solana wallet public key: ${publicKey}` +
+      `\n\nUser ID: ${userId}` +
+      `\n\nConversation ID: ${conversationId}`;
 
     // Filter to relevant messages for context sizing
     const relevantMessages: CoreMessage[] = messages.slice(
@@ -205,14 +209,16 @@ export async function POST(req: Request) {
 
           maxSteps: 15,
           messages: relevantMessages,
-          async onFinish({ response }) {
+          async onFinish({ response, usage }) {
             if (!userId) return;
 
             try {
               const sanitizedResponses = sanitizeResponseMessages(
                 response.messages,
               );
-              await dbCreateMessages({
+
+              // Create messages and get their IDs back
+              const messages = await dbCreateMessages({
                 messages: sanitizedResponses.map((message) => {
                   return {
                     conversationId,
@@ -221,6 +227,28 @@ export async function POST(req: Request) {
                   };
                 }),
               });
+
+              // Save the token stats
+              if (
+                messages &&
+                newUserMessage &&
+                !isNaN(usage.promptTokens) &&
+                !isNaN(usage.completionTokens) &&
+                !isNaN(usage.totalTokens)
+              ) {
+                const messageIds = newUserMessage
+                  .concat(messages)
+                  .map((message) => message.id);
+                const { promptTokens, completionTokens, totalTokens } = usage;
+
+                await dbCreateTokenStat({
+                  userId,
+                  messageIds,
+                  promptTokens,
+                  completionTokens,
+                  totalTokens,
+                });
+              }
 
               revalidatePath('/api/conversations');
             } catch (error) {

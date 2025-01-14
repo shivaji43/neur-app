@@ -1,91 +1,12 @@
-import { ExternalLink } from 'lucide-react';
-import { z } from 'zod';
-
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { LaunchResult } from '@/components/message/pumpfun-launch';
 import { retrieveAgentKit } from '@/server/actions/ai';
-
-interface LaunchResultProps {
-  signature: string;
-  mint: string;
-  metadataUri: string;
-}
-
-function LaunchResult({ signature, mint, metadataUri }: LaunchResultProps) {
-  return (
-    <Card className="bg-card p-6">
-      <h2 className="mb-4 text-xl font-semibold text-card-foreground">
-        Token Launch Successful! 🚀
-      </h2>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">
-              Transaction Hash
-            </div>
-            <div className="max-w-[200px] truncate font-mono text-sm">
-              {signature}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            onClick={() =>
-              window.open(`https://solscan.io/tx/${signature}`, '_blank')
-            }
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">
-              Token Contract
-            </div>
-            <div className="max-w-[200px] truncate font-mono text-sm">
-              {mint}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            onClick={() =>
-              window.open(`https://pump.fun/mint/${mint}`, '_blank')
-            }
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground">
-              Metadata URI
-            </div>
-            <div className="max-w-[200px] truncate font-mono text-sm">
-              {metadataUri}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            onClick={() => window.open(metadataUri, '_blank')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
+import { z } from 'zod';
 
 export const pumpfunTools = {
   launchToken: {
-    description: 'Launch a token on PumpFun',
+    agentKit: null,
+    description: 'Launch a token on PumpFun (requires confirmation)',
     displayName: '💊 Deploy new token',
     parameters: z.object({
       requiresConfirmation: z.boolean().optional().default(true),
@@ -98,7 +19,7 @@ export const pumpfunTools = {
       twitter: z.string().optional().describe('The twitter url of the token'),
       telegram: z.string().optional().describe('The telegram url of the token'),
     }),
-    execute: async ({
+    execute: async function ({
       name,
       symbol,
       description,
@@ -116,10 +37,11 @@ export const pumpfunTools = {
       website?: string;
       twitter?: string;
       telegram?: string;
-    }) => {
+    }) {
       try {
-        const agentResponse = await retrieveAgentKit();
-        const agent = agentResponse?.data?.data?.agent;
+        const agent =
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           return { success: false, error: 'Failed to retrieve agent' };

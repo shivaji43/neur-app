@@ -11,19 +11,15 @@ import { cn } from '@/lib/utils';
 interface ToolResultProps {
   toolName: string;
   result: unknown;
-  expanded?: boolean;
   header: React.ReactNode;
 }
 
-export function ToolResult({
-  toolName,
-  result,
-  expanded,
-  header,
-}: ToolResultProps) {
+export function ToolResult({ toolName, result, header }: ToolResultProps) {
   const config = getToolConfig(toolName)!;
   const isCollapsible = config.isCollapsible === true;
-  const [isOpen, setIsOpen] = useState(expanded ?? !isCollapsible);
+  const [isOpen, setIsOpen] = useState(
+    config.isExpandedByDefault ?? !isCollapsible,
+  );
 
   const content = config.render
     ? config.render(result)

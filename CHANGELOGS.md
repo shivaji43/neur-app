@@ -1,5 +1,30 @@
 # Changelogs
 
+## v0.1.14
+
+- Removed images from Jina scraping results to reduce context bloat
+- Improved check for telegram setup when creating an action
+- Ensure the telegram botId is passed back into the context when guiding the user on the initial setup
+
+## v0.1.13
+
+- Telegram notification tool
+- Discord Privy config, EAP role linking
+
+## v0.1.12
+
+- Utilize PPQ for AI model endpoint
+
+## v0.1.11
+
+- Initial implementation of price charts
+- Initial implementation of automated actions (recurring actions configured and executed by the agent)
+
+## v0.1.10
+
+- Message token tracking (model usage) for backend analysis
+- Fixes to solana-agent-kit implementation for decimal handling
+
 ## v0.1.9
 
 - Use correct messages when trimming the message context for gpt4o

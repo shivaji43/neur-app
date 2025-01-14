@@ -262,12 +262,7 @@ function MessageToolInvocations({
         return (
           <div key={toolCallId} className="group">
             {isCompleted ? (
-              <ToolResult
-                toolName={toolName}
-                result={result}
-                expanded={false}
-                header={header}
-              />
+              <ToolResult toolName={toolName} result={result} header={header} />
             ) : (
               <>
                 {header}
@@ -382,13 +377,19 @@ function ChatMessage({
                       console.warn('Failed to parse image URL:', e);
                     }
 
+                    const thumbnailPattern = /_thumb\.(png|jpg|jpeg|gif)$/i;
+                    const isThumbnail = thumbnailPattern.test(src);
+
+                    const width = isThumbnail ? 40 : 500;
+                    const height = isThumbnail ? 40 : 300;
+
                     // Fallback to Image component with default dimensions
                     return (
                       <Image
                         src={src}
                         alt={alt || ''}
-                        width={500}
-                        height={300}
+                        width={width}
+                        height={height}
                         className="inline-block align-middle"
                       />
                     );
@@ -644,6 +645,8 @@ export default function ChatInterface({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
+
+  scrollToBottom();
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
