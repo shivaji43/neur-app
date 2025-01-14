@@ -582,6 +582,8 @@ export default function ChatInterface({
     }
   }, []);
 
+  scrollToBottom();
+
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
