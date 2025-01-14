@@ -462,7 +462,7 @@ const wallet = {
         );
         const otherTokens = portfolio.tokens
           .filter((token) => token.symbol !== 'SOL')
-          .filter((token) => token.balance * token.pricePerToken > 1)
+          .filter((token) => token.balance * token.pricePerToken > 0.01)
           .sort(
             (a, b) => b.balance * b.pricePerToken - a.balance * a.pricePerToken,
           )
