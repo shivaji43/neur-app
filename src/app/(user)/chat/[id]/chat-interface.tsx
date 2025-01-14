@@ -26,10 +26,11 @@ import { ToolResult } from '@/components/message/tool-result';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
-import usePolling from '@/hooks/use-polling';
+import { convertToUIMessages } from '@/lib/utils/ai';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -553,26 +554,39 @@ export default function ChatInterface({
   id: string;
   initialMessages?: Message[];
 }) {
-  const { messages, input, handleSubmit, handleInputChange, isLoading, setMessages } =
-    useChat({
-      id,
-      initialMessages,
-      body: { id },
-      onFinish: () => {
-        window.history.replaceState({}, '', `/chat/${id}`);
-        // Refresh wallet portfolio after AI response
-        refresh();
-      },
-    });
+  const {
+    messages,
+    input,
+    handleSubmit,
+    handleInputChange,
+    isLoading,
+    setMessages,
+  } = useChat({
+    id,
+    initialMessages,
+    body: { id },
+    onFinish: () => {
+      window.history.replaceState({}, '', `/chat/${id}`);
+      // Refresh wallet portfolio after AI response
+      refresh();
+    },
+  });
 
   // Use polling for fetching new messages
   usePolling({
+    url: `/api/chat/${id}`,
     id,
-    onUpdate: (messages) => {
+    onUpdate: (data) => {
+      if (!data || !data.messages) {
+        return;
+      }
+
+      const messages = convertToUIMessages(data?.messages);
+
       if (messages && messages.length) {
         setMessages(messages);
       }
-    }
+    },
   });
 
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
