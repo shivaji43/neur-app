@@ -103,6 +103,8 @@ model Action {
   params         Json? // JSON object for action parameters (e.g., inputs for the function)
   timesExecuted  Int       @default(0)
   lastExecutedAt DateTime?
+  lastFailureAt  DateTime?
+  lastSuccessAt  DateTime?
   triggered      Boolean   @default(false) // Whether the action has been triggered. True if triggeredBy is empty
   paused         Boolean   @default(false)
   completed      Boolean   @default(false)
