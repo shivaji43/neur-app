@@ -8,6 +8,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
+import { Transform } from 'stream';
 import { z } from 'zod';
 
 import { WalletPortfolio } from '@/components/message/wallet-portfolio';
@@ -461,7 +462,7 @@ const wallet = {
         );
         const otherTokens = portfolio.tokens
           .filter((token) => token.symbol !== 'SOL')
-          .filter((token) => token.balance * token.pricePerToken > 10)
+          .filter((token) => token.balance * token.pricePerToken > 1)
           .sort(
             (a, b) => b.balance * b.pricePerToken - a.balance * a.pricePerToken,
           )
@@ -509,7 +510,8 @@ const wallet = {
     }) {
       try {
         const agent =
-          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           throw new Error('Failed to retrieve agent');
@@ -574,7 +576,8 @@ const swap = {
     }: SwapParams): Promise<SwapResult> {
       try {
         const agent =
-          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           throw new Error('Failed to retrieve agent');

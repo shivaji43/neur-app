@@ -44,7 +44,7 @@ export function transformToPortfolio(
         token.id === 'So11111111111111111111111111111111111111112' ||
         token.token_info.balance *
           token.token_info.price_info?.price_per_token >
-          5,
+          1,
     )
     .map((token) => ({
       mint: token.id,

@@ -40,7 +40,8 @@ export const pumpfunTools = {
     }) {
       try {
         const agent =
-          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           return { success: false, error: 'Failed to retrieve agent' };

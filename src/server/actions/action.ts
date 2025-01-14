@@ -1,21 +1,18 @@
 import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
-import _ from 'lodash';
-import moment from 'moment';
-import { SolanaAgentKit } from 'solana-agent-kit';
-import { z } from 'zod';
-
+import { dbCreateMessages, dbGetConversation } from '@/server/db/queries';
 import {
   defaultModel,
   defaultSystemPrompt,
   defaultTools,
 } from '@/ai/providers';
-import { RPC_URL } from '@/lib/constants';
-import prisma from '@/lib/prisma';
-import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
-import { sanitizeResponseMessages } from '@/lib/utils/ai';
-import { ActionWithUser } from '@/types/db';
 
-import { dbCreateMessages, dbGetConversation } from '../db/queries';
+import { ActionWithUser } from '@/types/db';
+import _ from 'lodash';
+import moment from 'moment';
+import prisma from '@/lib/prisma';
+import { retrieveAgentKit } from '@/server/actions/ai';
+import { sanitizeResponseMessages } from '@/lib/utils/ai';
+import { z } from 'zod';
 
 const ACTION_PAUSE_THRESHOLD = 3;
 
@@ -41,20 +38,19 @@ export async function processAction(action: ActionWithUser) {
     }
 
     // Get user wallet
-    const publicKey = action.user.wallets[0].publicKey;
-
-    // append to system prompt
+    const activeWallet = action.user.wallets.find((w) => w.active);
+    if (!activeWallet) {
+      console.error(
+        `[action:${action.id}] No active wallet found for user ${action.userId}`,
+      );
+      return;
+    }
     const systemPrompt =
-      defaultSystemPrompt + `\n\nUser Solana wallet public key: ${publicKey}`;
+      defaultSystemPrompt +
+      `\n\nUser Solana wallet public key: ${activeWallet.publicKey}`;
 
-    // WARNING: This attaches the user's private key to the agent kit
-
-    // Clone tools and attach user agent kit
-    const privateKey = await decryptPrivateKey(
-      action.user.wallets[0].encryptedPrivateKey,
-    );
-    const openaiKey = process.env.OPENAI_API_KEY!;
-    const agent = new SolanaAgentKit(privateKey, RPC_URL, openaiKey);
+    const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
+      ?.data?.agent;
 
     const tools = _.cloneDeep(defaultTools);
     for (const toolName in tools) {
