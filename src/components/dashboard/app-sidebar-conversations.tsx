@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Conversation } from '@prisma/client';
-import { Loader2, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
+import { Loader2, MoreHorizontal, PencilIcon, TrashIcon, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,8 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
 } from '../ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface ConversationMenuItemProps {
   id: string;
@@ -175,6 +177,9 @@ export const AppSidebarConversations = () => {
     setActiveId,
     refreshConversations,
   } = useConversations(user?.id);
+  
+  // Add state for collapsible
+  const [isOpen, setIsOpen] = useState(true);
 
   // Handle active conversation and refresh if needed
   useEffect(() => {
@@ -197,29 +202,43 @@ export const AppSidebarConversations = () => {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-      <SidebarGroupContent className="group-data-[collapsible=icon]:hidden">
-        {isConversationsLoading ? (
-          <div className="flex items-center justify-center">
-            <Loader2 className="mt-4 h-4 w-4 animate-spin" />
-          </div>
-        ) : !conversations?.length ? (
-          <p className="ml-2 text-xs text-muted-foreground">No conversations</p>
-        ) : (
-          <SidebarMenu>
-            {conversations.map((conversation: Conversation) => (
-              <ConversationMenuItem
-                key={conversation.id}
-                id={conversation.id}
-                title={conversation.title}
-                active={conversation.id === activeId}
-                onDelete={deleteConversation}
-                onRename={renameConversation}
-              />
-            ))}
-          </SidebarMenu>
-        )}
-      </SidebarGroupContent>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center justify-between pr-2">
+          <SidebarGroupLabel>Conversations</SidebarGroupLabel>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <ChevronDown className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                isOpen ? "" : "-rotate-90"
+              )} />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <SidebarGroupContent className="group-data-[collapsible=icon]:hidden">
+            {isConversationsLoading ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="mt-4 h-4 w-4 animate-spin" />
+              </div>
+            ) : !conversations?.length ? (
+              <p className="ml-2 text-xs text-muted-foreground">No conversations</p>
+            ) : (
+              <SidebarMenu>
+                {conversations.map((conversation: Conversation) => (
+                  <ConversationMenuItem
+                    key={conversation.id}
+                    id={conversation.id}
+                    title={conversation.title}
+                    active={conversation.id === activeId}
+                    onDelete={deleteConversation}
+                    onRename={renameConversation}
+                  />
+                ))}
+              </SidebarMenu>
+            )}
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
     </SidebarGroup>
   );
 };

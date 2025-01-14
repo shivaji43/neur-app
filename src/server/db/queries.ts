@@ -306,3 +306,67 @@ export async function dbUpdateUserTelegramChat({
     return null;
   }
 }
+
+export async function dbGetUserActions({ userId }: { userId: string }) {
+  try {
+    const actions = await prisma.action.findMany({
+      where: { 
+        userId,
+        completed: false 
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return actions;
+  } catch (error) {
+    console.error('[DB Error] Failed to get user actions:', {
+      userId,
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbDeleteAction({ id, userId }: { id: string; userId: string }) {
+  try {
+    return await prisma.action.delete({
+      where: { 
+        id,
+        userId, // Ensure user owns the action
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to delete action:', { id, userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateAction({ 
+  id, 
+  userId, 
+  data 
+}: { 
+  id: string; 
+  userId: string;
+  data: Partial<Action>;
+}) {
+  try {
+    // Validate and clean the data before update
+    const validData = {
+      description: data.description,
+      frequency: data.frequency === 0 ? null : data.frequency,
+      maxExecutions: data.maxExecutions === 0 ? null : data.maxExecutions,
+      // Only include fields we want to update
+    } as const;
+
+    return await prisma.action.update({
+      where: { 
+        id,
+        userId,
+      },
+      data: validData,
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update action:', { id, userId, error });
+    return null;
+  }
+}

@@ -22,6 +22,7 @@ import { APP_VERSION, IS_BETA } from '@/lib/constants';
 
 import { AppSidebarConversations } from './app-sidebar-conversations';
 import { AppSidebarUser } from './app-sidebar-user';
+import { AppSidebarAutomations } from './app-sidebar-automations';
 
 const AppSidebarHeader = () => {
   return (
@@ -135,6 +136,7 @@ export function AppSidebar() {
           </SidebarGroup>
 
           <AppSidebarConversations />
+          <AppSidebarAutomations />
         </SidebarContent>
       </SidebarContent>
 
