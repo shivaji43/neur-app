@@ -1,4 +1,5 @@
 import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import { CoreToolMessage } from 'ai';
 import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
@@ -84,6 +85,68 @@ export async function dbCreateMessages({
     });
     return null;
   }
+}
+
+/**
+ * Updates the tool-call results for any toolCallIds
+ * in the provided `messageData.content` array.
+ *
+ * @param conversationId - The ID of the conversation
+ * @param messageData    - An object with role: "tool" and an array of tool-result items
+ * @returns An array of updated Messages or an empty array if no matches
+ */
+export async function updateToolCallResults(
+  conversationId: string,
+  messageData: CoreToolMessage,
+): Promise<PrismaMessage[]> {
+  const updatedMessages: PrismaMessage[] = [];
+
+  for (const item of messageData.content) {
+    const toolCallId = item.toolCallId;
+    const newResultObj = item.result;
+    const toolMessages = await prisma.message.findMany({
+      where: {
+        conversationId,
+        role: 'tool',
+      },
+    });
+
+    let messageToUpdate: PrismaMessage | null = null;
+    for (const msg of toolMessages) {
+      const contentArray = msg.content as any[];
+      const hasMatchingToolCallId = contentArray.some(
+        (c) => c.toolCallId === toolCallId,
+      );
+      if (hasMatchingToolCallId) {
+        messageToUpdate = msg;
+        break;
+      }
+    }
+
+    if (!messageToUpdate) {
+      continue;
+    }
+
+    const oldContentArray = messageToUpdate.content as any[];
+    const newContentArray = oldContentArray.map((c) => {
+      if (c.toolCallId === toolCallId) {
+        return {
+          ...c,
+          result: newResultObj,
+        };
+      }
+      return c;
+    });
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageToUpdate.id },
+      data: { content: newContentArray },
+    });
+
+    updatedMessages.push(updatedMessage);
+  }
+
+  return updatedMessages;
 }
 
 /**
@@ -313,9 +376,9 @@ export async function dbUpdateUserTelegramChat({
 export async function dbGetUserActions({ userId }: { userId: string }) {
   try {
     const actions = await prisma.action.findMany({
-      where: { 
+      where: {
         userId,
-        completed: false 
+        completed: false,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -329,10 +392,16 @@ export async function dbGetUserActions({ userId }: { userId: string }) {
   }
 }
 
-export async function dbDeleteAction({ id, userId }: { id: string; userId: string }) {
+export async function dbDeleteAction({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
   try {
     return await prisma.action.delete({
-      where: { 
+      where: {
         id,
         userId, // Ensure user owns the action
       },
@@ -343,12 +412,12 @@ export async function dbDeleteAction({ id, userId }: { id: string; userId: strin
   }
 }
 
-export async function dbUpdateAction({ 
-  id, 
-  userId, 
-  data 
-}: { 
-  id: string; 
+export async function dbUpdateAction({
+  id,
+  userId,
+  data,
+}: {
+  id: string;
   userId: string;
   data: Partial<Action>;
 }) {
@@ -362,7 +431,7 @@ export async function dbUpdateAction({
     } as const;
 
     return await prisma.action.update({
-      where: { 
+      where: {
         id,
         userId,
       },

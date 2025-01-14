@@ -13,6 +13,63 @@ import { sendTelegramNotification } from '@/server/actions/telegram';
 // ...existing code...
 
 /**
+ * Retrieves the most recent confirmation message from an array of messages.
+ * @param messages - Array of core messages to search through
+ * @returns  Most recent confirmation message or undefined if none found
+ */
+export function getMostRecentConfirmationMessage(
+  messages: Array<CoreMessage>,
+): CoreToolMessage | undefined {
+  const confirmationMessages = messages.filter(
+    (msg) =>
+      msg.role === 'tool' &&
+      msg.content?.at(0)?.toolName === 'askForConfirmation',
+  ) as CoreToolMessage[];
+
+  return confirmationMessages.at(-1);
+}
+
+type ToolMessageResult = {
+  result?: string;
+  message: string;
+};
+
+/**
+ * Updates the content result of a confirmation tool message based on isConfirmed
+ * @param confirmationMessage - Confirmation message to update
+ * @param isConfirmed
+ * @returns  The original message if an update cannot be made, otherwise the updated message
+ */
+export function updateConfirmationMessageResult(
+  confirmationMessage: CoreToolMessage,
+  isConfirmed: boolean,
+) {
+  const messageResult = getToolMessageResult(confirmationMessage);
+  if (!messageResult) {
+    return confirmationMessage;
+  }
+
+  messageResult.result = isConfirmed ? 'confirm' : 'deny';
+
+  return confirmationMessage;
+}
+
+/**
+ * Retrieves the result from the content of a tool message
+ * @param message - Core tool message to parse
+ * @returns  The result from the content of the tool message
+ */
+export function getToolMessageResult(
+  message: CoreToolMessage,
+): ToolMessageResult | undefined {
+  const content = message.content?.at(0);
+
+  return content && content.result
+    ? (content.result as ToolMessageResult)
+    : undefined;
+}
+
+/**
  * Retrieves the most recent user message from an array of messages.
  * @param messages - Array of core messages to search through
  * @returns The last user message in the array, or undefined if none exists
@@ -20,6 +77,27 @@ import { sendTelegramNotification } from '@/server/actions/telegram';
 export function getMostRecentUserMessage(messages: Array<CoreMessage>) {
   const userMessages = messages.filter((message) => message.role === 'user');
   return userMessages.at(-1);
+}
+
+/**
+ *
+ * @param messages
+ * @returns  Most recent tool result message or undefined if none found
+ */
+export function getMostRecentToolResultMessage(
+  messages: Array<CoreMessage>,
+): CoreToolMessage | undefined {
+  const mostRecentMessage = messages.at(-1);
+  if (
+    mostRecentMessage &&
+    mostRecentMessage.role === 'tool' &&
+    mostRecentMessage.content &&
+    mostRecentMessage.content.length > 0 &&
+    mostRecentMessage.content[0].result
+  ) {
+    return mostRecentMessage;
+  }
+  return undefined;
 }
 
 /**

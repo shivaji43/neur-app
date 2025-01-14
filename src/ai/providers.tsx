@@ -16,7 +16,7 @@ import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
 
-const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
+const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
@@ -89,7 +89,7 @@ Realtime knowledge:
 - { approximateCurrentTime: ${new Date().toISOString()}}
 `;
 
-export const defaultModel = usingAntropic ? claude35Sonnet : openAiModel;
+export const defaultModel = usingAnthropic ? claude35Sonnet : openAiModel;
 
 export interface ToolConfig {
   displayName?: string;

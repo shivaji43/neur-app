@@ -1,18 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import {
-  ChevronDown,
-  Image as ImageIcon,
-  Loader2,
-  SendHorizontal,
-  X,
-} from 'lucide-react';
+import { Image as ImageIcon, Loader2, SendHorizontal, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -30,6 +24,7 @@ import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
+import { type ToolActionResult, ToolUpdate } from '@/types/util';
 import { convertToUIMessages } from '@/lib/utils/ai';
 
 // Types
@@ -51,11 +46,17 @@ interface MessageAttachmentsProps {
   onPreviewImage: (preview: ImagePreview) => void;
 }
 
+interface ToolResult {
+  toolCallId: string;
+  result: any;
+}
+
 interface ChatMessageProps {
   message: Message;
   index: number;
   messages: Message[];
   onPreviewImage: (preview: ImagePreview) => void;
+  addToolResult: (result: ToolResult) => void;
 }
 
 interface AttachmentPreviewProps {
@@ -72,7 +73,10 @@ interface ToolInvocation {
   toolCallId: string;
   toolName: string;
   displayName?: string;
-  result?: unknown;
+  result?: {
+    result?: string;
+    message: string;
+  };
 }
 
 // Constants
@@ -107,6 +111,29 @@ const getImageStyle = (index: number, total: number) => {
   if (total === 2) return 'aspect-square';
   if (total === 3 && index === 0) return 'col-span-2 aspect-[2/1]';
   return 'aspect-square';
+};
+
+const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
+  while (toolUpdates.length > 0) {
+    const update = toolUpdates.pop();
+    if (!update) {
+      continue;
+    }
+
+    if (update.type === 'tool-update') {
+      messages.forEach((msg) => {
+        const toolInvocation = msg.toolInvocations?.find(
+          (tool) => tool.toolCallId === update.toolCallId,
+        ) as ToolInvocation | undefined;
+
+        if (toolInvocation && toolInvocation.result) {
+          toolInvocation.result.result = update.result;
+        }
+      });
+    }
+  }
+
+  return messages;
 };
 
 const useAnimationEffect = () => {
@@ -183,12 +210,27 @@ function MessageAttachments({
 
 function MessageToolInvocations({
   toolInvocations,
+  addToolResult,
 }: {
   toolInvocations: ToolInvocation[];
+  addToolResult: (result: ToolResult) => void;
 }) {
   return (
     <div className="space-y-px">
       {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
+        const toolResult = result as ToolActionResult;
+        const addResultUtility = (result: {
+          result: string;
+          message: string;
+        }) => addToolResult({ toolCallId, result });
+        if (
+          toolName === 'askForConfirmation' &&
+          toolResult &&
+          toolResult.message &&
+          !toolResult.result
+        ) {
+          toolResult.addResultUtility = addResultUtility;
+        }
         const isCompleted = result !== undefined;
         const isError =
           isCompleted &&
@@ -243,6 +285,7 @@ function ChatMessage({
   index,
   messages,
   onPreviewImage,
+  addToolResult,
 }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const hasAttachments =
@@ -362,7 +405,10 @@ function ChatMessage({
         )}
 
         {message.toolInvocations && (
-          <MessageToolInvocations toolInvocations={message.toolInvocations} />
+          <MessageToolInvocations
+            toolInvocations={message.toolInvocations}
+            addToolResult={addToolResult}
+          />
         )}
       </div>
     </div>
@@ -555,11 +601,13 @@ export default function ChatInterface({
   initialMessages?: Message[];
 }) {
   const {
-    messages,
+    messages: chatMessages,
     input,
     handleSubmit,
     handleInputChange,
     isLoading,
+    addToolResult,
+    data,
     setMessages,
   } = useChat({
     id,
@@ -571,6 +619,17 @@ export default function ChatInterface({
       refresh();
     },
   });
+
+  const messages = useMemo(() => {
+    const toolUpdates = data as unknown as ToolUpdate[];
+    if (!toolUpdates || toolUpdates.length === 0) {
+      return chatMessages;
+    }
+
+    const updatedMessages = applyToolUpdates(chatMessages, toolUpdates);
+
+    return updatedMessages;
+  }, [chatMessages, data]);
 
   // Use polling for fetching new messages
   usePolling({
@@ -667,6 +726,7 @@ export default function ChatInterface({
                 index={index}
                 messages={messages}
                 onPreviewImage={setPreviewImage}
+                addToolResult={addToolResult}
               />
             ))}
             {isLoading &&
