@@ -1,19 +1,18 @@
 diff --git a/dist/tools/trade.js b/dist/tools/trade.js
-index 280aa7564613238857477f791f7f7522a8faca83..b9345cbcc4ffc31665e51ecc9ad6396dc2a693fc 100755
+index 280aa7564613238857477f791f7f7522a8faca83..eb7941e18944ae15d566435a898b63b4c8c4b1fd 100644
 --- a/dist/tools/trade.js
 +++ b/dist/tools/trade.js
-@@ -4,6 +4,10 @@ exports.trade = trade;
+@@ -4,6 +4,9 @@ exports.trade = trade;
  const web3_js_1 = require("@solana/web3.js");
  const constants_1 = require("../constants");
  const spl_token_1 = require("@solana/spl-token");
 +const { Helius } = require("helius-sdk");
 +
 +const helius = new Helius(process.env.HELIUS_API_KEY);
-+
  /**
   * Swap tokens using Jupiter Exchange
   * @param agent SolanaAgentKit instance
-@@ -29,7 +33,8 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
+@@ -29,7 +32,8 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
              `&amount=${scaledAmount}` +
              `&slippageBps=${slippageBps}` +
              `&onlyDirectRoutes=true` +
@@ -23,7 +22,7 @@ index 280aa7564613238857477f791f7f7522a8faca83..b9345cbcc4ffc31665e51ecc9ad6396d
              `${agent.config.JUPITER_FEE_BPS ? `&platformFeeBps=${agent.config.JUPITER_FEE_BPS}` : ""}`)).json();
          // Get serialized transaction
          let feeAccount;
-@@ -49,17 +54,25 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
+@@ -49,17 +53,25 @@ async function trade(agent, outputMint, inputAmount, inputMint = constants_1.TOK
                  quoteResponse,
                  userPublicKey: agent.wallet_address.toString(),
                  wrapAndUnwrapSol: true,
@@ -53,3 +52,46 @@ index 280aa7564613238857477f791f7f7522a8faca83..b9345cbcc4ffc31665e51ecc9ad6396d
          return signature;
      }
      catch (error) {
+diff --git a/dist/tools/transfer.js b/dist/tools/transfer.js
+index c05ec05fb3144d6ec6fcbedfd77946ad052f2ce7..3b3e5501ed9f4afed7d436ad4e4d135f06ec6592 100644
+--- a/dist/tools/transfer.js
++++ b/dist/tools/transfer.js
+@@ -4,6 +4,9 @@ exports.transfer = transfer;
+ const web3_js_1 = require("@solana/web3.js");
+ const web3_js_2 = require("@solana/web3.js");
+ const spl_token_1 = require("@solana/spl-token");
++const { Helius } = require("helius-sdk");
++
++const helius = new Helius(process.env.HELIUS_API_KEY);
+ /**
+  * Transfer SOL or SPL tokens to a recipient
+  * @param agent SolanaAgentKit instance
+@@ -21,18 +24,23 @@ async function transfer(agent, to, amount, mint) {
+                 fromPubkey: agent.wallet_address,
+                 toPubkey: to,
+                 lamports: amount * web3_js_2.LAMPORTS_PER_SOL,
+-            }));
+-            tx = await agent.connection.sendTransaction(transaction, [agent.wallet]);
++            })); 
++            tx = await helius.rpc.sendSmartTransaction(transaction.instructions, [agent.wallet]);
+         }
+         else {
+             // Transfer SPL token
+             const fromAta = await (0, spl_token_1.getAssociatedTokenAddress)(mint, agent.wallet_address);
+-            const toAta = await (0, spl_token_1.getAssociatedTokenAddress)(mint, to);
++            const toAta = await spl_token_1.getOrCreateAssociatedTokenAccount(
++                agent.connection,
++                agent.wallet,
++                mint,
++                to
++            );
+             // Get mint info to determine decimals
+             const mintInfo = await (0, spl_token_1.getMint)(agent.connection, mint);
+             const adjustedAmount = amount * Math.pow(10, mintInfo.decimals);
+-            const transaction = new web3_js_1.Transaction().add((0, spl_token_1.createTransferInstruction)(fromAta, toAta, agent.wallet_address, adjustedAmount));
+-            tx = await agent.connection.sendTransaction(transaction, [agent.wallet]);
++            const transaction = new web3_js_1.Transaction().add((0, spl_token_1.createTransferInstruction)(fromAta, toAta.address, agent.wallet_address, adjustedAmount));
++            tx = await helius.rpc.sendSmartTransaction(transaction.instructions, [agent.wallet]);
+         }
+         return tx;
+     }

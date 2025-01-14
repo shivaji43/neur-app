@@ -160,6 +160,8 @@ const createActionTool = {
         params: {},
         timesExecuted: 0,
         lastExecutedAt: null,
+        lastFailureAt: null,
+        lastSuccessAt: null,
       });
 
       if (!action) {
