@@ -41,7 +41,7 @@ import {
 } from '@/server/db/queries';
 import { ToolUpdate } from '@/types/util';
 
-export const maxDuration = 45;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const session = await verifyUser();
