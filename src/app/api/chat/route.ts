@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     }
 
     let toolUpdates: Array<ToolUpdate> = [];
-    let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>>;
+    let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>> = null;
 
     const mostRecentConfirmationMessage =
       getMostRecentConfirmationMessage(coreMessages);

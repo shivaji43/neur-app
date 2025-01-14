@@ -13,12 +13,15 @@ import { NewAction } from '@/types/db';
  */
 export async function dbGetConversation({
   conversationId,
+  includeMessages
 }: {
   conversationId: string;
+  includeMessages?: boolean;
 }) {
   try {
     return await prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: includeMessages ? { messages: true } : undefined,
     });
   } catch (error) {
     console.error('[DB Error] Failed to get conversation:', {
