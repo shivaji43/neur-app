@@ -6,10 +6,21 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Conversation } from '@prisma/client';
-import { Loader2, MoreHorizontal, PencilIcon, TrashIcon, ChevronDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Loader2,
+  MoreHorizontal,
+  PencilIcon,
+  TrashIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +41,8 @@ import {
 } from '@/components/ui/sidebar';
 import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
+import { EVENTS } from '@/lib/events';
+import { cn } from '@/lib/utils';
 
 import {
   SidebarGroup,
@@ -37,8 +50,6 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
 } from '../ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
 
 interface ConversationMenuItemProps {
   id: string;
@@ -95,6 +106,9 @@ const ConversationMenuItem = ({
       // Navigate and refresh after successful deletion
       router.replace('/home');
       router.refresh();
+
+      // Emit the event to refresh actions
+      window.dispatchEvent(new CustomEvent(EVENTS.ACTION_REFRESH));
     } catch (error) {
       console.error('Error deleting conversation:', error);
       toast.error('Failed to delete conversation');
@@ -177,7 +191,7 @@ export const AppSidebarConversations = () => {
     setActiveId,
     refreshConversations,
   } = useConversations(user?.id);
-  
+
   // Add state for collapsible
   const [isOpen, setIsOpen] = useState(true);
 
@@ -207,10 +221,12 @@ export const AppSidebarConversations = () => {
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <ChevronDown className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                isOpen ? "" : "-rotate-90"
-              )} />
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 transition-transform duration-200',
+                  isOpen ? '' : '-rotate-90',
+                )}
+              />
             </Button>
           </CollapsibleTrigger>
         </div>
@@ -221,7 +237,9 @@ export const AppSidebarConversations = () => {
                 <Loader2 className="mt-4 h-4 w-4 animate-spin" />
               </div>
             ) : !conversations?.length ? (
-              <p className="ml-2 text-xs text-muted-foreground">No conversations</p>
+              <p className="ml-2 text-xs text-muted-foreground">
+                No conversations
+              </p>
             ) : (
               <SidebarMenu>
                 {conversations.map((conversation: Conversation) => (

@@ -1,13 +1,15 @@
 'use client';
 
-import { NeurUser, PrismaUser, PrivyUser } from '@/types/db';
-import { PrivyInterface, usePrivy } from '@privy-io/react-auth';
 import { useCallback, useEffect, useState } from 'react';
+
+import { useRouter } from 'next/navigation';
+
+import { PrivyInterface, usePrivy } from '@privy-io/react-auth';
+import useSWR from 'swr';
 
 import { debugLog } from '@/lib/debug';
 import { getUserData } from '@/server/actions/user';
-import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
+import { NeurUser, PrismaUser, PrivyUser } from '@/types/db';
 
 /**
  * Extended interface for NeurUser that includes Privy functionality

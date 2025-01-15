@@ -21,4 +21,4 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-} 
+}

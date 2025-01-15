@@ -1,18 +1,20 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
+
+import Image from 'next/image';
+
 import { Check, Copy, ExternalLink } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useEffect, useState } from 'react';
-
-import { Button } from '@/components/ui/button';
-import Image from 'next/image';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface TokenMetadata {
   name: string;

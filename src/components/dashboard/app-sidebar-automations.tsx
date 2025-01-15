@@ -6,11 +6,21 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Action } from '@prisma/client';
-import { ChevronDown, Loader2, MoreHorizontal, PencilIcon, TrashIcon } from 'lucide-react';
+import {
+  ChevronDown,
+  Loader2,
+  MoreHorizontal,
+  PencilIcon,
+  TrashIcon,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -34,16 +44,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
 import { useActions } from '@/hooks/use-actions';
 import { useUser } from '@/hooks/use-user';
-import { useActionStore } from '@/store/action-store';
 import { EVENTS } from '@/lib/events';
+import { cn } from '@/lib/utils';
 
 interface ActionMenuItemProps {
   action: Action;
   onDelete: (id: string) => Promise<{ success: boolean; error?: string }>;
-  onEdit: (id: string, data: Partial<Action>) => Promise<{ success: boolean; data?: Action; error?: string }>;
+  onEdit: (
+    id: string,
+    data: Partial<Action>,
+  ) => Promise<{ success: boolean; data?: Action; error?: string }>;
 }
 
 const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
@@ -58,7 +70,7 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
 
   const handleDelete = async () => {
     const loadingToast = toast.loading('Deleting automation...');
-    
+
     try {
       const result = await onDelete(action.id);
       if (result?.success) {
@@ -75,17 +87,17 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
 
   const handleEdit = async () => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     const loadingToast = toast.loading('Updating automation...');
-    
+
     try {
       const result = await onEdit(action.id, {
         description: formData.description,
         frequency: formData.frequency || null,
         maxExecutions: formData.maxExecutions || null,
       });
-      
+
       if (result?.success) {
         toast.dismiss(loadingToast);
         toast.success('Automation updated');
@@ -128,11 +140,14 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
         </DropdownMenu>
       </SidebarMenuItem>
 
-      <Dialog open={isEditing} onOpenChange={(open) => {
-        if (!isLoading) {
-          setIsEditing(open);
-        }
-      }}>
+      <Dialog
+        open={isEditing}
+        onOpenChange={(open) => {
+          if (!isLoading) {
+            setIsEditing(open);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Automation</DialogTitle>
@@ -143,7 +158,12 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 placeholder="Enter message"
                 disabled={isLoading}
               />
@@ -154,7 +174,12 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
                 id="frequency"
                 type="number"
                 value={formData.frequency}
-                onChange={(e) => setFormData(prev => ({ ...prev, frequency: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    frequency: parseInt(e.target.value),
+                  }))
+                }
                 placeholder="Enter frequency in seconds"
                 disabled={isLoading}
               />
@@ -165,7 +190,12 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
                 id="maxExecutions"
                 type="number"
                 value={formData.maxExecutions}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxExecutions: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    maxExecutions: parseInt(e.target.value),
+                  }))
+                }
                 placeholder="Enter max executions"
                 disabled={isLoading}
               />
@@ -198,27 +228,35 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
 export const AppSidebarAutomations = () => {
   const pathname = usePathname();
   const { isLoading: isUserLoading, user } = useUser();
-  const { actions, isLoading: isActionsLoading, error, mutate: refreshActions } = useActions(user?.id);
+  const {
+    actions,
+    isLoading: isActionsLoading,
+    error,
+    mutate: refreshActions,
+  } = useActions(user?.id);
   const [isOpen, setIsOpen] = useState(true);
 
   // Listen for action creation events
-  useEffect(() => {
-    console.log('[Sidebar] Setting up action creation listener');
-    
-    const handleActionCreated = async () => {
-      console.log('[Sidebar] Action created event received');
-      try {
-        await refreshActions();
-        console.log('[Sidebar] Actions refreshed successfully');
-      } catch (error) {
-        console.error('[Sidebar] Error refreshing actions:', error);
-      }
-    };
+  const handleActionMutation = async () => {
+    console.log('[Sidebar] Event received');
+    try {
+      await refreshActions();
+      console.log('[Sidebar] Actions refreshed successfully');
+    } catch (error) {
+      console.error('[Sidebar] Error refreshing actions:', error);
+    }
+  };
 
-    window.addEventListener(EVENTS.ACTION_CREATED, handleActionCreated);
+  useEffect(() => {
+    console.log('[Sidebar] Setting up event listeners');
+
+    window.addEventListener(EVENTS.ACTION_CREATED, handleActionMutation);
+    window.addEventListener(EVENTS.ACTION_REFRESH, handleActionMutation);
+
     return () => {
-      console.log('[Sidebar] Cleaning up action creation listener');
-      window.removeEventListener(EVENTS.ACTION_CREATED, handleActionCreated);
+      console.log('[Sidebar] Cleaning up event listeners');
+      window.removeEventListener(EVENTS.ACTION_CREATED, handleActionMutation);
+      window.removeEventListener(EVENTS.ACTION_REFRESH, handleActionMutation);
     };
   }, [refreshActions]);
 
@@ -229,8 +267,8 @@ export const AppSidebarAutomations = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/actions/${id}`, { 
-        method: 'DELETE' 
+      const response = await fetch(`/api/actions/${id}`, {
+        method: 'DELETE',
       });
 
       const data = await response.json();
@@ -284,7 +322,9 @@ export const AppSidebarAutomations = () => {
     return (
       <SidebarGroup>
         <SidebarGroupLabel>Automations</SidebarGroupLabel>
-        <p className="ml-2 text-xs text-destructive">Error loading automations</p>
+        <p className="ml-2 text-xs text-destructive">
+          Error loading automations
+        </p>
       </SidebarGroup>
     );
   }
@@ -296,10 +336,12 @@ export const AppSidebarAutomations = () => {
           <SidebarGroupLabel>Automations</SidebarGroupLabel>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <ChevronDown className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                isOpen ? "" : "-rotate-90"
-              )} />
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 transition-transform duration-200',
+                  isOpen ? '' : '-rotate-90',
+                )}
+              />
             </Button>
           </CollapsibleTrigger>
         </div>
@@ -310,7 +352,9 @@ export const AppSidebarAutomations = () => {
                 <Loader2 className="mt-4 h-4 w-4 animate-spin" />
               </div>
             ) : !actions?.length ? (
-              <p className="ml-2 text-xs text-muted-foreground">No automations</p>
+              <p className="ml-2 text-xs text-muted-foreground">
+                No automations
+              </p>
             ) : (
               <SidebarMenu>
                 {actions.map((action) => (
@@ -328,4 +372,4 @@ export const AppSidebarAutomations = () => {
       </Collapsible>
     </SidebarGroup>
   );
-}; 
+};

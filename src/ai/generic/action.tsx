@@ -1,11 +1,9 @@
 import { z } from 'zod';
 
+import { ActionEmitter } from '@/components/action-emitter';
 import { Card } from '@/components/ui/card';
 import { verifyUser } from '@/server/actions/user';
 import { dbCreateAction } from '@/server/db/queries';
-import { useActionStore } from '@/store/action-store';
-import { emitActionCreated } from '@/lib/events';
-import { ActionEmitter } from '@/components/action-emitter';
 
 interface CreateActionResultProps {
   id: string;
@@ -168,13 +166,14 @@ const createActionTool = {
         return { success: false, error: 'Failed to create action' };
       }
 
-      
       return { success: true, data: action };
     } catch (error: any) {
-      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error creating action',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error creating action',
       };
     }
   },

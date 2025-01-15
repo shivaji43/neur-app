@@ -105,7 +105,10 @@ export const telegramTools = {
     }),
     execute: async function ({ username }: { username?: string }) {
       try {
-        const response = await verifyTelegramSetupAction({ username, userId: this.userId || undefined });
+        const response = await verifyTelegramSetupAction({
+          username,
+          userId: this.userId || undefined,
+        });
         if (!response?.data?.data) {
           return { success: false, error: 'No response from Telegram action' };
         }

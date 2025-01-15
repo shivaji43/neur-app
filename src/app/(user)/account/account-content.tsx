@@ -1,7 +1,7 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+
 import {
   Discord,
   OAuthTokens,
@@ -11,25 +11,27 @@ import {
   useOAuthTokens,
   usePrivy,
 } from '@privy-io/react-auth';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+
+import { WalletCard } from '@/components/dashboard/wallet-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { CopyableText } from '@/components/ui/copyable-text';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/hooks/use-user';
+import { useEmbeddedWallets } from '@/hooks/use-wallets';
+import { cn } from '@/lib/utils';
 import {
   formatPrivyId,
   formatUserCreationDate,
   formatWalletAddress,
 } from '@/lib/utils/format';
 import { getUserID, grantDiscordRole } from '@/lib/utils/grant-discord-role';
-
-import { Button } from '@/components/ui/button';
-import { CopyableText } from '@/components/ui/copyable-text';
 import { EmbeddedWallet } from '@/types/db';
-import { Label } from '@/components/ui/label';
+
 import { LoadingStateSkeleton } from './loading-skeleton';
-import { Separator } from '@/components/ui/separator';
-import { WalletCard } from '@/components/dashboard/wallet-card';
-import { cn } from '@/lib/utils';
-import { useEmbeddedWallets } from '@/hooks/use-wallets';
-import { useRouter } from 'next/navigation';
-import { useSolanaWallets } from '@privy-io/react-auth/solana';
-import { useUser } from '@/hooks/use-user';
 
 export function AccountContent() {
   const router = useRouter();
