@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyUser } from '@/server/actions/user';
 import { dbDeleteAction, dbUpdateAction } from '@/server/db/queries';
 
-export async function DELETE(
-  req: NextRequest,
-) {
+export async function DELETE(req: NextRequest) {
   try {
     const session = await verifyUser();
     const userId = session?.data?.data?.id;
@@ -13,10 +11,7 @@ export async function DELETE(
     const id = req.nextUrl.pathname.split('/').pop();
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Missing action ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing action ID' }, { status: 400 });
     }
 
     if (!userId) {
@@ -24,11 +19,11 @@ export async function DELETE(
     }
 
     const result = await dbDeleteAction({ id, userId });
-    
+
     if (!result) {
       return NextResponse.json(
         { error: 'Failed to delete action' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,9 +37,7 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-) {
+export async function PATCH(req: NextRequest) {
   try {
     const session = await verifyUser();
     const userId = session?.data?.data?.id;
@@ -52,10 +45,7 @@ export async function PATCH(
     const id = req.nextUrl.pathname.split('/').pop();
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Missing action ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing action ID' }, { status: 400 });
     }
 
     if (!userId) {
@@ -64,17 +54,17 @@ export async function PATCH(
 
     const data = await req.json();
     const result = await dbUpdateAction({ id, userId, data });
-    
+
     if (!result) {
       return NextResponse.json(
         { error: 'Failed to update action' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: result 
+    return NextResponse.json({
+      success: true,
+      data: result,
     });
   } catch (error) {
     console.error('Error updating action:', error);
@@ -83,4 +73,4 @@ export async function PATCH(
       { status: 500 },
     );
   }
-} 
+}

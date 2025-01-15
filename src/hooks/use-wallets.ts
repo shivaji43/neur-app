@@ -1,7 +1,8 @@
 'use client';
 
-import { syncEmbeddedWallets } from '@/server/actions/user';
 import useSWR from 'swr';
+
+import { syncEmbeddedWallets } from '@/server/actions/user';
 
 export function useEmbeddedWallets() {
   return useSWR('embeddedWallets', async () => {

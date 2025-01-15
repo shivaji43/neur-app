@@ -1,5 +1,15 @@
 'use client';
 
+import { useRef, useState } from 'react';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { useLogin } from '@privy-io/react-auth';
+import { GitHubLogoIcon } from '@radix-ui/react-icons';
+import { RiTwitterXFill } from '@remixicon/react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   ActivityIcon,
   BookOpenIcon,
@@ -8,26 +18,18 @@ import {
   ShieldIcon,
   ZapIcon,
 } from 'lucide-react';
-import { BentoCard, BentoGrid } from '@/components/ui/bento-grid';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef, useState } from 'react';
 
+import { Brand } from '@/components/logo';
 import { AiParticlesBackground } from '@/components/ui/ai-particles-background';
 import AnimatedShinyText from '@/components/ui/animated-shiny-text';
+import { BentoCard, BentoGrid } from '@/components/ui/bento-grid';
 import BlurFade from '@/components/ui/blur-fade';
 import { BorderBeam } from '@/components/ui/border-beam';
-import { Brand } from '@/components/logo';
 import { Button } from '@/components/ui/button';
-import { GitHubLogoIcon } from '@radix-ui/react-icons';
-import Image from 'next/image';
 import { IntegrationsBackground } from '@/components/ui/integrations-background';
-import Link from 'next/link';
 import Marquee from '@/components/ui/marquee';
 import { RainbowButton } from '@/components/ui/rainbow-button';
-import { RiTwitterXFill } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-import { useLogin } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
 
 const navItems = [
   { label: 'Github', href: 'https://git.new/neur', icon: GitHubLogoIcon },

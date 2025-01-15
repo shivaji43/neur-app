@@ -24,8 +24,8 @@ import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
-import { type ToolActionResult, ToolUpdate } from '@/types/util';
 import { convertToUIMessages } from '@/lib/utils/ai';
+import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
 interface UploadingImage extends Attachment {

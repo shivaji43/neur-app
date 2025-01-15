@@ -9,7 +9,9 @@ interface ActionStore {
 
 export const useActionStore = create<ActionStore>((set) => ({
   actionCount: 0,
-  incrementCount: () => set((state) => ({ actionCount: state.actionCount + 1 })),
+  incrementCount: () =>
+    set((state) => ({ actionCount: state.actionCount + 1 })),
   refreshTrigger: 0,
-  triggerRefresh: () => set((state) => ({ refreshTrigger: state.refreshTrigger + 1 })),
-})); 
+  triggerRefresh: () =>
+    set((state) => ({ refreshTrigger: state.refreshTrigger + 1 })),
+}));
