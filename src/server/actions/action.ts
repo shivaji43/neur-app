@@ -1,6 +1,6 @@
 import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
 import _ from 'lodash';
-import { SolanaAgentKit } from 'solana-agent-kit';
+import moment from 'moment';
 import { z } from 'zod';
 
 import {
@@ -9,20 +9,29 @@ import {
   defaultTools,
   getToolsFromRequiredTools,
 } from '@/ai/providers';
-import { RPC_URL } from '@/lib/constants';
 import prisma from '@/lib/prisma';
-import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
+import { isValidTokenUsage } from '@/lib/utils';
 import { sanitizeResponseMessages } from '@/lib/utils/ai';
+import { retrieveAgentKit } from '@/server/actions/ai';
+import {
+  dbCreateMessages,
+  dbCreateTokenStat,
+  dbGetConversation,
+} from '@/server/db/queries';
 import { ActionWithUser } from '@/types/db';
 
-import { dbCreateMessages, dbCreateTokenStat, dbGetConversation } from '../db/queries';
 import { getToolsFromOrchestrator } from './orchestrator';
-import { isValidTokenUsage } from '@/lib/utils';
+
+const ACTION_PAUSE_THRESHOLD = 3;
 
 export async function processAction(action: ActionWithUser) {
   console.log(
     `[action:${action.id}] Processing action ${action.id} with prompt "${action.description}"`,
   );
+
+  // flags for successful execution
+  let successfulExecution = false;
+  let noToolExecution = false;
 
   try {
     const conversation = await dbGetConversation({
@@ -37,27 +46,27 @@ export async function processAction(action: ActionWithUser) {
     }
 
     // Get user wallet
-    const publicKey = action.user.wallets[0].publicKey;
-
-    // append to system prompt
+    const activeWallet = action.user.wallets.find((w) => w.active);
+    if (!activeWallet) {
+      console.error(
+        `[action:${action.id}] No active wallet found for user ${action.userId}`,
+      );
+      return;
+    }
     const systemPrompt =
-      defaultSystemPrompt + `\n\nUser Solana wallet public key: ${publicKey}`;
+      defaultSystemPrompt +
+      `\n\nUser Solana wallet public key: ${activeWallet.publicKey}`;
 
-    // WARNING: This attaches the user's private key to the agent kit
-
-    // Clone tools and attach user agent kit
-    const privateKey = await decryptPrivateKey(
-      action.user.wallets[0].encryptedPrivateKey,
-    );
-    const openaiKey = process.env.OPENAI_API_KEY!;
-    const agent = new SolanaAgentKit(privateKey, RPC_URL, openaiKey);
-    
     // Run messages through orchestration
     const { toolsRequired, usage: orchestratorUsage } =
-    await getToolsFromOrchestrator([{
-      role: 'user',
-      content: action.description,
-    }]);
+      await getToolsFromOrchestrator([
+        {
+          role: 'user',
+          content: action.description,
+        },
+      ]);
+    const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
+      ?.data?.agent;
 
     console.log('[action:${action.id}] toolsRequired', toolsRequired);
 
@@ -118,7 +127,11 @@ export async function processAction(action: ActionWithUser) {
 
         return { ...toolCall, args: JSON.stringify(repairedArgs) };
       },
-
+      onStepFinish({ toolResults, stepType }) {
+        if (stepType === 'initial' && toolResults.length === 0) {
+          noToolExecution = true;
+        }
+      },
       maxSteps: 15,
       prompt: action.description,
     });
@@ -133,7 +146,7 @@ export async function processAction(action: ActionWithUser) {
         };
       }),
     });
-    
+
     // Save the token stats
     if (messages && isValidTokenUsage(usage)) {
       const messageIds = messages.map((message) => message.id);
@@ -154,25 +167,79 @@ export async function processAction(action: ActionWithUser) {
         totalTokens,
       });
     }
+    console.log(`[action:${action.id}] Processed action ${action.id}`);
+
+    // If no tool was executed, mark the action as failure
+    if (!noToolExecution) {
+      successfulExecution = true;
+    }
   } catch (error) {
     console.error(
       `[action:${action.id}] Failed to process action ${action.id}`,
       error,
     );
+    successfulExecution = false;
   } finally {
-    // TODO: maybe don't update if the action failed?
     // Increment the action's execution count and state
+    const now = new Date();
+
+    const update = {
+      timesExecuted: { increment: 1 },
+      lastExecutedAt: now,
+      completed:
+        !!action.maxExecutions &&
+        action.timesExecuted + 1 >= action.maxExecutions,
+      lastSuccessAt: successfulExecution ? now : undefined,
+      lastFailureAt: !successfulExecution ? now : undefined,
+      paused: action.paused,
+    };
+
+    if (!successfulExecution && action.lastSuccessAt) {
+      // Action failed, but has succeeded before. If lastSuccessAt is more than 1 day ago, pause the action
+      const lastSuccessAt = moment(action.lastSuccessAt);
+      const oneDayAgo = moment().subtract(1, 'days');
+
+      if (lastSuccessAt.isBefore(oneDayAgo)) {
+        update.paused = true;
+
+        console.log(
+          `[action:${action.id}] paused - execution failed and no recent success`,
+        );
+
+        await dbCreateMessages({
+          messages: [
+            {
+              conversationId: action.conversationId,
+              role: 'assistant',
+              content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
+            },
+          ],
+        });
+      }
+    } else if (!successfulExecution && !action.lastSuccessAt) {
+      // Action failed and has never succeeded before. If execution count is more than N, pause the action
+      if (action.timesExecuted >= ACTION_PAUSE_THRESHOLD) {
+        update.paused = true;
+
+        console.log(
+          `[action:${action.id}] paused - execution failed repeatedly`,
+        );
+
+        await dbCreateMessages({
+          messages: [
+            {
+              conversationId: action.conversationId,
+              role: 'assistant',
+              content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
+            },
+          ],
+        });
+      }
+    }
+
     await prisma.action.update({
       where: { id: action.id },
-      data: {
-        timesExecuted: {
-          increment: 1,
-        },
-        lastExecutedAt: new Date(),
-        ...(action.maxExecutions && {
-          completed: action.timesExecuted + 1 >= action.maxExecutions,
-        }),
-      },
+      data: update,
     });
   }
 }

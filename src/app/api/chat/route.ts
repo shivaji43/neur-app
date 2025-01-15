@@ -6,6 +6,7 @@ import {
   Message,
   NoSuchToolError,
   convertToCoreMessages,
+  createDataStreamResponse,
   generateObject,
   streamText,
 } from 'ai';
@@ -18,11 +19,19 @@ import {
   getToolsFromRequiredTools,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
+import { isValidTokenUsage } from '@/lib/utils';
 import {
+  getMostRecentConfirmationMessage,
+  getMostRecentToolResultMessage,
   getMostRecentUserMessage,
+  getToolMessageResult,
   sanitizeResponseMessages,
+  updateConfirmationMessageResult,
 } from '@/lib/utils/ai';
-import { generateTitleFromUserMessage } from '@/server/actions/ai';
+import {
+  convertUserResponseToBoolean,
+  generateTitleFromUserMessage,
+} from '@/server/actions/ai';
 import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 import { verifyUser } from '@/server/actions/user';
 import {
@@ -31,10 +40,11 @@ import {
   dbCreateTokenStat,
   dbDeleteConversation,
   dbGetConversation,
+  updateToolCallResults,
 } from '@/server/db/queries';
-import { isValidTokenUsage } from '@/lib/utils';
+import { ToolUpdate } from '@/types/util';
 
-export const maxDuration = 30;
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const session = await verifyUser();
@@ -59,6 +69,9 @@ export async function POST(req: Request) {
     const userMessage: CoreMessage | undefined =
       getMostRecentUserMessage(coreMessages);
 
+    const mostRecentToolResultMessage =
+      getMostRecentToolResultMessage(coreMessages);
+
     if (!userMessage) {
       return new Response('No user message found', { status: 400 });
     }
@@ -73,15 +86,54 @@ export async function POST(req: Request) {
       revalidatePath('/api/conversations');
     }
 
-    const newUserMessage = await dbCreateMessages({
-      messages: [
-        {
-          conversationId,
-          role: userMessage.role,
-          content: JSON.parse(JSON.stringify(userMessage)),
-        },
-      ],
-    });
+    let toolUpdates: Array<ToolUpdate> = [];
+    let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>> = null;
+
+    const mostRecentConfirmationMessage =
+      getMostRecentConfirmationMessage(coreMessages);
+
+    if (mostRecentConfirmationMessage) {
+      const result = getToolMessageResult(mostRecentConfirmationMessage);
+
+      // If confirmation message has not been interacted with, update it based on next user message
+      if (!result?.result) {
+        const userMessage = getMostRecentUserMessage(coreMessages);
+        if (userMessage) {
+          const didUserConfirm =
+            await convertUserResponseToBoolean(userMessage);
+
+          const updatedMessage = updateConfirmationMessageResult(
+            mostRecentConfirmationMessage,
+            didUserConfirm,
+          );
+
+          await updateToolCallResults(conversationId, updatedMessage);
+
+          const content = updatedMessage.content.at(0);
+          if (content) {
+            toolUpdates.push({
+              type: 'tool-update',
+              toolCallId: content.toolCallId,
+              result: didUserConfirm ? 'confirm' : 'deny',
+            });
+          }
+        }
+      }
+    }
+
+    if (mostRecentToolResultMessage) {
+      await updateToolCallResults(conversationId, mostRecentToolResultMessage);
+    } else {
+      newUserMessage = await dbCreateMessages({
+        messages: [
+          {
+            conversationId,
+            role: userMessage.role,
+            content: JSON.parse(JSON.stringify(userMessage)),
+          },
+        ],
+      });
+    }
 
     // extract all attachments from the user message
     const attachments = messages
@@ -107,109 +159,121 @@ export async function POST(req: Request) {
       -MAX_TOKEN_MESSAGES,
     ) as CoreMessage[];
 
-    // Run messages through orchestration
-    const { toolsRequired, usage: orchestratorUsage } =
-      await getToolsFromOrchestrator(relevantMessages);
-
-    console.log('[chat/route] toolsRequired', toolsRequired);
-
-    const tools = toolsRequired
-      ? getToolsFromRequiredTools(toolsRequired)
-      : defaultTools;
-
-    const result = streamText({
-      model: defaultModel,
-      system: systemPrompt,
-      tools: tools as Record<string, CoreTool<any, any>>,
-      experimental_toolCallStreaming: true,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'stream-text',
-      },
-      experimental_repairToolCall: async ({
-        toolCall,
-        tools,
-        parameterSchema,
-        error,
-      }) => {
-        if (NoSuchToolError.isInstance(error)) {
-          return null;
-        }
-
-        console.log('[chat/route] repairToolCall', toolCall);
-
-        const tool = tools[toolCall.toolName as keyof typeof tools];
-        const { object: repairedArgs } = await generateObject({
-          model: defaultModel,
-          schema: tool.parameters as z.ZodType<any>,
-          prompt: [
-            `The model tried to call the tool "${toolCall.toolName}"` +
-              ` with the following arguments:`,
-            JSON.stringify(toolCall.args),
-            `The tool accepts the following schema:`,
-            JSON.stringify(parameterSchema(toolCall)),
-            'Please fix the arguments.',
-          ].join('\n'),
-        });
-
-        console.log('[chat/route] repairedArgs', repairedArgs);
-        console.log('[chat/route] toolCall', toolCall);
-
-        return { ...toolCall, args: JSON.stringify(repairedArgs) };
-      },
-
-      maxSteps: 15,
-      messages: relevantMessages,
-      async onFinish({ response, usage }) {
-        if (!userId) return;
-
-        try {
-          const sanitizedResponses = sanitizeResponseMessages(
-            response.messages,
-          );
-
-          // Create messages and get their IDs back
-          const messages = await dbCreateMessages({
-            messages: sanitizedResponses.map((message) => {
-              return {
-                conversationId,
-                role: message.role,
-                content: JSON.parse(JSON.stringify(message.content)),
-              };
-            }),
+    return createDataStreamResponse({
+      execute: async (dataStream) => {
+        if (toolUpdates.length > 0) {
+          toolUpdates.forEach((update) => {
+            dataStream.writeData(update);
           });
 
-          // Save the token stats
-          if (messages && newUserMessage && isValidTokenUsage(usage)) {
-            const messageIds = newUserMessage
-              .concat(messages)
-              .map((message) => message.id);
-            let { promptTokens, completionTokens, totalTokens } = usage;
+          toolUpdates = [];
+        }
 
-            // Attach orchestrator usage
-            if (isValidTokenUsage(orchestratorUsage)) {
-              promptTokens += orchestratorUsage.promptTokens;
-              completionTokens += orchestratorUsage.completionTokens;
-              totalTokens += orchestratorUsage.totalTokens;
+        // Run messages through orchestration
+        const { toolsRequired, usage: orchestratorUsage } =
+          await getToolsFromOrchestrator(relevantMessages);
+
+        console.log('[chat/route] toolsRequired', toolsRequired);
+
+        const tools = toolsRequired
+          ? getToolsFromRequiredTools(toolsRequired)
+          : defaultTools;
+
+        const result = streamText({
+          model: defaultModel,
+          system: systemPrompt,
+          tools: tools as Record<string, CoreTool<any, any>>,
+          experimental_toolCallStreaming: true,
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'stream-text',
+          },
+          experimental_repairToolCall: async ({
+            toolCall,
+            tools,
+            parameterSchema,
+            error,
+          }) => {
+            if (NoSuchToolError.isInstance(error)) {
+              return null;
             }
 
-            await dbCreateTokenStat({
-              userId,
-              messageIds,
-              promptTokens,
-              completionTokens,
-              totalTokens,
-            });
-          }
+            console.log('[chat/route] repairToolCall', toolCall);
 
-          revalidatePath('/api/conversations');
-        } catch (error) {
-          console.error('[chat/route] Failed to save messages', error);
-        }
+            const tool = tools[toolCall.toolName as keyof typeof tools];
+            const { object: repairedArgs } = await generateObject({
+              model: defaultModel,
+              schema: tool.parameters as z.ZodType<any>,
+              prompt: [
+                `The model tried to call the tool "${toolCall.toolName}"` +
+                  ` with the following arguments:`,
+                JSON.stringify(toolCall.args),
+                `The tool accepts the following schema:`,
+                JSON.stringify(parameterSchema(toolCall)),
+                'Please fix the arguments.',
+              ].join('\n'),
+            });
+
+            console.log('[chat/route] repairedArgs', repairedArgs);
+            console.log('[chat/route] toolCall', toolCall);
+
+            return { ...toolCall, args: JSON.stringify(repairedArgs) };
+          },
+
+          maxSteps: 15,
+          messages: relevantMessages,
+          async onFinish({ response, usage }) {
+            if (!userId) return;
+
+            try {
+              const sanitizedResponses = sanitizeResponseMessages(
+                response.messages,
+              );
+
+              // Create messages and get their IDs back
+              const messages = await dbCreateMessages({
+                messages: sanitizedResponses.map((message) => {
+                  return {
+                    conversationId,
+                    role: message.role,
+                    content: JSON.parse(JSON.stringify(message.content)),
+                  };
+                }),
+              });
+
+              // Save the token stats
+              if (messages && newUserMessage && isValidTokenUsage(usage)) {
+                const messageIds = newUserMessage
+                  .concat(messages)
+                  .map((message) => message.id);
+                let { promptTokens, completionTokens, totalTokens } = usage;
+
+                // Attach orchestrator usage
+                if (isValidTokenUsage(orchestratorUsage)) {
+                  promptTokens += orchestratorUsage.promptTokens;
+                  completionTokens += orchestratorUsage.completionTokens;
+                  totalTokens += orchestratorUsage.totalTokens;
+                }
+
+                await dbCreateTokenStat({
+                  userId,
+                  messageIds,
+                  promptTokens,
+                  completionTokens,
+                  totalTokens,
+                });
+              }
+
+              revalidatePath('/api/conversations');
+            } catch (error) {
+              console.error('[chat/route] Failed to save messages', error);
+            }
+          },
+        });
+
+        result.mergeIntoDataStream(dataStream);
       },
     });
-
-    return result.toDataStreamResponse();
   } catch (error) {
     console.error('[chat/route] Unexpected error:', error);
     return new Response('Internal Server Error', { status: 500 });

@@ -1,4 +1,5 @@
 import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import { CoreToolMessage } from 'ai';
 import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
@@ -12,12 +13,15 @@ import { NewAction } from '@/types/db';
  */
 export async function dbGetConversation({
   conversationId,
+  includeMessages
 }: {
   conversationId: string;
+  includeMessages?: boolean;
 }) {
   try {
     return await prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: includeMessages ? { messages: true } : undefined,
     });
   } catch (error) {
     console.error('[DB Error] Failed to get conversation:', {
@@ -81,6 +85,68 @@ export async function dbCreateMessages({
     });
     return null;
   }
+}
+
+/**
+ * Updates the tool-call results for any toolCallIds
+ * in the provided `messageData.content` array.
+ *
+ * @param conversationId - The ID of the conversation
+ * @param messageData    - An object with role: "tool" and an array of tool-result items
+ * @returns An array of updated Messages or an empty array if no matches
+ */
+export async function updateToolCallResults(
+  conversationId: string,
+  messageData: CoreToolMessage,
+): Promise<PrismaMessage[]> {
+  const updatedMessages: PrismaMessage[] = [];
+
+  for (const item of messageData.content) {
+    const toolCallId = item.toolCallId;
+    const newResultObj = item.result;
+    const toolMessages = await prisma.message.findMany({
+      where: {
+        conversationId,
+        role: 'tool',
+      },
+    });
+
+    let messageToUpdate: PrismaMessage | null = null;
+    for (const msg of toolMessages) {
+      const contentArray = msg.content as any[];
+      const hasMatchingToolCallId = contentArray.some(
+        (c) => c.toolCallId === toolCallId,
+      );
+      if (hasMatchingToolCallId) {
+        messageToUpdate = msg;
+        break;
+      }
+    }
+
+    if (!messageToUpdate) {
+      continue;
+    }
+
+    const oldContentArray = messageToUpdate.content as any[];
+    const newContentArray = oldContentArray.map((c) => {
+      if (c.toolCallId === toolCallId) {
+        return {
+          ...c,
+          result: newResultObj,
+        };
+      }
+      return c;
+    });
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageToUpdate.id },
+      data: { content: newContentArray },
+    });
+
+    updatedMessages.push(updatedMessage);
+  }
+
+  return updatedMessages;
 }
 
 /**
@@ -303,6 +369,76 @@ export async function dbUpdateUserTelegramChat({
       username,
       error: `${error}`,
     });
+    return null;
+  }
+}
+
+export async function dbGetUserActions({ userId }: { userId: string }) {
+  try {
+    const actions = await prisma.action.findMany({
+      where: {
+        userId,
+        completed: false,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return actions;
+  } catch (error) {
+    console.error('[DB Error] Failed to get user actions:', {
+      userId,
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbDeleteAction({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await prisma.action.delete({
+      where: {
+        id,
+        userId, // Ensure user owns the action
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to delete action:', { id, userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateAction({
+  id,
+  userId,
+  data,
+}: {
+  id: string;
+  userId: string;
+  data: Partial<Action>;
+}) {
+  try {
+    // Validate and clean the data before update
+    const validData = {
+      description: data.description,
+      frequency: data.frequency === 0 ? null : data.frequency,
+      maxExecutions: data.maxExecutions === 0 ? null : data.maxExecutions,
+      // Only include fields we want to update
+    } as const;
+
+    return await prisma.action.update({
+      where: {
+        id,
+        userId,
+      },
+      data: validData,
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update action:', { id, userId, error });
     return null;
   }
 }
