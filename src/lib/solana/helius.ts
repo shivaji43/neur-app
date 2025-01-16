@@ -360,7 +360,7 @@ export async function getTopTokenHolders(
 export async function getTokenHolderCount(mintInfo: MintInfo): Promise<number> {
   const PAGE_SIZE = 1000;
   let page = 1;
-  let allOwners = new Set();
+  const allOwners = new Set();
 
   while (page <= 100) {
     const data = await fetchHelius('getTokenAccounts', {
