@@ -67,7 +67,7 @@
     "recharts": "^2.15.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
-    "solana-agent-kit": "git+https://github.com/slimeonmyhead/solana-agent-kit.git#feature/wallet-adapter",
+    "solana-agent-kit": "git+https://github.com/slimeonmyhead/solana-agent-kit.git#9f8b3a5afafe9e14dec694c3c99fcbd19d84e70c",
     "sonner": "^1.7.1",
     "swr": "^2.3.0",
     "tailwind-merge": "^2.6.0",
