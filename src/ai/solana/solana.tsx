@@ -8,11 +8,24 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
-import { Transform } from 'stream';
 import { z } from 'zod';
 
 import { WalletPortfolio } from '@/components/message/wallet-portfolio';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { SolanaUtils } from '@/lib/solana';
 import {
   type Holder,
@@ -20,7 +33,7 @@ import {
   searchWalletAssets,
 } from '@/lib/solana/helius';
 import { cn } from '@/lib/utils';
-import { formatShortNumber } from '@/lib/utils/format';
+import { formatShortNumber, truncate } from '@/lib/utils/format';
 import { retrieveAgentKit } from '@/server/actions/ai';
 import { transformToPortfolio } from '@/types/helius/portfolio';
 
@@ -30,13 +43,6 @@ const DEFAULT_OPTIONS = {
 } as const;
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
-
-function truncate(str: string, length = 6) {
-  if (!str) return '';
-  const start = str.slice(0, length);
-  const end = str.slice(-length);
-  return `${start}...${end}`;
-}
 
 // Types
 interface SwapParams {
@@ -256,21 +262,48 @@ export function SwapResult({ result }: { result: SwapResult }) {
 export function TokenHoldersResult({
   holdersResult,
 }: {
-  holdersResult: TokenHoldersResult;
+  holdersResult?: TokenHoldersResult;
 }) {
-  // Handle error or loading states:
-  if (!holdersResult.success) {
+  if (!holdersResult) {
     return (
-      <Card className="space-y-4 bg-muted/50 p-4">
-        <h3 className="text-lg font-medium">Holders Information</h3>
-        <p className="text-red-500">
-          {holdersResult.error ?? 'Failed to load holder data.'}
-        </p>
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-medium">
+            Holders Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+            <ExternalLink className="h-5 w-5" />
+            <p className="text-sm font-medium">No holder data available.</p>
+          </div>
+        </CardContent>
       </Card>
     );
   }
 
-  // Destructure out data
+  // Handle error state
+  if (!holdersResult.success) {
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b bg-muted/30">
+          <CardTitle className="text-lg font-medium">
+            Holders Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+            <ExternalLink className="h-5 w-5" />
+            <p className="text-sm font-medium">
+              {holdersResult.error ?? 'Failed to load holder data.'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Destructure data with defaults
   const { totalHolders, topHolders, totalSupply } = holdersResult.data ?? {
     totalHolders: 0,
     topHolders: [],
@@ -278,29 +311,33 @@ export function TokenHoldersResult({
   };
 
   return (
-    <Card className="space-y-4 bg-muted/50 p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Holders Information</h3>
-        <div className="ml-2 text-sm text-muted-foreground">
-          Total Holders: {totalHolders}
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-muted/30">
+        <div className="space-y-2">
+          <CardTitle className="text-lg font-medium">
+            Holders Information
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {totalHolders < 0 ? '50,000+' : totalHolders.toLocaleString()}{' '}
+            unique holders
+          </p>
         </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-muted-foreground">
-              <th className="p-2 text-left">Owner</th>
-              <th className="p-2 text-left">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-1/2 px-4 ">Owner</TableHead>
+              <TableHead className="px-4 ">Holdings</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {topHolders.length === 0 ? (
-              <tr>
-                <td colSpan={2} className="p-4 text-center">
+              <TableRow>
+                <TableCell colSpan={2} className="h-24 text-center">
                   No top holders found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               topHolders.map((holder, index) => {
                 const ownedPct = ((holder.balance / totalSupply) * 100).toFixed(
@@ -309,46 +346,58 @@ export function TokenHoldersResult({
                 const shortBalance = formatShortNumber(holder.balance);
 
                 return (
-                  <tr
+                  <TableRow
                     key={holder.owner}
-                    className="border-b last:border-0 hover:bg-accent/10"
+                    className="group transition-colors"
                   >
-                    {/* Owner + Classification */}
-                    <td className="max-w-xs break-words p-2 align-middle">
-                      <div className="font-mono leading-tight">
-                        <a
-                          key={index}
-                          href={`https://solscan.io/account/${holder.owner}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center rounded-md hover:bg-accent"
-                        >
-                          {holder.owner.slice(0, 4)}...
-                          {holder.owner.slice(-4)}
-                          <ExternalLink className="ml-1 h-3 w-3" />
-                        </a>
-                      </div>
-                      {holder.classification && (
-                        <div className="text-xs text-muted-foreground">
-                          {holder.classification}
+                    <TableCell className="max-w-xs px-4 py-4">
+                      <div className="flex flex-col justify-center gap-1">
+                        <div className="font-mono">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a
+                                  href={`https://solscan.io/account/${holder.owner}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center rounded-md hover:text-primary"
+                                >
+                                  {holder.owner.slice(0, 4)}...
+                                  {holder.owner.slice(-4)}
+                                  <ExternalLink className="ml-1 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View on Solscan</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {holder.owner}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                      )}
-                    </td>
-
-                    {/* Owned% + Short Balance */}
-                    <td className="p-2 align-middle">
-                      <div className="text-sm font-medium">{ownedPct}%</div>
-                      <div className="text-xs text-muted-foreground">
-                        {shortBalance}
+                        {holder.classification && (
+                          <div className="line-clamp-1 max-w-[200px] text-xs text-muted-foreground">
+                            {holder.classification}
+                          </div>
+                        )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="flex flex-col justify-center gap-1">
+                        <div className="font-medium">{ownedPct}%</div>
+                        <div className="text-xs text-muted-foreground">
+                          {shortBalance} tokens
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </CardContent>
     </Card>
   );
 }
@@ -632,6 +681,7 @@ const token = {
     execute: async ({ mint }: TokenParams): Promise<TokenHoldersResult> => {
       try {
         const tokenHolderStats = await getHoldersClassification(mint);
+        console.log('[token.holders] tokenHolderStats', tokenHolderStats);
         return {
           success: true,
           data: {
