@@ -26,6 +26,14 @@ export async function getToolsFromOrchestrator(
   if (toolsRequired.length === 0) {
     return { usage, toolsRequired: undefined };
   } else {
-    return { usage, toolsRequired };
+    const allTools = new Set([
+      'searchToken',
+      'askForConfirmation',
+      ...toolsRequired,
+    ]);
+    return {
+      usage,
+      toolsRequired: [...allTools],
+    };
   }
 }
