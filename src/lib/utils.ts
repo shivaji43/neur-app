@@ -1,3 +1,4 @@
+import { LanguageModelUsage } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -40,6 +41,12 @@ export function throttle<T extends (...args: any[]) => any>(
     }
   };
 }
+
+export const isValidTokenUsage = (usage: LanguageModelUsage) =>
+  usage &&
+  !isNaN(usage.promptTokens) &&
+  !isNaN(usage.completionTokens) &&
+  !isNaN(usage.totalTokens);
 
 export function formatDate(date: Date) {
   return new Intl.DateTimeFormat('en-US', {

@@ -7,12 +7,20 @@ import {
   defaultModel,
   defaultSystemPrompt,
   defaultTools,
+  getToolsFromRequiredTools,
 } from '@/ai/providers';
 import prisma from '@/lib/prisma';
+import { isValidTokenUsage } from '@/lib/utils';
 import { sanitizeResponseMessages } from '@/lib/utils/ai';
 import { retrieveAgentKit } from '@/server/actions/ai';
-import { dbCreateMessages, dbGetConversation } from '@/server/db/queries';
+import {
+  dbCreateMessages,
+  dbCreateTokenStat,
+  dbGetConversation,
+} from '@/server/db/queries';
 import { ActionWithUser } from '@/types/db';
+
+import { getToolsFromOrchestrator } from './orchestrator';
 
 const ACTION_PAUSE_THRESHOLD = 3;
 
@@ -49,13 +57,27 @@ export async function processAction(action: ActionWithUser) {
       defaultSystemPrompt +
       `\n\nUser Solana wallet public key: ${activeWallet.publicKey}`;
 
+    // Run messages through orchestration
+    const { toolsRequired, usage: orchestratorUsage } =
+      await getToolsFromOrchestrator([
+        {
+          role: 'user',
+          content: action.description,
+        },
+      ]);
     const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
       ?.data?.agent;
 
-    const tools = _.cloneDeep(defaultTools);
-    for (const toolName in tools) {
-      const tool = tools[toolName as keyof typeof tools];
-      tools[toolName as keyof typeof tools] = {
+    console.log('[action:${action.id}] toolsRequired', toolsRequired);
+
+    const tools = toolsRequired
+      ? getToolsFromRequiredTools(toolsRequired)
+      : defaultTools;
+
+    const clonedTools = _.cloneDeep(tools);
+    for (const toolName in clonedTools) {
+      const tool = clonedTools[toolName as keyof typeof clonedTools];
+      clonedTools[toolName as keyof typeof clonedTools] = {
         ...tool,
         agentKit: agent,
         userId: action.userId,
@@ -66,13 +88,13 @@ export async function processAction(action: ActionWithUser) {
     delete tools.createAction;
 
     // Call the AI model
-    const { response } = await generateText({
+    const { response, usage } = await generateText({
       model: defaultModel,
       system: systemPrompt,
-      tools: tools as Record<string, CoreTool<any, any>>,
+      tools: clonedTools as Record<string, CoreTool<any, any>>,
       experimental_telemetry: {
         isEnabled: true,
-        functionId: 'stream-text',
+        functionId: 'generate-text',
       },
       experimental_repairToolCall: async ({
         toolCall,
@@ -115,7 +137,7 @@ export async function processAction(action: ActionWithUser) {
     });
 
     const sanitizedResponses = sanitizeResponseMessages(response.messages);
-    await dbCreateMessages({
+    const messages = await dbCreateMessages({
       messages: sanitizedResponses.map((message) => {
         return {
           conversationId: action.conversationId,
@@ -125,6 +147,26 @@ export async function processAction(action: ActionWithUser) {
       }),
     });
 
+    // Save the token stats
+    if (messages && isValidTokenUsage(usage)) {
+      const messageIds = messages.map((message) => message.id);
+      let { promptTokens, completionTokens, totalTokens } = usage;
+
+      // Attach orchestrator usage
+      if (isValidTokenUsage(orchestratorUsage)) {
+        promptTokens += orchestratorUsage.promptTokens;
+        completionTokens += orchestratorUsage.completionTokens;
+        totalTokens += orchestratorUsage.totalTokens;
+      }
+
+      await dbCreateTokenStat({
+        userId: action.userId,
+        messageIds,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+      });
+    }
     console.log(`[action:${action.id}] Processed action ${action.id}`);
 
     // If no tool was executed, mark the action as failure

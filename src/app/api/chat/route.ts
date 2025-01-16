@@ -16,8 +16,10 @@ import {
   defaultModel,
   defaultSystemPrompt,
   defaultTools,
+  getToolsFromRequiredTools,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
+import { isValidTokenUsage } from '@/lib/utils';
 import {
   getMostRecentConfirmationMessage,
   getMostRecentToolResultMessage,
@@ -30,6 +32,7 @@ import {
   convertUserResponseToBoolean,
   generateTitleFromUserMessage,
 } from '@/server/actions/ai';
+import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 import { verifyUser } from '@/server/actions/user';
 import {
   dbCreateConversation,
@@ -157,7 +160,7 @@ export async function POST(req: Request) {
     ) as CoreMessage[];
 
     return createDataStreamResponse({
-      execute: (dataStream) => {
+      execute: async (dataStream) => {
         if (toolUpdates.length > 0) {
           toolUpdates.forEach((update) => {
             dataStream.writeData(update);
@@ -166,10 +169,20 @@ export async function POST(req: Request) {
           toolUpdates = [];
         }
 
+        // Run messages through orchestration
+        const { toolsRequired, usage: orchestratorUsage } =
+          await getToolsFromOrchestrator(relevantMessages);
+
+        console.log('[chat/route] toolsRequired', toolsRequired);
+
+        const tools = toolsRequired
+          ? getToolsFromRequiredTools(toolsRequired)
+          : defaultTools;
+
         const result = streamText({
           model: defaultModel,
           system: systemPrompt,
-          tools: defaultTools as Record<string, CoreTool<any, any>>,
+          tools: tools as Record<string, CoreTool<any, any>>,
           experimental_toolCallStreaming: true,
           experimental_telemetry: {
             isEnabled: true,
@@ -229,17 +242,18 @@ export async function POST(req: Request) {
               });
 
               // Save the token stats
-              if (
-                messages &&
-                newUserMessage &&
-                !isNaN(usage.promptTokens) &&
-                !isNaN(usage.completionTokens) &&
-                !isNaN(usage.totalTokens)
-              ) {
+              if (messages && newUserMessage && isValidTokenUsage(usage)) {
                 const messageIds = newUserMessage
                   .concat(messages)
                   .map((message) => message.id);
-                const { promptTokens, completionTokens, totalTokens } = usage;
+                let { promptTokens, completionTokens, totalTokens } = usage;
+
+                // Attach orchestrator usage
+                if (isValidTokenUsage(orchestratorUsage)) {
+                  promptTokens += orchestratorUsage.promptTokens;
+                  completionTokens += orchestratorUsage.completionTokens;
+                  totalTokens += orchestratorUsage.totalTokens;
+                }
 
                 await dbCreateTokenStat({
                   userId,
