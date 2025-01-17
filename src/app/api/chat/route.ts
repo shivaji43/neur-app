@@ -5,6 +5,8 @@ import {
   CoreTool,
   Message,
   NoSuchToolError,
+  Output,
+  appendResponseMessages,
   convertToCoreMessages,
   createDataStreamResponse,
   generateObject,
@@ -63,97 +65,65 @@ export async function POST(req: Request) {
   try {
     const {
       id: conversationId,
+      message: lastMessage,
       messages,
-    }: { id: string; messages: Array<Message> } = await req.json();
+    }: {
+      id: string;
+      message: Message;
+      messages: Message[];
+    } = await req.json();
+    const message = lastMessage ?? messages[messages.length - 1];
 
-    // Filter messages that have a broken toolInvocation
-    const filteredMessages = messages.filter((message) => {
-      if (
-        message.toolInvocations &&
-        !message.toolInvocations.every((invocation) => {
-          return (invocation as any).result;
-        })
-      ) {
-        return false;
-      }
-      return true;
-    });
+    const isUserMessage = message.role === 'user';
 
-    messages.length = 0;
-    messages.push(...filteredMessages);
-
-    const coreMessages = convertToCoreMessages(messages);
-    const userMessage: CoreMessage | undefined =
-      getMostRecentUserMessage(coreMessages);
+    const genericMessage = message as Message;
 
     const mostRecentToolResultMessage =
-      getMostRecentToolResultMessage(coreMessages);
+      message.role === 'assistant' &&
+      genericMessage.toolInvocations &&
+      genericMessage.toolInvocations.length > 0 &&
+      genericMessage.toolInvocations[0].state === 'result' &&
+      genericMessage.toolInvocations[0].result !== undefined;
 
-    if (!userMessage) {
+    const conversation = await dbGetConversation({
+      conversationId,
+      includeMessages: true,
+    });
+
+    if (!conversation && !isUserMessage) {
       return new Response('No user message found', { status: 400 });
     }
 
-    const conversation = await dbGetConversation({ conversationId });
-
     if (!conversation) {
       const title = await generateTitleFromUserMessage({
-        message: userMessage,
+        message: message.content,
       });
       await dbCreateConversation({ conversationId, userId, title });
       revalidatePath('/api/conversations');
     }
 
+    console.log('[chat/route] conversation', conversation);
+
     let toolUpdates: Array<ToolUpdate> = [];
     let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>> = null;
 
-    const mostRecentConfirmationMessage =
-      getMostRecentConfirmationMessage(coreMessages);
-
-    if (mostRecentConfirmationMessage) {
-      const result = getToolMessageResult(mostRecentConfirmationMessage);
-
-      // If confirmation message has not been interacted with, update it based on next user message
-      if (!result?.result) {
-        const userMessage = getMostRecentUserMessage(coreMessages);
-        if (userMessage) {
-          const didUserConfirm =
-            await convertUserResponseToBoolean(userMessage);
-
-          const updatedMessage = updateConfirmationMessageResult(
-            mostRecentConfirmationMessage,
-            didUserConfirm,
-          );
-
-          await updateToolCallResults(conversationId, updatedMessage);
-
-          const content = updatedMessage.content.at(0);
-          if (content) {
-            toolUpdates.push({
-              type: 'tool-update',
-              toolCallId: content.toolCallId,
-              result: didUserConfirm ? 'confirm' : 'deny',
-            });
-          }
-        }
-      }
-    }
-
-    if (mostRecentToolResultMessage) {
-      await updateToolCallResults(conversationId, mostRecentToolResultMessage);
-    } else {
+    if (isUserMessage) {
       newUserMessage = await dbCreateMessages({
         messages: [
           {
             conversationId,
-            role: userMessage.role,
-            content: JSON.parse(JSON.stringify(userMessage)),
+            role: message.role,
+            content: JSON.parse(JSON.stringify(message.content)),
+            toolInvocations: [],
           },
         ],
       });
     }
 
+    const conversationMessages = (conversation?.messages as Message[]) || [];
+
     // extract all attachments from the user message
-    const attachments = messages
+    const attachments = conversationMessages
       .filter((message) => message.experimental_attachments)
       .map((message) => message.experimental_attachments)
       .flat()
@@ -172,9 +142,10 @@ export async function POST(req: Request) {
       `\n\nConversation ID: ${conversationId}`;
 
     // Filter to relevant messages for context sizing
-    const relevantMessages: CoreMessage[] = messages.slice(
-      -MAX_TOKEN_MESSAGES,
-    ) as CoreMessage[];
+    const relevantMessages = [
+      ...conversationMessages.slice(-MAX_TOKEN_MESSAGES),
+      message,
+    ];
 
     console.log('[chat/route] createDataStreamResponse');
 
@@ -241,13 +212,16 @@ export async function POST(req: Request) {
 
           maxSteps: 15,
           messages: relevantMessages,
-          async onFinish({ response, usage }) {
+          async onFinish({ response, usage, toolCalls, toolResults, steps }) {
             if (!userId) return;
 
             try {
-              const sanitizedResponses = sanitizeResponseMessages(
-                response.messages,
-              );
+              const sanitizedResponses = appendResponseMessages({
+                messages: [],
+                responseMessages: response.messages,
+              });
+
+              console.dir(sanitizedResponses, { depth: null });
 
               // Create messages and get their IDs back
               const messages = await dbCreateMessages({
@@ -256,6 +230,7 @@ export async function POST(req: Request) {
                     conversationId,
                     role: message.role,
                     content: JSON.parse(JSON.stringify(message.content)),
+                    toolInvocations: message.toolInvocations,
                   };
                 }),
               });

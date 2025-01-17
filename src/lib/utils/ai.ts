@@ -203,14 +203,6 @@ export function convertToUIMessages(
   return messages.reduce((chatMessages: Array<Message>, rawMessage) => {
     const message = rawMessage;
 
-    // Handle tool messages separately
-    if (message.role === 'tool') {
-      return addToolMessageToChat({
-        toolMessage: message as unknown as CoreToolMessage,
-        messages: chatMessages,
-      });
-    }
-
     // Initialize message components
     let textContent = '';
     const toolInvocations: Array<ToolInvocation> = [];
@@ -237,14 +229,6 @@ export function convertToUIMessages(
           case 'text':
             textContent += content.text;
             break;
-          case 'tool-call':
-            toolInvocations.push({
-              state: 'call',
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args,
-            });
-            break;
           case 'image':
             attachments.push({
               url: content.image,
@@ -261,7 +245,7 @@ export function convertToUIMessages(
       id: message.id,
       role: message.role as Message['role'],
       content: textContent,
-      toolInvocations,
+      toolInvocations: message.toolInvocations as unknown as ToolInvocation[],
       experimental_attachments: attachments,
     });
 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { RiTwitterXFill } from '@remixicon/react';
+import { JSONValue } from 'ai';
 import { useChat } from 'ai/react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -78,6 +79,12 @@ export function HomeContent() {
       if (chatId && !conversations?.find((conv) => conv.id === chatId)) {
         refreshConversations();
       }
+    },
+    experimental_prepareRequestBody: ({ messages }) => {
+      return {
+        message: messages[messages.length - 1],
+        id: chatId,
+      } as unknown as JSONValue;
     },
   });
 

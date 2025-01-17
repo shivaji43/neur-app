@@ -1,7 +1,7 @@
 'use server';
 
 import { PublicKey } from '@solana/web3.js';
-import { type CoreUserMessage, generateText } from 'ai';
+import { type CoreMessage, type CoreUserMessage, generateText } from 'ai';
 import { BaseWallet, SolanaAgentKit, WalletAdapter } from 'solana-agent-kit';
 import { z } from 'zod';
 
@@ -17,7 +17,7 @@ import { getPrivyClient, verifyUser } from './user';
 export async function generateTitleFromUserMessage({
   message,
 }: {
-  message: CoreUserMessage;
+  message: string;
 }) {
   const { text: title } = await generateText({
     model: defaultModel,

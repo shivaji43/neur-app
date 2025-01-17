@@ -65,6 +65,7 @@ model Message {
   conversationId String
   role           String
   content        Json
+  toolInvocations Json?
   createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])

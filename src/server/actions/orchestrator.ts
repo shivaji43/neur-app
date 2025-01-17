@@ -1,11 +1,11 @@
-import { CoreMessage, LanguageModelUsage, generateObject } from 'ai';
+import { CoreMessage, LanguageModelUsage, Message, generateObject } from 'ai';
 import _ from 'lodash';
 import { z } from 'zod';
 
 import { orchestrationPrompt, orchestratorModel } from '@/ai/providers';
 
 export async function getToolsFromOrchestrator(
-  messages: CoreMessage[] | undefined,
+  messages: Message[] | undefined,
 ): Promise<{ usage: LanguageModelUsage; toolsRequired: string[] | undefined }> {
   const { object: toolsRequired, usage } = await generateObject({
     model: orchestratorModel,

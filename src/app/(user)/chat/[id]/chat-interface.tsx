@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import { Attachment, Message } from 'ai';
+import { Attachment, JSONValue, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { Image as ImageIcon, Loader2, SendHorizontal, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -114,6 +114,7 @@ const getImageStyle = (index: number, total: number) => {
 };
 
 const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
+  console.log('[applyToolUpdates] toolUpdates', toolUpdates);
   while (toolUpdates.length > 0) {
     const update = toolUpdates.pop();
     if (!update) {
@@ -287,6 +288,7 @@ function ChatMessage({
   onPreviewImage,
   addToolResult,
 }: ChatMessageProps) {
+  console.log('[ChatMessage] message', message);
   const isUser = message.role === 'user';
   const hasAttachments =
     message.experimental_attachments &&
@@ -611,12 +613,20 @@ export default function ChatInterface({
     setMessages,
   } = useChat({
     id,
+    maxSteps: 10,
     initialMessages,
+    sendExtraMessageFields: true,
     body: { id },
     onFinish: () => {
       window.history.replaceState({}, '', `/chat/${id}`);
       // Refresh wallet portfolio after AI response
       refresh();
+    },
+    experimental_prepareRequestBody: ({ messages }) => {
+      return {
+        message: messages[messages.length - 1],
+        id,
+      } as unknown as JSONValue;
     },
   });
 
@@ -632,21 +642,21 @@ export default function ChatInterface({
   }, [chatMessages, data]);
 
   // Use polling for fetching new messages
-  usePolling({
-    url: `/api/chat/${id}`,
-    id,
-    onUpdate: (data) => {
-      if (!data || !data.messages) {
-        return;
-      }
+  // usePolling({
+  //   url: `/api/chat/${id}`,
+  //   id,
+  //   onUpdate: (data) => {
+  //     if (!data || !data.messages) {
+  //       return;
+  //     }
 
-      const messages = convertToUIMessages(data?.messages);
+  //     const messages = convertToUIMessages(data?.messages);
 
-      if (messages && messages.length) {
-        setMessages(messages);
-      }
-    },
-  });
+  //     if (messages && messages.length) {
+  //       setMessages(messages);
+  //     }
+  //   },
+  // });
 
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

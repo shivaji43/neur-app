@@ -163,7 +163,7 @@ export async function dbGetConversationMessages({
   try {
     return await prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { role: 'desc' }],
     });
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
