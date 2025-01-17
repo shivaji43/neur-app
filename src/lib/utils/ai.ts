@@ -202,52 +202,15 @@ export function convertToUIMessages(
 ): Array<Message> {
   return messages.reduce((chatMessages: Array<Message>, rawMessage) => {
     const message = rawMessage;
-
-    // Initialize message components
-    let textContent = '';
-    const toolInvocations: Array<ToolInvocation> = [];
-    const attachments: Array<Attachment> = [];
-
-    // Handle nested content structure
-    if (
-      typeof message.content === 'object' &&
-      message.content &&
-      'content' in message.content
-    ) {
-      message.content = message.content.content || [];
-    }
-
-    // Process different content types
-    if (typeof message.content === 'string') {
-      textContent = message.content;
-    } else if (Array.isArray(message.content)) {
-      for (const c of message.content) {
-        if (!c) continue;
-        const content = c as any;
-
-        switch (content.type) {
-          case 'text':
-            textContent += content.text;
-            break;
-          case 'image':
-            attachments.push({
-              url: content.image,
-              name: 'image.png',
-              contentType: 'image/png',
-            });
-            break;
-        }
-      }
-    }
-
-    // Construct and add the formatted message
     chatMessages.push({
       id: message.id,
       role: message.role as Message['role'],
-      content: textContent,
+      content: message.content as string,
       toolInvocations: message.toolInvocations as unknown as ToolInvocation[],
-      experimental_attachments: attachments,
+      experimental_attachments:
+        message.experimental_attachments as unknown as Attachment[],
     });
+    // Construct and add the formatted message
 
     return chatMessages;
   }, []);

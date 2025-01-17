@@ -71,6 +71,8 @@ export async function POST(req: Request) {
       message: Message;
     } = await req.json();
 
+    console.log('[chat/route] message', message);
+
     if (!message) {
       return new Response('No message found', { status: 400 });
     }
@@ -114,8 +116,11 @@ export async function POST(req: Request) {
           {
             conversationId,
             role: message.role,
-            content: JSON.parse(JSON.stringify(message.content)),
+            content: message.content,
             toolInvocations: [],
+            experimental_attachments: message.experimental_attachments
+              ? JSON.parse(JSON.stringify(message.experimental_attachments))
+              : undefined,
           },
         ],
       });
@@ -230,7 +235,7 @@ export async function POST(req: Request) {
                   return {
                     conversationId,
                     role: message.role,
-                    content: JSON.parse(JSON.stringify(message.content)),
+                    content: message.content,
                     toolInvocations: message.toolInvocations,
                   };
                 }),
