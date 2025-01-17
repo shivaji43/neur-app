@@ -65,6 +65,23 @@ export async function POST(req: Request) {
       id: conversationId,
       messages,
     }: { id: string; messages: Array<Message> } = await req.json();
+
+    // Filter messages that have a broken toolInvocation
+    const filteredMessages = messages.filter((message) => {
+      if (
+        message.toolInvocations &&
+        !message.toolInvocations.every((invocation) => {
+          return (invocation as any).result;
+        })
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    messages.length = 0;
+    messages.push(...filteredMessages);
+
     const coreMessages = convertToCoreMessages(messages);
     const userMessage: CoreMessage | undefined =
       getMostRecentUserMessage(coreMessages);
@@ -158,6 +175,8 @@ export async function POST(req: Request) {
     const relevantMessages: CoreMessage[] = messages.slice(
       -MAX_TOKEN_MESSAGES,
     ) as CoreMessage[];
+
+    console.log('[chat/route] createDataStreamResponse');
 
     return createDataStreamResponse({
       execute: async (dataStream) => {
