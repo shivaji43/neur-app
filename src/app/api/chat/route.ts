@@ -1,13 +1,10 @@
 import { revalidatePath } from 'next/cache';
 
 import {
-  CoreMessage,
   CoreTool,
   Message,
   NoSuchToolError,
-  Output,
   appendResponseMessages,
-  convertToCoreMessages,
   createDataStreamResponse,
   generateObject,
   streamText,
@@ -22,14 +19,7 @@ import {
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import { isValidTokenUsage } from '@/lib/utils';
-import {
-  getMostRecentToolResultMessage,
-  getMostRecentUserMessage,
-  getToolMessageResult,
-  getUnconfirmedConfirmationMessage,
-  sanitizeResponseMessages,
-  updateConfirmationMessageResult,
-} from '@/lib/utils/ai';
+import { getUnconfirmedConfirmationMessage } from '@/lib/utils/ai';
 import {
   convertUserResponseToBoolean,
   generateTitleFromUserMessage,
@@ -43,7 +33,6 @@ import {
   dbDeleteConversation,
   dbGetConversation,
   dbUpdateMessageToolInvocations,
-  updateToolCallResults,
 } from '@/server/db/queries';
 import { ToolUpdate } from '@/types/util';
 
@@ -129,6 +118,7 @@ export async function POST(req: Request) {
       });
     }
 
+    let didHandleConfirmation = confirmationResultMessage !== undefined;
     if (unconfirmedConfirmationMessage) {
       let updatedToolInvocations;
       if (isUserMessage) {
@@ -162,6 +152,7 @@ export async function POST(req: Request) {
           toolInvocations: JSON.parse(JSON.stringify(updatedToolInvocations)),
         });
         unconfirmedConfirmationMessage.toolInvocations = updatedToolInvocations;
+        didHandleConfirmation = true;
       }
     }
 
@@ -199,8 +190,6 @@ export async function POST(req: Request) {
       relevantMessages.push(message);
     }
 
-    console.dir(relevantMessages, { depth: null });
-
     console.log('[chat/route] createDataStreamResponse');
 
     return createDataStreamResponse({
@@ -217,7 +206,7 @@ export async function POST(req: Request) {
         const { toolsRequired, usage: orchestratorUsage } =
           await getToolsFromOrchestrator(
             relevantMessages,
-            confirmationResultMessage,
+            didHandleConfirmation,
           );
 
         console.log('[chat/route] toolsRequired', toolsRequired);
@@ -269,7 +258,7 @@ export async function POST(req: Request) {
 
           maxSteps: 15,
           messages: relevantMessages,
-          async onFinish({ response, usage, toolCalls, toolResults, steps }) {
+          async onFinish({ response, usage }) {
             if (!userId) return;
 
             try {
