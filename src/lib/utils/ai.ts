@@ -11,18 +11,19 @@ import {
 export function getUnconfirmedConfirmationMessage(
   messages: Array<Message>,
 ): Message | undefined {
-  const confirmationMessages = messages.filter(
+  const unconfirmedConfirmationMessage = messages.find(
     (msg) =>
       msg.role === 'assistant' &&
       msg.toolInvocations?.find(
         (tool) =>
           tool.toolName === 'askForConfirmation' &&
           tool.state === 'result' &&
-          tool.result.result === undefined,
+          tool.result.result === undefined &&
+          tool.result.message !== undefined,
       ),
-  ) as Message[];
+  );
 
-  return confirmationMessages.at(-1);
+  return unconfirmedConfirmationMessage;
 }
 
 type ToolMessageResult = {

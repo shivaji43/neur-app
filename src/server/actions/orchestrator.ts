@@ -27,13 +27,17 @@ export async function getToolsFromOrchestrator(
   if (toolsRequired.length === 0) {
     return { usage, toolsRequired: undefined };
   } else {
-    const confirmationTools = excludeConfirmationTool
-      ? ['searchToken']
-      : ['searchToken', 'askForConfirmation'];
-    const allTools = new Set([...confirmationTools, ...toolsRequired]);
+    const allTools = new Set([
+      'searchToken',
+      'askForConfirmation',
+      ...toolsRequired,
+    ]);
+    const filteredTools = [...allTools].filter(
+      (tool) => tool !== 'askForConfirmation' || !excludeConfirmationTool,
+    );
     return {
       usage,
-      toolsRequired: [...allTools],
+      toolsRequired: filteredTools,
     };
   }
 }

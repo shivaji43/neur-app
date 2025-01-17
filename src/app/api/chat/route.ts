@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       });
     }
 
-    let didHandleConfirmation = confirmationResultMessage !== undefined;
+    let didHandleConfirmation = !!confirmationResultMessage;
     if (unconfirmedConfirmationMessage) {
       let updatedToolInvocations;
       if (isUserMessage) {
