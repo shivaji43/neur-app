@@ -65,14 +65,15 @@ export async function POST(req: Request) {
   try {
     const {
       id: conversationId,
-      message: lastMessage,
-      messages,
+      message,
     }: {
       id: string;
       message: Message;
-      messages: Message[];
     } = await req.json();
-    const message = lastMessage ?? messages[messages.length - 1];
+
+    if (!message) {
+      return new Response('No message found', { status: 400 });
+    }
 
     const isUserMessage = message.role === 'user';
 
