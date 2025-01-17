@@ -32,14 +32,14 @@ export async function generateTitleFromUserMessage({
   return title;
 }
 
-export async function convertUserResponseToBoolean(message: CoreUserMessage) {
+export async function convertUserResponseToBoolean(message: string) {
   const { text: rawBool } = await generateText({
     model: defaultModel,
     system: `\n
       - you will generate a boolean response based on a user's message content
       - only return true or false
       - if an explicit affirmative response cannot be determined, return false`,
-    prompt: JSON.stringify(message),
+    prompt: message,
   });
 
   return rawBool === 'true';

@@ -23,10 +23,10 @@ import {
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import { isValidTokenUsage } from '@/lib/utils';
 import {
-  getMostRecentConfirmationMessage,
   getMostRecentToolResultMessage,
   getMostRecentUserMessage,
   getToolMessageResult,
+  getUnconfirmedConfirmationMessage,
   sanitizeResponseMessages,
   updateConfirmationMessageResult,
 } from '@/lib/utils/ai';
@@ -42,6 +42,7 @@ import {
   dbCreateTokenStat,
   dbDeleteConversation,
   dbGetConversation,
+  dbUpdateMessageToolInvocations,
   updateToolCallResults,
 } from '@/server/db/queries';
 import { ToolUpdate } from '@/types/util';
@@ -71,22 +72,21 @@ export async function POST(req: Request) {
       message: Message;
     } = await req.json();
 
-    console.log('[chat/route] message', message);
-
     if (!message) {
       return new Response('No message found', { status: 400 });
     }
 
     const isUserMessage = message.role === 'user';
-
-    const genericMessage = message as Message;
-
-    const mostRecentToolResultMessage =
+    const confirmationResultMessage =
+      !isUserMessage &&
       message.role === 'assistant' &&
-      genericMessage.toolInvocations &&
-      genericMessage.toolInvocations.length > 0 &&
-      genericMessage.toolInvocations[0].state === 'result' &&
-      genericMessage.toolInvocations[0].result !== undefined;
+      message.toolInvocations &&
+      message.toolInvocations.length > 0 &&
+      message.toolInvocations[0].toolName === 'askForConfirmation' &&
+      message.toolInvocations[0].state === 'result' &&
+      message.toolInvocations[0].result !== undefined &&
+      message.toolInvocations[0].result.result !== undefined &&
+      message.toolInvocations[0].result.result;
 
     const conversation = await dbGetConversation({
       conversationId,
@@ -105,10 +105,13 @@ export async function POST(req: Request) {
       revalidatePath('/api/conversations');
     }
 
-    console.log('[chat/route] conversation', conversation);
+    const conversationMessages = (conversation?.messages as Message[]) || [];
 
     let toolUpdates: Array<ToolUpdate> = [];
     let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>> = null;
+
+    const unconfirmedConfirmationMessage =
+      getUnconfirmedConfirmationMessage(conversationMessages);
 
     if (isUserMessage) {
       newUserMessage = await dbCreateMessages({
@@ -126,7 +129,41 @@ export async function POST(req: Request) {
       });
     }
 
-    const conversationMessages = (conversation?.messages as Message[]) || [];
+    if (unconfirmedConfirmationMessage) {
+      let updatedToolInvocations;
+      if (isUserMessage) {
+        const isConfirmed = await convertUserResponseToBoolean(message.content);
+        updatedToolInvocations =
+          unconfirmedConfirmationMessage.toolInvocations?.map(
+            (toolInvocation) => {
+              if (toolInvocation.toolName === 'askForConfirmation') {
+                toolUpdates.push({
+                  type: 'tool-update',
+                  toolCallId: toolInvocation.toolCallId,
+                  result: isConfirmed ? 'confirm' : 'deny',
+                });
+                return {
+                  ...toolInvocation,
+                  result: {
+                    result: isConfirmed ? 'confirm' : 'deny',
+                    message: unconfirmedConfirmationMessage.content,
+                  },
+                };
+              }
+              return toolInvocation;
+            },
+          );
+      } else if (confirmationResultMessage) {
+        updatedToolInvocations = message.toolInvocations;
+      }
+      if (updatedToolInvocations) {
+        await dbUpdateMessageToolInvocations({
+          messageId: unconfirmedConfirmationMessage.id,
+          toolInvocations: JSON.parse(JSON.stringify(updatedToolInvocations)),
+        });
+        unconfirmedConfirmationMessage.toolInvocations = updatedToolInvocations;
+      }
+    }
 
     // extract all attachments from the user message
     const attachments = conversationMessages
@@ -150,8 +187,19 @@ export async function POST(req: Request) {
     // Filter to relevant messages for context sizing
     const relevantMessages = [
       ...conversationMessages.slice(-MAX_TOKEN_MESSAGES),
-      message,
-    ];
+    ].filter((m) => m.content !== '');
+    if (confirmationResultMessage) {
+      relevantMessages.push({
+        id: message.id,
+        content: confirmationResultMessage,
+        role: 'user',
+        createdAt: new Date(),
+      });
+    } else {
+      relevantMessages.push(message);
+    }
+
+    console.dir(relevantMessages, { depth: null });
 
     console.log('[chat/route] createDataStreamResponse');
 
@@ -167,7 +215,10 @@ export async function POST(req: Request) {
 
         // Run messages through orchestration
         const { toolsRequired, usage: orchestratorUsage } =
-          await getToolsFromOrchestrator(relevantMessages);
+          await getToolsFromOrchestrator(
+            relevantMessages,
+            confirmationResultMessage,
+          );
 
         console.log('[chat/route] toolsRequired', toolsRequired);
 
@@ -227,8 +278,6 @@ export async function POST(req: Request) {
                 responseMessages: response.messages,
               });
 
-              console.dir(sanitizedResponses, { depth: null });
-
               // Create messages and get their IDs back
               const messages = await dbCreateMessages({
                 messages: sanitizedResponses.map((message) => {
@@ -236,7 +285,14 @@ export async function POST(req: Request) {
                     conversationId,
                     role: message.role,
                     content: message.content,
-                    toolInvocations: message.toolInvocations,
+                    toolInvocations: message.toolInvocations
+                      ? JSON.parse(JSON.stringify(message.toolInvocations))
+                      : undefined,
+                    experimental_attachments: message.experimental_attachments
+                      ? JSON.parse(
+                          JSON.stringify(message.experimental_attachments),
+                        )
+                      : undefined,
                   };
                 }),
               });

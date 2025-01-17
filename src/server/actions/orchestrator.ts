@@ -6,6 +6,7 @@ import { orchestrationPrompt, orchestratorModel } from '@/ai/providers';
 
 export async function getToolsFromOrchestrator(
   messages: Message[] | undefined,
+  confirmationResultMessage: string | undefined,
 ): Promise<{ usage: LanguageModelUsage; toolsRequired: string[] | undefined }> {
   const { object: toolsRequired, usage } = await generateObject({
     model: orchestratorModel,
@@ -26,11 +27,10 @@ export async function getToolsFromOrchestrator(
   if (toolsRequired.length === 0) {
     return { usage, toolsRequired: undefined };
   } else {
-    const allTools = new Set([
-      'searchToken',
-      'askForConfirmation',
-      ...toolsRequired,
-    ]);
+    const confirmationTools = confirmationResultMessage
+      ? ['searchToken']
+      : ['searchToken', 'askForConfirmation'];
+    const allTools = new Set([...confirmationTools, ...toolsRequired]);
     return {
       usage,
       toolsRequired: [...allTools],

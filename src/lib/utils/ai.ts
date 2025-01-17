@@ -8,23 +8,19 @@ import {
   ToolInvocation,
 } from 'ai';
 
-import { sendTelegramNotification } from '@/server/actions/telegram';
-
-// ...existing code...
-
-/**
- * Retrieves the most recent confirmation message from an array of messages.
- * @param messages - Array of core messages to search through
- * @returns  Most recent confirmation message or undefined if none found
- */
-export function getMostRecentConfirmationMessage(
-  messages: Array<CoreMessage>,
-): CoreToolMessage | undefined {
+export function getUnconfirmedConfirmationMessage(
+  messages: Array<Message>,
+): Message | undefined {
   const confirmationMessages = messages.filter(
     (msg) =>
-      msg.role === 'tool' &&
-      msg.content?.at(0)?.toolName === 'askForConfirmation',
-  ) as CoreToolMessage[];
+      msg.role === 'assistant' &&
+      msg.toolInvocations?.find(
+        (tool) =>
+          tool.toolName === 'askForConfirmation' &&
+          tool.state === 'result' &&
+          tool.result.result === undefined,
+      ),
+  ) as Message[];
 
   return confirmationMessages.at(-1);
 }

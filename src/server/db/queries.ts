@@ -1,5 +1,6 @@
 import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
-import { CoreToolMessage } from 'ai';
+import { JsonValue } from '@prisma/client/runtime/library';
+import { CoreToolMessage, Message } from 'ai';
 import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
@@ -81,6 +82,39 @@ export async function dbCreateMessages({
   } catch (error) {
     console.error('[DB Error] Failed to create messages:', {
       messageCount: messages.length,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Creates multiple messages in bulk
+ * @param {Object} params - The parameters object
+ * @param {Array<Omit<PrismaMessage, 'id' | 'createdAt'>>} params.messages - Array of message objects to create
+ * @returns {Promise<Prisma.BatchPayload | null>} The result of the bulk creation or null if it fails
+ */
+export async function dbUpdateMessageToolInvocations({
+  messageId,
+  toolInvocations,
+}: {
+  messageId: string;
+  toolInvocations: JsonValue;
+}) {
+  if (!toolInvocations) {
+    return null;
+  }
+
+  try {
+    return await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        toolInvocations,
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update message:', {
+      messageId,
       error,
     });
     return null;
