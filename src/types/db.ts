@@ -12,6 +12,7 @@ export type EmbeddedWallet = Pick<
   | 'walletSource'
   | 'active'
   | 'delegated'
+  | 'chain'
 >;
 
 export type ConversationMeta = Pick<

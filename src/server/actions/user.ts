@@ -42,6 +42,7 @@ const getOrCreateUser = actionClient
             walletSource: true,
             delegated: true,
             active: true,
+            chain: true,
           },
           where: {
             active: true,
@@ -83,6 +84,7 @@ const getOrCreateUser = actionClient
             walletSource: initalWallet.walletSource,
             delegated: initalWallet.delegated,
             active: initalWallet.active,
+            chain: initalWallet.chain,
           },
         ],
       },
@@ -228,6 +230,7 @@ export const syncEmbeddedWallets = actionClient.action<
       name: true,
       ownerId: true,
       active: true,
+      chain: true,
     },
   });
 

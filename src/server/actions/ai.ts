@@ -11,6 +11,8 @@ import prisma from '@/lib/prisma';
 import { ActionEmptyResponse, actionClient } from '@/lib/safe-action';
 import { PrivyEmbeddedWallet } from '@/lib/solana/PrivyEmbeddedWallet';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
+import { SOL_MINT } from '@/types/helius/portfolio';
+import { publicKeySchema } from '@/types/util';
 
 import { getPrivyClient, verifyUser } from './user';
 
@@ -120,4 +122,34 @@ export const retrieveAgentKit = actionClient
     });
 
     return { success: true, data: { agent } };
+  });
+
+export const transferToken = actionClient
+  .schema(
+    z.object({
+      walletId: z.string(),
+      receiverAddress: publicKeySchema,
+      tokenAddress: publicKeySchema,
+      amount: z.number(),
+      tokenSymbol: z.string().describe('Symbol of the token to send'),
+    }),
+  )
+  .action(async ({ parsedInput }) => {
+    const { walletId, receiverAddress, tokenAddress, amount, tokenSymbol } =
+      parsedInput;
+
+    const agentResposne = await retrieveAgentKit({ walletId });
+    if (!agentResposne?.data?.success || !agentResposne?.data?.data) {
+      return { success: false, error: 'AGENT_NOT_FOUND' };
+    }
+
+    const agent = agentResposne.data.data.agent;
+
+    const signature = await agent.transfer(
+      new PublicKey(receiverAddress),
+      amount,
+      tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
+    );
+
+    return { success: true, data: { signature } };
   });
