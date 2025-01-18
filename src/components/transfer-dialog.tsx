@@ -40,6 +40,7 @@ interface TokenTransferDialogProps {
   tokens: FungibleToken[];
   otherAddresses: string[];
   walletId: string;
+  onSuccess: () => Promise<void>;
 }
 
 interface TransactionResult {
@@ -55,6 +56,7 @@ export function TokenTransferDialog({
   walletId,
   tokens,
   otherAddresses,
+  onSuccess,
 }: TokenTransferDialogProps) {
   const [step, setStep] = useState(1);
   const [selectedToken, setSelectedToken] = useState<string>('');
@@ -98,6 +100,7 @@ export function TokenTransferDialog({
         hash: signature,
       });
       setStep(5);
+      await onSuccess();
     } catch (error) {
       setTransactionResult({
         success: false,
@@ -133,10 +136,26 @@ export function TokenTransferDialog({
 
   const handleQuickAmount = (percentage: number) => {
     if (selectedTokenData) {
-      const maxAmount =
-        selectedTokenData.token_info.balance /
-        Math.pow(10, selectedTokenData.token_info.decimals);
-      setAmount((maxAmount * (percentage / 100)).toString());
+      const { balance, decimals } = selectedTokenData.token_info;
+      const maxAmount = balance / Math.pow(10, decimals);
+      const newAmount = maxAmount * (percentage / 100);
+
+      const factor = Math.pow(10, decimals);
+      const truncated = Math.floor(newAmount * factor) / factor;
+
+      setAmount(truncated.toString());
+    }
+  };
+
+  const handleAmountChange = (newValue: string) => {
+    if (selectedTokenData) {
+      const { decimals } = selectedTokenData.token_info;
+      const decimalRegex = new RegExp(`^(\\d+)(\\.(\\d{0,${decimals}}))?$`);
+      if (newValue === '' || decimalRegex.test(newValue)) {
+        setAmount(newValue);
+      }
+    } else {
+      setAmount(newValue);
     }
   };
 
@@ -233,7 +252,7 @@ export function TokenTransferDialog({
                           {token.id.slice(0, 4)}...{token.id.slice(-4)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Balance: {balance.toFixed(4)}{' '}
+                          Available: {balance.toFixed(4)}{' '}
                           {token.content.metadata.symbol}
                         </p>
                       </div>
@@ -266,7 +285,7 @@ export function TokenTransferDialog({
                 type="number"
                 placeholder="Enter amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => handleAmountChange(e.target.value)}
               />
               {selectedTokenData && amount && (
                 <p className="text-sm text-muted-foreground">

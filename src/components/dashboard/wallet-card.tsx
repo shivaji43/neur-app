@@ -11,51 +11,24 @@ import {
   ArrowUpDown,
   Banknote,
   CheckCircle2,
-  HelpCircle,
-  Loader2,
   Users,
   Wallet,
-  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
+import { useSWRConfig } from 'swr';
 
 import { TokenTransferDialog } from '@/components/transfer-dialog';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CopyableText } from '@/components/ui/copyable-text';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SolanaUtils } from '@/lib/solana';
 import { searchWalletAssets } from '@/lib/solana/helius';
 import { cn } from '@/lib/utils';
-import {
-  embeddedWalletSendSOL,
-  setActiveWallet,
-} from '@/server/actions/wallet';
+import { setActiveWallet } from '@/server/actions/wallet';
 import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
-
-/**
- * Constants for wallet operations
- */
-const PERCENTAGE_OPTIONS = [
-  { label: '25%', value: 0.25 },
-  { label: '50%', value: 0.5 },
-  { label: '100%', value: 1 },
-];
-const TRANSACTION_FEE_RESERVE = 0.005; // SOL amount reserved for transaction fees
-const MIN_AMOUNT = 0.000001; // Minimum transaction amount in SOL
 
 interface WalletCardProps {
   wallet: EmbeddedWallet;
@@ -64,17 +37,12 @@ interface WalletCardProps {
   allWalletAddresses: string[];
 }
 
-/**
- * WalletCard with an improved layout:
- * - "Active" & "Delegated" displayed as small badges in top-left.
- * - Buttons for Fund/Send (primary), Delegate/Revoke + Export if relevant, and Set Active if not active.
- * - The active wallet is also highlighted with a different border.
- */
 export function WalletCard({
   wallet,
   mutateWallets,
   allWalletAddresses,
 }: WalletCardProps) {
+  const { mutate } = useSWRConfig();
   const { fundWallet } = useFundWallet();
   const { exportWallet } = useSolanaWallets();
   const { delegateWallet, revokeWallets } = useDelegatedActions();
@@ -106,14 +74,12 @@ export function WalletCard({
     try {
       setIsLoading(true);
       if (!wallet.delegated) {
-        // Turn ON delegation
         await delegateWallet({
           address: wallet.publicKey,
           chainType: 'solana',
         });
         toast.success('Wallet delegated');
       } else {
-        // Turn OFF delegation
         await revokeWallets();
         toast.success('Delegation revoked');
       }
@@ -153,9 +119,13 @@ export function WalletCard({
   }
 
   async function handleCloseDialog() {
-    // Reset dialog state
     setIsSendDialogOpen(false);
-    await refreshWalletData();
+  }
+
+  async function onTransferSuccess() {
+    mutate((key) => {
+      return Array.isArray(key) && key[0] === 'wallet-portfolio';
+    });
   }
 
   const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
@@ -289,6 +259,7 @@ export function WalletCard({
         isOpen={isSendDialogOpen}
         onClose={handleCloseDialog}
         tokens={walletPortfolio?.fungibleTokens || []}
+        onSuccess={onTransferSuccess}
         otherAddresses={otherAddresses}
         walletId={wallet.id}
       />
