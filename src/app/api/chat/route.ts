@@ -19,7 +19,10 @@ import {
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import { isValidTokenUsage } from '@/lib/utils';
-import { getUnconfirmedConfirmationMessage } from '@/lib/utils/ai';
+import {
+  convertToUIMessages,
+  getUnconfirmedConfirmationMessage,
+} from '@/lib/utils/ai';
 import {
   convertUserResponseToBoolean,
   generateTitleFromUserMessage,
@@ -32,11 +35,62 @@ import {
   dbCreateTokenStat,
   dbDeleteConversation,
   dbGetConversation,
+  dbGetConversationMessages,
   dbUpdateMessageToolInvocations,
 } from '@/server/db/queries';
 import { ToolUpdate } from '@/types/util';
 
 export const maxDuration = 120;
+
+function getConfirmationResult(message: Message) {
+  const invocation = message.toolInvocations?.[0];
+  const result = (invocation as any)?.result?.result;
+  return (
+    (message.role === 'assistant' &&
+      invocation?.toolName === 'askForConfirmation' &&
+      invocation?.state === 'result' &&
+      result) ||
+    undefined
+  );
+}
+
+async function handleConfirmation({
+  current,
+  unconfirmed,
+}: {
+  current: Message;
+  unconfirmed: Message | undefined;
+}): Promise<{ confirmed: boolean; updates: ToolUpdate[] }> {
+  if (!unconfirmed) return { confirmed: false, updates: [] };
+  if (current.role === 'user') {
+    const isConfirmed = await convertUserResponseToBoolean(current.content);
+    const invocations = unconfirmed.toolInvocations?.map((inv) =>
+      inv.toolName === 'askForConfirmation'
+        ? {
+            ...inv,
+            result: {
+              result: isConfirmed ? 'confirm' : 'deny',
+              message: unconfirmed.content,
+            },
+          }
+        : inv,
+    );
+    if (invocations) {
+      await dbUpdateMessageToolInvocations({
+        messageId: unconfirmed.id,
+        toolInvocations: JSON.parse(JSON.stringify(invocations)),
+      });
+    }
+    const updates = (unconfirmed.toolInvocations || []).map((inv) => ({
+      type: 'tool-update' as const,
+      toolCallId: inv.toolCallId,
+      result: isConfirmed ? 'confirm' : 'deny',
+    }));
+    return { confirmed: true, updates };
+  }
+  const result = getConfirmationResult(current);
+  return { confirmed: !!result, updates: [] };
+}
 
 export async function POST(req: Request) {
   const session = await verifyUser();
@@ -53,40 +107,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    const {
-      id: conversationId,
-      message,
-    }: {
-      id: string;
-      message: Message;
-    } = await req.json();
+    const { id: conversationId, message }: { id: string; message: Message } =
+      await req.json();
+    if (!message) return new Response('No message found', { status: 400 });
 
-    if (!message) {
-      return new Response('No message found', { status: 400 });
-    }
+    const existingMessages = convertToUIMessages(
+      (await dbGetConversationMessages({
+        conversationId,
+        limit: MAX_TOKEN_MESSAGES,
+      })) ?? [],
+    );
 
-    const isUserMessage = message.role === 'user';
-    const confirmationResultMessage =
-      !isUserMessage &&
-      message.role === 'assistant' &&
-      message.toolInvocations &&
-      message.toolInvocations.length > 0 &&
-      message.toolInvocations[0].toolName === 'askForConfirmation' &&
-      message.toolInvocations[0].state === 'result' &&
-      message.toolInvocations[0].result !== undefined &&
-      message.toolInvocations[0].result.result !== undefined &&
-      message.toolInvocations[0].result.result;
-
-    const conversation = await dbGetConversation({
-      conversationId,
-      includeMessages: true,
-    });
-
-    if (!conversation && !isUserMessage) {
+    if (existingMessages.length === 0 && message.role !== 'user') {
       return new Response('No user message found', { status: 400 });
     }
 
-    if (!conversation) {
+    if (existingMessages.length === 0) {
       const title = await generateTitleFromUserMessage({
         message: message.content,
       });
@@ -94,127 +130,68 @@ export async function POST(req: Request) {
       revalidatePath('/api/conversations');
     }
 
-    const conversationMessages = (conversation?.messages as Message[]) || [];
+    const newUserMessage =
+      message.role === 'user'
+        ? await dbCreateMessages({
+            messages: [
+              {
+                conversationId,
+                role: 'user',
+                content: message.content,
+                toolInvocations: [],
+                experimental_attachments: message.experimental_attachments
+                  ? JSON.parse(JSON.stringify(message.experimental_attachments))
+                  : undefined,
+              },
+            ],
+          })
+        : null;
 
-    let toolUpdates: Array<ToolUpdate> = [];
-    let newUserMessage: Awaited<ReturnType<typeof dbCreateMessages>> = null;
+    const unconfirmed = getUnconfirmedConfirmationMessage(existingMessages);
+    const { confirmed, updates } = await handleConfirmation({
+      current: message,
+      unconfirmed,
+    });
 
-    const unconfirmedConfirmationMessage =
-      getUnconfirmedConfirmationMessage(conversationMessages);
+    const attachments = existingMessages
+      .filter((m) => m.experimental_attachments)
+      .flatMap((m) => m.experimental_attachments!)
+      .map((a) => ({ type: a.contentType, data: a.url }));
 
-    if (isUserMessage) {
-      newUserMessage = await dbCreateMessages({
-        messages: [
-          {
-            conversationId,
-            role: message.role,
-            content: message.content,
-            toolInvocations: [],
-            experimental_attachments: message.experimental_attachments
-              ? JSON.parse(JSON.stringify(message.experimental_attachments))
-              : undefined,
-          },
-        ],
-      });
-    }
+    const systemPrompt = [
+      defaultSystemPrompt,
+      `History of attachments: ${JSON.stringify(attachments)}`,
+      `User Solana wallet public key: ${publicKey}`,
+      `User ID: ${userId}`,
+      `Conversation ID: ${conversationId}`,
+    ].join('\n\n');
 
-    let didHandleConfirmation = !!confirmationResultMessage;
-    if (unconfirmedConfirmationMessage) {
-      let updatedToolInvocations;
-      if (isUserMessage) {
-        const isConfirmed = await convertUserResponseToBoolean(message.content);
-        updatedToolInvocations =
-          unconfirmedConfirmationMessage.toolInvocations?.map(
-            (toolInvocation) => {
-              if (toolInvocation.toolName === 'askForConfirmation') {
-                toolUpdates.push({
-                  type: 'tool-update',
-                  toolCallId: toolInvocation.toolCallId,
-                  result: isConfirmed ? 'confirm' : 'deny',
-                });
-                return {
-                  ...toolInvocation,
-                  result: {
-                    result: isConfirmed ? 'confirm' : 'deny',
-                    message: unconfirmedConfirmationMessage.content,
-                  },
-                };
-              }
-              return toolInvocation;
-            },
-          );
-      } else if (confirmationResultMessage) {
-        updatedToolInvocations = message.toolInvocations;
-      }
-      if (updatedToolInvocations) {
-        await dbUpdateMessageToolInvocations({
-          messageId: unconfirmedConfirmationMessage.id,
-          toolInvocations: JSON.parse(JSON.stringify(updatedToolInvocations)),
-        });
-        unconfirmedConfirmationMessage.toolInvocations = updatedToolInvocations;
-        didHandleConfirmation = true;
-      }
-    }
+    const relevant = existingMessages
+      .slice(-MAX_TOKEN_MESSAGES)
+      .filter((m) => m.content !== '');
 
-    // extract all attachments from the user message
-    const attachments = conversationMessages
-      .filter((message) => message.experimental_attachments)
-      .map((message) => message.experimental_attachments)
-      .flat()
-      .map((attachment) => {
-        return {
-          type: attachment?.contentType,
-          data: attachment?.url,
-        };
-      });
-    // append to system prompt
-    const systemPrompt =
-      defaultSystemPrompt +
-      `\n\nHistory of attachments: ${JSON.stringify(attachments)}` +
-      `\n\nUser Solana wallet public key: ${publicKey}` +
-      `\n\nUser ID: ${userId}` +
-      `\n\nConversation ID: ${conversationId}`;
-
-    // Filter to relevant messages for context sizing
-    const relevantMessages = [
-      ...conversationMessages.slice(-MAX_TOKEN_MESSAGES),
-    ].filter((m) => m.content !== '');
-    if (confirmationResultMessage) {
-      relevantMessages.push({
+    const confirmationResult = getConfirmationResult(message);
+    if (confirmationResult) {
+      relevant.push({
         id: message.id,
-        content: confirmationResultMessage,
+        content: confirmationResult,
         role: 'user',
         createdAt: new Date(),
       });
     } else {
-      relevantMessages.push(message);
+      relevant.push(message);
     }
-
-    console.log('[chat/route] createDataStreamResponse');
 
     return createDataStreamResponse({
       execute: async (dataStream) => {
-        if (toolUpdates.length > 0) {
-          toolUpdates.forEach((update) => {
-            dataStream.writeData(update);
-          });
-
-          toolUpdates = [];
+        if (updates.length) {
+          updates.forEach((u) => dataStream.writeData(u));
         }
-
-        // Run messages through orchestration
         const { toolsRequired, usage: orchestratorUsage } =
-          await getToolsFromOrchestrator(
-            relevantMessages,
-            didHandleConfirmation,
-          );
-
-        console.log('[chat/route] toolsRequired', toolsRequired);
-
+          await getToolsFromOrchestrator(relevant, confirmed);
         const tools = toolsRequired
           ? getToolsFromRequiredTools(toolsRequired)
           : defaultTools;
-
         const result = streamText({
           model: defaultModel,
           system: systemPrompt,
@@ -249,57 +226,40 @@ export async function POST(req: Request) {
                 'Please fix the arguments.',
               ].join('\n'),
             });
-
-            console.log('[chat/route] repairedArgs', repairedArgs);
-            console.log('[chat/route] toolCall', toolCall);
-
             return { ...toolCall, args: JSON.stringify(repairedArgs) };
           },
-
           maxSteps: 15,
-          messages: relevantMessages,
+          messages: relevant,
           async onFinish({ response, usage }) {
             if (!userId) return;
-
             try {
-              const sanitizedResponses = appendResponseMessages({
+              const finalMessages = appendResponseMessages({
                 messages: [],
                 responseMessages: response.messages,
               });
-
-              // Create messages and get their IDs back
-              const messages = await dbCreateMessages({
-                messages: sanitizedResponses.map((message) => {
-                  return {
-                    conversationId,
-                    role: message.role,
-                    content: message.content,
-                    toolInvocations: message.toolInvocations
-                      ? JSON.parse(JSON.stringify(message.toolInvocations))
-                      : undefined,
-                    experimental_attachments: message.experimental_attachments
-                      ? JSON.parse(
-                          JSON.stringify(message.experimental_attachments),
-                        )
-                      : undefined,
-                  };
-                }),
+              const saved = await dbCreateMessages({
+                messages: finalMessages.map((m) => ({
+                  conversationId,
+                  role: m.role,
+                  content: m.content,
+                  toolInvocations: m.toolInvocations
+                    ? JSON.parse(JSON.stringify(m.toolInvocations))
+                    : undefined,
+                  experimental_attachments: m.experimental_attachments
+                    ? JSON.parse(JSON.stringify(m.experimental_attachments))
+                    : undefined,
+                })),
               });
-
-              // Save the token stats
-              if (messages && newUserMessage && isValidTokenUsage(usage)) {
-                const messageIds = newUserMessage
-                  .concat(messages)
-                  .map((message) => message.id);
+              if (saved && newUserMessage && isValidTokenUsage(usage)) {
                 let { promptTokens, completionTokens, totalTokens } = usage;
-
-                // Attach orchestrator usage
                 if (isValidTokenUsage(orchestratorUsage)) {
                   promptTokens += orchestratorUsage.promptTokens;
                   completionTokens += orchestratorUsage.completionTokens;
                   totalTokens += orchestratorUsage.totalTokens;
                 }
-
+                const messageIds = [...newUserMessage, ...saved].map(
+                  (m) => m.id,
+                );
                 await dbCreateTokenStat({
                   userId,
                   messageIds,
@@ -308,14 +268,12 @@ export async function POST(req: Request) {
                   totalTokens,
                 });
               }
-
               revalidatePath('/api/conversations');
             } catch (error) {
               console.error('[chat/route] Failed to save messages', error);
             }
           },
         });
-
         result.mergeIntoDataStream(dataStream);
       },
     });

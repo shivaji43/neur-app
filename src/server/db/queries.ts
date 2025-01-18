@@ -89,10 +89,7 @@ export async function dbCreateMessages({
 }
 
 /**
- * Creates multiple messages in bulk
- * @param {Object} params - The parameters object
- * @param {Array<Omit<PrismaMessage, 'id' | 'createdAt'>>} params.messages - Array of message objects to create
- * @returns {Promise<Prisma.BatchPayload | null>} The result of the bulk creation or null if it fails
+ * Updates the toolInvocations for a message
  */
 export async function dbUpdateMessageToolInvocations({
   messageId,
@@ -191,13 +188,16 @@ export async function updateToolCallResults(
  */
 export async function dbGetConversationMessages({
   conversationId,
+  limit,
 }: {
   conversationId: string;
+  limit?: number;
 }) {
   try {
     return await prisma.message.findMany({
       where: { conversationId },
       orderBy: [{ createdAt: 'asc' }, { role: 'desc' }],
+      take: limit,
     });
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
