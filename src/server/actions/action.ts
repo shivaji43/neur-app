@@ -1,5 +1,11 @@
-import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
-import _ from 'lodash';
+import {
+  CoreTool,
+  NoSuchToolError,
+  appendResponseMessages,
+  generateObject,
+  generateText,
+} from 'ai';
+import _, { uniqueId } from 'lodash';
 import moment from 'moment';
 import { z } from 'zod';
 
@@ -59,12 +65,16 @@ export async function processAction(action: ActionWithUser) {
 
     // Run messages through orchestration
     const { toolsRequired, usage: orchestratorUsage } =
-      await getToolsFromOrchestrator([
-        {
-          role: 'user',
-          content: action.description,
-        },
-      ]);
+      await getToolsFromOrchestrator(
+        [
+          {
+            id: '1',
+            role: 'user',
+            content: action.description,
+          },
+        ],
+        true,
+      );
     const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
       ?.data?.agent;
 
@@ -136,13 +146,28 @@ export async function processAction(action: ActionWithUser) {
       prompt: action.description,
     });
 
-    const sanitizedResponses = sanitizeResponseMessages(response.messages);
+    const finalMessages = appendResponseMessages({
+      messages: [],
+      responseMessages: response.messages.map((m) => {
+        return {
+          ...m,
+          id: uniqueId(),
+        };
+      }),
+    });
+
     const messages = await dbCreateMessages({
-      messages: sanitizedResponses.map((message) => {
+      messages: finalMessages.map((message) => {
         return {
           conversationId: action.conversationId,
           role: message.role,
-          content: JSON.parse(JSON.stringify(message.content)),
+          content: message.content,
+          toolInvocations: message.toolInvocations
+            ? JSON.parse(JSON.stringify(message.toolInvocations))
+            : undefined,
+          experimental_attachments: message.experimental_attachments
+            ? JSON.parse(JSON.stringify(message.experimental_attachments))
+            : undefined,
         };
       }),
     });
@@ -212,6 +237,8 @@ export async function processAction(action: ActionWithUser) {
               conversationId: action.conversationId,
               role: 'assistant',
               content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
+              toolInvocations: [],
+              experimental_attachments: [],
             },
           ],
         });
@@ -231,6 +258,8 @@ export async function processAction(action: ActionWithUser) {
               conversationId: action.conversationId,
               role: 'assistant',
               content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
+              toolInvocations: [],
+              experimental_attachments: [],
             },
           ],
         });
