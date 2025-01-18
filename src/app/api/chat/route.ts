@@ -236,7 +236,11 @@ export async function POST(req: Request) {
               const finalMessages = appendResponseMessages({
                 messages: [],
                 responseMessages: response.messages,
-              });
+              }).filter(
+                (m) =>
+                  // Accept either a non-empty message or a tool invocation
+                  m.content !== '' || (m.toolInvocations || []).length !== 0,
+              );
               const saved = await dbCreateMessages({
                 messages: finalMessages.map((m) => ({
                   conversationId,
