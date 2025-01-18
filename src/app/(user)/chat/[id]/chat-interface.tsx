@@ -288,7 +288,6 @@ function ChatMessage({
   onPreviewImage,
   addToolResult,
 }: ChatMessageProps) {
-  console.log('[ChatMessage] message', message);
   const isUser = message.role === 'user';
   const hasAttachments =
     message.experimental_attachments &&

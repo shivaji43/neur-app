@@ -199,10 +199,14 @@ export function convertToUIMessages(
 ): Array<Message> {
   return messages.reduce((chatMessages: Array<Message>, rawMessage) => {
     const message = rawMessage;
+    const content =
+      typeof message.content === 'string'
+        ? message.content
+        : (message.content as any)?.content;
     chatMessages.push({
       id: message.id,
       role: message.role as Message['role'],
-      content: message.content as string,
+      content,
       toolInvocations: message.toolInvocations as unknown as ToolInvocation[],
       experimental_attachments:
         message.experimental_attachments as unknown as Attachment[],
