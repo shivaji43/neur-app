@@ -156,7 +156,8 @@ export const toolsets: Record<
   },
   financeTools: {
     tools: ['definedTools'],
-    description: 'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
+    description:
+      'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
   },
   tokenLaunchTools: {
     tools: ['pumpfunTools'],

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { verifyUser } from '@/server/actions/user';
-import { dbGetConversation } from '@/server/db/queries';
+import {
+  dbGetConversation,
+  dbGetConversationMessages,
+} from '@/server/db/queries';
 
 export async function GET(
   req: NextRequest,
@@ -30,19 +33,18 @@ export async function GET(
   }
 
   try {
-    const conversation = await dbGetConversation({
+    const messages = await dbGetConversationMessages({
       conversationId,
-      includeMessages: true,
     });
 
-    if (!conversation) {
+    if (!messages || messages.length === 0) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: 'Conversation messages not found' },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(conversation);
+    return NextResponse.json(messages);
   } catch (error) {
     console.error(
       `[chat/[conversationId]/route] Error fetching conversation: ${error}`,

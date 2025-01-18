@@ -24,7 +24,6 @@ import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
-import { convertToUIMessages } from '@/lib/utils/ai';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
@@ -342,10 +341,17 @@ function ChatMessage({
           <div
             className={cn(
               'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
-              isUser ? 'bg-primary text-primary-foreground' : 'bg-muted/60',
+              isUser ? 'bg-primary' : 'bg-muted/60',
             )}
           >
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
+            <div
+              className={cn(
+                'prose max-w-none leading-tight',
+                isUser
+                  ? 'prose-invert dark:prose-neutral'
+                  : 'prose-neutral dark:prose-invert',
+              )}
+            >
               <ReactMarkdown
                 rehypePlugins={[rehypeRaw]}
                 remarkPlugins={[remarkGfm]}
@@ -641,21 +647,19 @@ export default function ChatInterface({
   }, [chatMessages, data]);
 
   // Use polling for fetching new messages
-  // usePolling({
-  //   url: `/api/chat/${id}`,
-  //   id,
-  //   onUpdate: (data) => {
-  //     if (!data || !data.messages) {
-  //       return;
-  //     }
+  usePolling({
+    url: `/api/chat/${id}`,
+    id,
+    onUpdate: (data: Message[]) => {
+      if (!data) {
+        return;
+      }
 
-  //     const messages = convertToUIMessages(data?.messages);
-
-  //     if (messages && messages.length) {
-  //       setMessages(messages);
-  //     }
-  //   },
-  // });
+      if (data && data.length) {
+        setMessages(data);
+      }
+    },
+  });
 
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

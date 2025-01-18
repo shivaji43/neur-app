@@ -19,10 +19,7 @@ import {
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import { isValidTokenUsage } from '@/lib/utils';
-import {
-  convertToUIMessages,
-  getUnconfirmedConfirmationMessage,
-} from '@/lib/utils/ai';
+import { getUnconfirmedConfirmationMessage } from '@/lib/utils/ai';
 import {
   convertUserResponseToBoolean,
   generateTitleFromUserMessage,
@@ -111,12 +108,13 @@ export async function POST(req: Request) {
       await req.json();
     if (!message) return new Response('No message found', { status: 400 });
 
-    const existingMessages = convertToUIMessages(
+    console.log(`[chat/route] POST ${conversationId}`, message);
+
+    const existingMessages =
       (await dbGetConversationMessages({
         conversationId,
         limit: MAX_TOKEN_MESSAGES,
-      })) ?? [],
-    );
+      })) ?? [];
 
     if (existingMessages.length === 0 && message.role !== 'user') {
       return new Response('No user message found', { status: 400 });
