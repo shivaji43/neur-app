@@ -36,13 +36,13 @@ import { cn } from '@/lib/utils';
 import { formatShortNumber, truncate } from '@/lib/utils/format';
 import { retrieveAgentKit } from '@/server/actions/ai';
 import { transformToPortfolio } from '@/types/helius/portfolio';
+import { SOL_MINT } from '@/types/helius/portfolio';
+import { publicKeySchema } from '@/types/util';
 
 // Constants
 const DEFAULT_OPTIONS = {
   SLIPPAGE_BPS: 300, // 3% default slippage
 } as const;
-
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 // Types
 interface SwapParams {
@@ -93,14 +93,6 @@ interface TokenHoldersResult {
   };
   error?: string;
 }
-
-const publicKeySchema = z
-  .string()
-  .regex(
-    /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
-    'Invalid Solana address format. Must be a base58 encoded string.',
-  )
-  .describe('A valid Solana wallet address. (base58 encoded)');
 
 const domainSchema = z
   .string()

@@ -88,10 +88,10 @@ export function AccountContent() {
   };
 
   const privyWallets = embeddedWallets.filter(
-    (w: EmbeddedWallet) => w.walletSource === 'PRIVY',
+    (w: EmbeddedWallet) => w.walletSource === 'PRIVY' && w.chain === 'SOLANA',
   );
   const legacyWallets = embeddedWallets.filter(
-    (w: EmbeddedWallet) => w.walletSource === 'CUSTOM',
+    (w: EmbeddedWallet) => w.walletSource === 'CUSTOM' && w.chain === 'SOLANA',
   );
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
@@ -114,6 +114,12 @@ export function AccountContent() {
       throw new Error(`Failed to grant Discord role: ${error}`);
     }
   }
+
+  const allWalletAddresses = [
+    ...(linkedSolanaWallet ? [linkedSolanaWallet.address] : []),
+    ...privyWallets.map((w) => w.publicKey),
+    ...legacyWallets.map((w) => w.publicKey),
+  ];
 
   return (
     <div className="flex flex-1 flex-col py-8">
@@ -373,6 +379,7 @@ export function AccountContent() {
                     key={wallet.id}
                     wallet={wallet}
                     mutateWallets={mutateWallets}
+                    allWalletAddresses={allWalletAddresses}
                   />
                 ))
               : ready && (
@@ -415,6 +422,7 @@ export function AccountContent() {
                 key={wallet.id}
                 wallet={wallet}
                 mutateWallets={mutateWallets}
+                allWalletAddresses={allWalletAddresses}
               />
             ))}
           </section>
