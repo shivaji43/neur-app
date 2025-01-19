@@ -7,4 +7,4 @@ export const RPC_URL =
   process.env.NEXT_PUBLIC_HELIUS_RPC_URL ||
   'https://api.mainnet-beta.solana.com';
 
-export const MAX_TOKEN_MESSAGES = 5;
+export const MAX_TOKEN_MESSAGES = 10;

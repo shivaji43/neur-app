@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import { Attachment, Message } from 'ai';
+import { Attachment, JSONValue, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { Image as ImageIcon, Loader2, SendHorizontal, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,7 @@ import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
 import { getToolConfig } from '@/ai/providers';
+import { Confirmation } from '@/components/confimation';
 import { FloatingWallet } from '@/components/floating-wallet';
 import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
@@ -23,8 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn, throttle } from '@/lib/utils';
-import { convertToUIMessages } from '@/lib/utils/ai';
+import { cn } from '@/lib/utils';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
@@ -77,6 +77,8 @@ interface ToolInvocation {
     result?: string;
     message: string;
   };
+  state?: string;
+  args?: any;
 }
 
 // Constants
@@ -126,8 +128,15 @@ const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
           (tool) => tool.toolCallId === update.toolCallId,
         ) as ToolInvocation | undefined;
 
-        if (toolInvocation && toolInvocation.result) {
-          toolInvocation.result.result = update.result;
+        if (toolInvocation) {
+          if (!toolInvocation.result) {
+            toolInvocation.result = {
+              result: update.result,
+              message: toolInvocation.args?.message, // TODO: Don't think this is technically correct, but shouldn't affect UI
+            };
+          } else {
+            toolInvocation.result.result = update.result;
+          }
         }
       });
     }
@@ -217,65 +226,76 @@ function MessageToolInvocations({
 }) {
   return (
     <div className="space-y-px">
-      {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
-        const toolResult = result as ToolActionResult;
-        const addResultUtility = (result: {
-          result: string;
-          message: string;
-        }) => addToolResult({ toolCallId, result });
-        if (
-          toolName === 'askForConfirmation' &&
-          toolResult &&
-          toolResult.message &&
-          !toolResult.result
-        ) {
-          toolResult.addResultUtility = addResultUtility;
-        }
-        const isCompleted = result !== undefined;
-        const isError =
-          isCompleted &&
-          typeof result === 'object' &&
-          result !== null &&
-          'error' in result;
-        const config = getToolConfig(toolName)!;
-        const finalDisplayName = displayName || config.displayName;
+      {toolInvocations.map(
+        ({ toolCallId, toolName, displayName, result, state, args }) => {
+          const toolResult = result as ToolActionResult;
+          if (toolName === 'askForConfirmation') {
+            return (
+              <div key={toolCallId} className="group">
+                <Confirmation
+                  message={args?.message}
+                  result={toolResult?.result}
+                  toolCallId={toolCallId}
+                  addResultUtility={(result) =>
+                    addToolResult({
+                      toolCallId,
+                      result: { result, message: args?.message },
+                    })
+                  }
+                />
+              </div>
+            );
+          }
+          const isCompleted = result !== undefined;
+          const isError =
+            isCompleted &&
+            typeof result === 'object' &&
+            result !== null &&
+            'error' in result;
+          const config = getToolConfig(toolName)!;
+          const finalDisplayName = displayName || config.displayName;
 
-        const header = (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div
-              className={cn(
-                'h-1.5 w-1.5 rounded-full ring-2',
-                isCompleted
-                  ? isError
-                    ? 'bg-destructive ring-destructive/20'
-                    : 'bg-emerald-500 ring-emerald-500/20'
-                  : 'animate-pulse bg-amber-500 ring-amber-500/20',
+          const header = (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full ring-2',
+                  isCompleted
+                    ? isError
+                      ? 'bg-destructive ring-destructive/20'
+                      : 'bg-emerald-500 ring-emerald-500/20'
+                    : 'animate-pulse bg-amber-500 ring-amber-500/20',
+                )}
+              />
+              <span className="truncate text-xs font-medium text-foreground/90">
+                {finalDisplayName}
+              </span>
+              <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                {toolCallId.slice(0, 9)}
+              </span>
+            </div>
+          );
+
+          return (
+            <div key={toolCallId} className="group">
+              {isCompleted ? (
+                <ToolResult
+                  toolName={toolName}
+                  result={result}
+                  header={header}
+                />
+              ) : (
+                <>
+                  {header}
+                  <div className="mt-px px-3">
+                    <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
+                  </div>
+                </>
               )}
-            />
-            <span className="truncate text-xs font-medium text-foreground/90">
-              {finalDisplayName}
-            </span>
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
-              {toolCallId.slice(0, 9)}
-            </span>
-          </div>
-        );
-
-        return (
-          <div key={toolCallId} className="group">
-            {isCompleted ? (
-              <ToolResult toolName={toolName} result={result} header={header} />
-            ) : (
-              <>
-                {header}
-                <div className="mt-px px-3">
-                  <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
+            </div>
+          );
+        },
+      )}
     </div>
   );
 }
@@ -341,10 +361,17 @@ function ChatMessage({
           <div
             className={cn(
               'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
-              isUser ? 'bg-primary text-primary-foreground' : 'bg-muted/60',
+              isUser ? 'bg-primary' : 'bg-muted/60',
             )}
           >
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
+            <div
+              className={cn(
+                'prose max-w-none leading-tight',
+                isUser
+                  ? 'prose-invert dark:prose-neutral'
+                  : 'prose-neutral dark:prose-invert',
+              )}
+            >
               <ReactMarkdown
                 rehypePlugins={[rehypeRaw]}
                 remarkPlugins={[remarkGfm]}
@@ -611,12 +638,20 @@ export default function ChatInterface({
     setMessages,
   } = useChat({
     id,
+    maxSteps: 10,
     initialMessages,
+    sendExtraMessageFields: true,
     body: { id },
     onFinish: () => {
       window.history.replaceState({}, '', `/chat/${id}`);
       // Refresh wallet portfolio after AI response
       refresh();
+    },
+    experimental_prepareRequestBody: ({ messages }) => {
+      return {
+        message: messages[messages.length - 1],
+        id,
+      } as unknown as JSONValue;
     },
   });
 
@@ -635,15 +670,13 @@ export default function ChatInterface({
   usePolling({
     url: `/api/chat/${id}`,
     id,
-    onUpdate: (data) => {
-      if (!data || !data.messages) {
+    onUpdate: (data: Message[]) => {
+      if (!data) {
         return;
       }
 
-      const messages = convertToUIMessages(data?.messages);
-
-      if (messages && messages.length) {
-        setMessages(messages);
+      if (data && data.length) {
+        setMessages(data);
       }
     },
   });

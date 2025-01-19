@@ -1,4 +1,11 @@
-import { LanguageModelUsage } from 'ai';
+import { Message as PrismaMessage } from '@prisma/client';
+import {
+  Attachment,
+  CoreToolMessage,
+  LanguageModelUsage,
+  Message,
+  ToolInvocation,
+} from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -58,4 +65,153 @@ export function formatDate(date: Date) {
     second: '2-digit',
     hour12: false,
   }).format(date);
+}
+
+/**
+ * Adds tool message results to existing chat messages by updating their tool invocations.
+ *
+ * @param params - Object containing toolMessage and messages
+ * @param params.toolMessage - The tool message containing results
+ * @param params.messages - Array of existing chat messages
+ * @returns Updated array of messages with tool results incorporated
+ */
+function addToolMessageToChat({
+  toolMessage,
+  messages,
+}: {
+  toolMessage: CoreToolMessage;
+  messages: Array<Message>;
+}): Array<Message> {
+  return messages.map((message) => {
+    if (!message.toolInvocations) return message;
+
+    return {
+      ...message,
+      toolInvocations: message.toolInvocations.map((toolInvocation) => {
+        const toolResult = toolMessage.content.find(
+          (tool) => tool.toolCallId === toolInvocation.toolCallId,
+        );
+
+        if (toolResult) {
+          return {
+            ...toolInvocation,
+            state: 'result',
+            result: toolResult.result,
+          };
+        }
+
+        return toolInvocation;
+      }),
+    };
+  });
+}
+
+/**
+ * Converts Prisma database messages to UI-compatible message format.
+ * Handles different types of content including text, tool calls, and attachments.
+ *
+ * @param messages - Array of Prisma messages to convert
+ * @returns Array of UI-formatted messages with proper content structure
+ */
+export function convertToUIMessages(
+  messages: Array<PrismaMessage>,
+): Array<Message> {
+  return messages.reduce((chatMessages: Array<Message>, rawMessage) => {
+    const message = rawMessage;
+
+    let parsedContent = message.content as any;
+
+    try {
+      parsedContent = JSON.parse(parsedContent);
+    } catch (error) {
+      if (message.content) {
+        // If content is not JSON, treat it as a simple text message
+        chatMessages.push({
+          id: message.id,
+          role: message.role as Message['role'],
+          content: message.content,
+          toolInvocations:
+            message.toolInvocations as unknown as ToolInvocation[],
+          experimental_attachments:
+            message.experimental_attachments as unknown as Attachment[],
+          createdAt: message.createdAt,
+        });
+      }
+
+      return chatMessages;
+    }
+
+    message.content = parsedContent;
+
+    // Handle tool messages separately
+    if (message.role === 'tool') {
+      return addToolMessageToChat({
+        toolMessage: message as unknown as CoreToolMessage,
+        messages: chatMessages,
+      });
+    }
+
+    // Initialize message components
+    let textContent = '';
+    const toolInvocations: Array<ToolInvocation> = [];
+    const attachments: Array<Attachment> = [];
+
+    // Handle nested content structure
+    if (
+      typeof message.content === 'object' &&
+      message.content &&
+      'content' in message.content
+    ) {
+      message.content = (message.content as any)?.content || [];
+    }
+
+    // Process different content types
+    if (typeof message.content === 'string') {
+      textContent = message.content;
+    } else if (Array.isArray(message.content)) {
+      for (const c of message.content as any) {
+        if (!c) continue;
+        const content = c as any;
+
+        switch (content.type) {
+          case 'text':
+            textContent += content.text;
+            break;
+          case 'tool-call':
+            toolInvocations.push({
+              state: 'call',
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args,
+            });
+            break;
+          case 'image':
+            attachments.push({
+              url: content.image,
+              name: 'image.png',
+              contentType: 'image/png',
+            });
+            break;
+        }
+      }
+    }
+
+    // Construct and add the formatted message
+    chatMessages.push({
+      id: message.id,
+      role: message.role as Message['role'],
+      content: textContent,
+      toolInvocations,
+      experimental_attachments: attachments,
+      createdAt: message.createdAt,
+    });
+
+    return chatMessages;
+  }, []);
+}
+
+export function logWithTiming(startTime: number, message: string) {
+  const elapsedTime = (performance.now() - startTime).toFixed(1);
+
+  console.log(`${message} (${elapsedTime}ms)`);
 }

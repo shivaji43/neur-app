@@ -64,7 +64,9 @@ model Message {
   id             String   @id @default(uuid())
   conversationId String
   role           String
-  content        Json
+  content        String?
+  toolInvocations Json?
+  experimental_attachments Json?
   createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])

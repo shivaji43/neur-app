@@ -71,6 +71,7 @@ Response Formatting:
 - Utilize markdown features effectively to enhance the structure of your response
 - Keep responses concise and well-organized
 - Use emojis sparingly and only when appropriate for the context
+- Use an abbreviated format for transaction signatures
 
 Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
@@ -88,7 +89,7 @@ export interface ToolConfig {
   isExpandedByDefault?: boolean;
   description: string;
   parameters: z.ZodType<any>;
-  execute: <T>(
+  execute?: <T>(
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
@@ -156,7 +157,8 @@ export const toolsets: Record<
   },
   financeTools: {
     tools: ['definedTools'],
-    description: 'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
+    description:
+      'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
   },
   tokenLaunchTools: {
     tools: ['pumpfunTools'],
