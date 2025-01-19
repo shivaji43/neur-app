@@ -1,5 +1,11 @@
-import { CoreTool, NoSuchToolError, generateObject, generateText } from 'ai';
-import _ from 'lodash';
+import {
+  CoreTool,
+  NoSuchToolError,
+  appendResponseMessages,
+  generateObject,
+  generateText,
+} from 'ai';
+import _, { uniqueId } from 'lodash';
 import moment from 'moment';
 import { z } from 'zod';
 
@@ -10,8 +16,7 @@ import {
   getToolsFromRequiredTools,
 } from '@/ai/providers';
 import prisma from '@/lib/prisma';
-import { isValidTokenUsage } from '@/lib/utils';
-import { sanitizeResponseMessages } from '@/lib/utils/ai';
+import { isValidTokenUsage, logWithTiming } from '@/lib/utils';
 import { retrieveAgentKit } from '@/server/actions/ai';
 import {
   dbCreateMessages,
@@ -25,6 +30,7 @@ import { getToolsFromOrchestrator } from './orchestrator';
 const ACTION_PAUSE_THRESHOLD = 3;
 
 export async function processAction(action: ActionWithUser) {
+  const startTime = performance.now();
   console.log(
     `[action:${action.id}] Processing action ${action.id} with prompt "${action.description}"`,
   );
@@ -45,6 +51,8 @@ export async function processAction(action: ActionWithUser) {
       return;
     }
 
+    logWithTiming(startTime, `[action:${action.id}] Retrieved conversation`);
+
     // Get user wallet
     const activeWallet = action.user.wallets.find((w) => w.active);
     if (!activeWallet) {
@@ -59,16 +67,23 @@ export async function processAction(action: ActionWithUser) {
 
     // Run messages through orchestration
     const { toolsRequired, usage: orchestratorUsage } =
-      await getToolsFromOrchestrator([
-        {
-          role: 'user',
-          content: action.description,
-        },
-      ]);
+      await getToolsFromOrchestrator(
+        [
+          {
+            id: '1',
+            role: 'user',
+            content: action.description,
+          },
+        ],
+        true,
+      );
     const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
       ?.data?.agent;
 
-    console.log('[action:${action.id}] toolsRequired', toolsRequired);
+    logWithTiming(
+      startTime,
+      `[action:${action.id}] getToolsFromOrchestrator completed`,
+    );
 
     const tools = toolsRequired
       ? getToolsFromRequiredTools(toolsRequired)
@@ -88,6 +103,7 @@ export async function processAction(action: ActionWithUser) {
     delete tools.createAction;
 
     // Call the AI model
+    logWithTiming(startTime, `[action:${action.id}] calling generateText`);
     const { response, usage } = await generateText({
       model: defaultModel,
       system: systemPrompt,
@@ -136,16 +152,45 @@ export async function processAction(action: ActionWithUser) {
       prompt: action.description,
     });
 
-    const sanitizedResponses = sanitizeResponseMessages(response.messages);
-    const messages = await dbCreateMessages({
-      messages: sanitizedResponses.map((message) => {
+    const finalMessages = appendResponseMessages({
+      messages: [],
+      responseMessages: response.messages.map((m) => {
         return {
-          conversationId: action.conversationId,
-          role: message.role,
-          content: JSON.parse(JSON.stringify(message.content)),
+          ...m,
+          id: uniqueId(),
         };
       }),
     });
+
+    // Increment createdAt by 1ms to avoid duplicate timestamps
+    finalMessages.forEach((m, index) => {
+      if (m.createdAt) {
+        m.createdAt = new Date(m.createdAt.getTime() + index);
+      }
+    });
+
+    logWithTiming(startTime, `[action:${action.id}] generateText completed`);
+
+    const messages = await dbCreateMessages({
+      messages: finalMessages.map((message) => {
+        return {
+          conversationId: action.conversationId,
+          role: message.role,
+          content: message.content,
+          toolInvocations: message.toolInvocations
+            ? JSON.parse(JSON.stringify(message.toolInvocations))
+            : undefined,
+          experimental_attachments: message.experimental_attachments
+            ? JSON.parse(JSON.stringify(message.experimental_attachments))
+            : undefined,
+        };
+      }),
+    });
+
+    logWithTiming(
+      startTime,
+      `[action:${action.id}] dbCreateMessages completed`,
+    );
 
     // Save the token stats
     if (messages && isValidTokenUsage(usage)) {
@@ -166,7 +211,13 @@ export async function processAction(action: ActionWithUser) {
         completionTokens,
         totalTokens,
       });
+
+      logWithTiming(
+        startTime,
+        `[action:${action.id}] dbCreateTokenStat completed`,
+      );
     }
+
     console.log(`[action:${action.id}] Processed action ${action.id}`);
 
     // If no tool was executed, mark the action as failure
@@ -212,6 +263,8 @@ export async function processAction(action: ActionWithUser) {
               conversationId: action.conversationId,
               role: 'assistant',
               content: `I've paused action ${action.id} because it has not executed successfully in the last 24 hours.`,
+              toolInvocations: [],
+              experimental_attachments: [],
             },
           ],
         });
@@ -231,6 +284,8 @@ export async function processAction(action: ActionWithUser) {
               conversationId: action.conversationId,
               role: 'assistant',
               content: `I've paused action ${action.id} because it has failed to execute successfully more than ${ACTION_PAUSE_THRESHOLD} times.`,
+              toolInvocations: [],
+              experimental_attachments: [],
             },
           ],
         });

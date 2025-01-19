@@ -12,10 +12,9 @@ export function useActions(userId?: string) {
   } = useSWR<Action[]>(
     userId ? '/api/actions' : null,
     async (url) => {
-      console.log('[Actions Hook] Fetching actions for user:', userId);
       const res = await fetch(url);
       const data = await res.json();
-      console.log('[Actions Hook] Fetched actions:', data);
+
       return data;
     },
     {
