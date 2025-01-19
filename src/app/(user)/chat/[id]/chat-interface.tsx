@@ -235,17 +235,19 @@ function MessageToolInvocations({
           }) => {};
           if (toolName === 'askForConfirmation') {
             return (
-              <Confirmation
-                key={toolCallId}
-                message={args?.message}
-                result={toolResult?.result}
-                addResultUtility={(result) =>
-                  addToolResult({
-                    toolCallId,
-                    result: { result, message: args?.message },
-                  })
-                }
-              />
+              <div key={toolCallId} className="group">
+                <Confirmation
+                  message={args?.message}
+                  result={toolResult?.result}
+                  toolCallId={toolCallId}
+                  addResultUtility={(result) =>
+                    addToolResult({
+                      toolCallId,
+                      result: { result, message: args?.message },
+                    })
+                  }
+                />
+              </div>
             );
           }
           const isCompleted = result !== undefined;
