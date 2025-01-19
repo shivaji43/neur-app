@@ -14,6 +14,7 @@ import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
 import { getToolConfig } from '@/ai/providers';
+import { Confirmation } from '@/components/confimation';
 import { FloatingWallet } from '@/components/floating-wallet';
 import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
@@ -76,6 +77,8 @@ interface ToolInvocation {
     result?: string;
     message: string;
   };
+  state?: string;
+  args?: any;
 }
 
 // Constants
@@ -216,65 +219,78 @@ function MessageToolInvocations({
 }) {
   return (
     <div className="space-y-px">
-      {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
-        const toolResult = result as ToolActionResult;
-        const addResultUtility = (result: {
-          result: string;
-          message: string;
-        }) => addToolResult({ toolCallId, result });
-        if (
-          toolName === 'askForConfirmation' &&
-          toolResult &&
-          toolResult.message &&
-          !toolResult.result
-        ) {
-          toolResult.addResultUtility = addResultUtility;
-        }
-        const isCompleted = result !== undefined;
-        const isError =
-          isCompleted &&
-          typeof result === 'object' &&
-          result !== null &&
-          'error' in result;
-        const config = getToolConfig(toolName)!;
-        const finalDisplayName = displayName || config.displayName;
+      {toolInvocations.map(
+        ({ toolCallId, toolName, displayName, result, state, args }) => {
+          const toolResult = result as ToolActionResult;
+          const addResultUtility = (result: {
+            result: string;
+            message: string;
+          }) => {};
+          if (toolName === 'askForConfirmation') {
+            return (
+              <Confirmation
+                key={toolCallId}
+                message={args?.message}
+                result={toolResult?.result}
+                addResultUtility={(result) =>
+                  addToolResult({
+                    toolCallId,
+                    result: { result, message: args?.message },
+                  })
+                }
+              />
+            );
+          }
+          const isCompleted = result !== undefined;
+          const isError =
+            isCompleted &&
+            typeof result === 'object' &&
+            result !== null &&
+            'error' in result;
+          const config = getToolConfig(toolName)!;
+          const finalDisplayName = displayName || config.displayName;
 
-        const header = (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div
-              className={cn(
-                'h-1.5 w-1.5 rounded-full ring-2',
-                isCompleted
-                  ? isError
-                    ? 'bg-destructive ring-destructive/20'
-                    : 'bg-emerald-500 ring-emerald-500/20'
-                  : 'animate-pulse bg-amber-500 ring-amber-500/20',
+          const header = (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full ring-2',
+                  isCompleted
+                    ? isError
+                      ? 'bg-destructive ring-destructive/20'
+                      : 'bg-emerald-500 ring-emerald-500/20'
+                    : 'animate-pulse bg-amber-500 ring-amber-500/20',
+                )}
+              />
+              <span className="truncate text-xs font-medium text-foreground/90">
+                {finalDisplayName}
+              </span>
+              <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                {toolCallId.slice(0, 9)}
+              </span>
+            </div>
+          );
+
+          return (
+            <div key={toolCallId} className="group">
+              {isCompleted ? (
+                <ToolResult
+                  toolName={toolName}
+                  result={result}
+                  header={header}
+                />
+              ) : (
+                <>
+                  {header}
+                  <div className="mt-px px-3">
+                    <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
+                  </div>
+                </>
               )}
-            />
-            <span className="truncate text-xs font-medium text-foreground/90">
-              {finalDisplayName}
-            </span>
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
-              {toolCallId.slice(0, 9)}
-            </span>
-          </div>
-        );
-
-        return (
-          <div key={toolCallId} className="group">
-            {isCompleted ? (
-              <ToolResult toolName={toolName} result={result} header={header} />
-            ) : (
-              <>
-                {header}
-                <div className="mt-px px-3">
-                  <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
+            </div>
+          );
+        },
+      )}
     </div>
   );
 }

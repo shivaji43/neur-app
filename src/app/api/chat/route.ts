@@ -40,8 +40,10 @@ import { ToolUpdate } from '@/types/util';
 export const maxDuration = 120;
 
 function getConfirmationResult(message: Message) {
+  console.dir(message, { depth: null });
   const invocation = message.toolInvocations?.[0];
   const result = (invocation as any)?.result?.result;
+  console.log(result);
   return (
     (message.role === 'assistant' &&
       invocation?.toolName === 'askForConfirmation' &&
