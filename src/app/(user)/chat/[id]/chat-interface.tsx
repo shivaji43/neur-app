@@ -229,10 +229,6 @@ function MessageToolInvocations({
       {toolInvocations.map(
         ({ toolCallId, toolName, displayName, result, state, args }) => {
           const toolResult = result as ToolActionResult;
-          const addResultUtility = (result: {
-            result: string;
-            message: string;
-          }) => {};
           if (toolName === 'askForConfirmation') {
             return (
               <div key={toolCallId} className="group">
