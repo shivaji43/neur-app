@@ -1,12 +1,13 @@
-import { Message as PrismaMessage } from '@prisma/client';
 import {
-  Attachment,
   CoreAssistantMessage,
   CoreMessage,
   CoreToolMessage,
   Message,
-  ToolInvocation,
 } from 'ai';
+
+import { convertUserResponseToBoolean } from '@/server/actions/ai';
+import { dbUpdateMessageToolInvocations } from '@/server/db/queries';
+import { ToolUpdate } from '@/types/util';
 
 export function getUnconfirmedConfirmationMessage(
   messages: Array<Message>,
@@ -17,9 +18,8 @@ export function getUnconfirmedConfirmationMessage(
       msg.toolInvocations?.find(
         (tool) =>
           tool.toolName === 'askForConfirmation' &&
-          tool.state === 'result' &&
-          tool.result.result === undefined &&
-          tool.result.message !== undefined,
+          tool.state === 'call' &&
+          !(tool as any).result,
       ),
   );
 
@@ -146,4 +146,75 @@ export function sanitizeResponseMessages(
   return messagesBySanitizedContent.filter(
     (message) => message.content.length > 0,
   );
+}
+
+export function getConfirmationResult(message: Message) {
+  const invocation = message.toolInvocations?.[0];
+  const result = (invocation as any)?.result?.result;
+
+  return (
+    (message.role === 'assistant' &&
+      invocation?.toolName === 'askForConfirmation' &&
+      invocation?.state === 'result' &&
+      result) ||
+    undefined
+  );
+}
+
+export async function handleConfirmation({
+  current,
+  unconfirmed,
+}: {
+  current: Message;
+  unconfirmed: Message | undefined;
+}): Promise<{ confirmationHandled: boolean; updates: ToolUpdate[] }> {
+  const result = getConfirmationResult(current);
+
+  let invocations;
+  let isConfirmed = !!result; // True if result is truthy (both 'confirm' and 'deny' are truthy)
+
+  // No unconfirmed message to handle
+  if (!unconfirmed) return { confirmationHandled: false, updates: [] };
+
+  if (current.role === 'user') {
+    // User sent a manual response to the confirmation prompt
+    isConfirmed = await convertUserResponseToBoolean(current.content);
+
+    // Set the invocations to the result decided by convertUserResponseToBoolean
+    invocations = unconfirmed.toolInvocations?.map((inv) =>
+      inv.toolName === 'askForConfirmation'
+        ? {
+            ...inv,
+            result: {
+              result: isConfirmed ? 'confirm' : 'deny',
+              message: unconfirmed.content,
+            },
+            state: 'result' as any,
+          }
+        : inv,
+    );
+  } else if (!!result) {
+    // User confirmed the previous message via confirm button
+    invocations = current.toolInvocations;
+  }
+
+  if (invocations) {
+    await dbUpdateMessageToolInvocations({
+      messageId: unconfirmed.id,
+      toolInvocations: JSON.parse(JSON.stringify(invocations)),
+    });
+
+    // Update the unconfirmed message with the new tool invocations
+    unconfirmed.toolInvocations = invocations;
+  }
+
+  // Generate tool updates for the updated tool invocations
+  // isConfirmed is true if some result was truthy, check for 'deny' string here
+  const updates = (unconfirmed.toolInvocations || []).map((inv) => ({
+    type: 'tool-update' as const,
+    toolCallId: inv.toolCallId,
+    result: isConfirmed && result !== 'deny' ? 'confirm' : 'deny',
+  }));
+
+  return { confirmationHandled: isConfirmed, updates };
 }

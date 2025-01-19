@@ -80,7 +80,6 @@ export async function dbCreateMessages({
       data: messages as Prisma.MessageCreateManyInput[],
     });
   } catch (error) {
-    console.log(`${error}`);
     console.error('[DB Error] Failed to create messages:', {
       messageCount: messages.length,
       error,

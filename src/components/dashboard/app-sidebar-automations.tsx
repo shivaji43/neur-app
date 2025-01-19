@@ -238,32 +238,25 @@ export const AppSidebarAutomations = () => {
 
   // Listen for action creation events
   const handleActionMutation = async () => {
-    console.log('[Sidebar] Event received');
     try {
       await refreshActions();
-      console.log('[Sidebar] Actions refreshed successfully');
     } catch (error) {
       console.error('[Sidebar] Error refreshing actions:', error);
     }
   };
 
   useEffect(() => {
-    console.log('[Sidebar] Setting up event listeners');
-
     window.addEventListener(EVENTS.ACTION_CREATED, handleActionMutation);
     window.addEventListener(EVENTS.ACTION_REFRESH, handleActionMutation);
 
     return () => {
-      console.log('[Sidebar] Cleaning up event listeners');
       window.removeEventListener(EVENTS.ACTION_CREATED, handleActionMutation);
       window.removeEventListener(EVENTS.ACTION_REFRESH, handleActionMutation);
     };
   }, [refreshActions]);
 
   // Add effect to log actions changes
-  useEffect(() => {
-    console.log('[Sidebar] Actions updated:', actions);
-  }, [actions]);
+  useEffect(() => {}, [actions]);
 
   const handleDelete = async (id: string) => {
     try {

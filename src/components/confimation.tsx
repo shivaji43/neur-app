@@ -32,7 +32,6 @@ export const Confirmation = ({
             variant="destructive"
             size="sm"
             onClick={() => {
-              console.log('deny');
               addResultUtility('deny');
             }}
           >

@@ -24,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn, throttle } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
@@ -128,8 +128,15 @@ const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
           (tool) => tool.toolCallId === update.toolCallId,
         ) as ToolInvocation | undefined;
 
-        if (toolInvocation && toolInvocation.result) {
-          toolInvocation.result.result = update.result;
+        if (toolInvocation) {
+          if (!toolInvocation.result) {
+            toolInvocation.result = {
+              result: update.result,
+              message: toolInvocation.args?.message, // TODO: Don't think this is technically correct, but shouldn't affect UI
+            };
+          } else {
+            toolInvocation.result.result = update.result;
+          }
         }
       });
     }

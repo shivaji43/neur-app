@@ -134,6 +134,7 @@ export function convertToUIMessages(
             message.toolInvocations as unknown as ToolInvocation[],
           experimental_attachments:
             message.experimental_attachments as unknown as Attachment[],
+          createdAt: message.createdAt,
         });
       }
 
@@ -202,8 +203,15 @@ export function convertToUIMessages(
       content: textContent,
       toolInvocations,
       experimental_attachments: attachments,
+      createdAt: message.createdAt,
     });
 
     return chatMessages;
   }, []);
+}
+
+export function logWithTiming(startTime: number, message: string) {
+  const elapsedTime = (performance.now() - startTime).toFixed(1);
+
+  console.log(`${message} (${elapsedTime}ms)`);
 }

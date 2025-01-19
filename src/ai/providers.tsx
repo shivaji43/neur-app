@@ -89,7 +89,7 @@ export interface ToolConfig {
   isExpandedByDefault?: boolean;
   description: string;
   parameters: z.ZodType<any>;
-  execute: <T>(
+  execute?: <T>(
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;

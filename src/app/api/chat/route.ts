@@ -9,6 +9,7 @@ import {
   generateObject,
   streamText,
 } from 'ai';
+import { performance } from 'perf_hooks';
 import { z } from 'zod';
 
 import {
@@ -18,12 +19,13 @@ import {
   getToolsFromRequiredTools,
 } from '@/ai/providers';
 import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
-import { isValidTokenUsage } from '@/lib/utils';
-import { getUnconfirmedConfirmationMessage } from '@/lib/utils/ai';
+import { isValidTokenUsage, logWithTiming } from '@/lib/utils';
 import {
-  convertUserResponseToBoolean,
-  generateTitleFromUserMessage,
-} from '@/server/actions/ai';
+  getConfirmationResult,
+  getUnconfirmedConfirmationMessage,
+  handleConfirmation,
+} from '@/lib/utils/ai';
+import { generateTitleFromUserMessage } from '@/server/actions/ai';
 import { getToolsFromOrchestrator } from '@/server/actions/orchestrator';
 import { verifyUser } from '@/server/actions/user';
 import {
@@ -31,70 +33,15 @@ import {
   dbCreateMessages,
   dbCreateTokenStat,
   dbDeleteConversation,
-  dbGetConversation,
   dbGetConversationMessages,
-  dbUpdateMessageToolInvocations,
 } from '@/server/db/queries';
-import { ToolUpdate } from '@/types/util';
 
 export const maxDuration = 120;
 
-function getConfirmationResult(message: Message) {
-  console.dir(message, { depth: null });
-  const invocation = message.toolInvocations?.[0];
-  const result = (invocation as any)?.result?.result;
-  console.log(result);
-  return (
-    (message.role === 'assistant' &&
-      invocation?.toolName === 'askForConfirmation' &&
-      invocation?.state === 'result' &&
-      result) ||
-    undefined
-  );
-}
-
-async function handleConfirmation({
-  current,
-  unconfirmed,
-}: {
-  current: Message;
-  unconfirmed: Message | undefined;
-}): Promise<{ confirmed: boolean; updates: ToolUpdate[] }> {
-  const result = getConfirmationResult(current);
-  let invocations;
-  let isConfirmed = !!result;
-  if (!unconfirmed) return { confirmed: false, updates: [] };
-  if (current.role === 'user') {
-    isConfirmed = await convertUserResponseToBoolean(current.content);
-    invocations = unconfirmed.toolInvocations?.map((inv) =>
-      inv.toolName === 'askForConfirmation'
-        ? {
-            ...inv,
-            result: {
-              result: isConfirmed ? 'confirm' : 'deny',
-              message: unconfirmed.content,
-            },
-          }
-        : inv,
-    );
-  } else if (!!result) {
-    invocations = current.toolInvocations;
-  }
-  if (invocations) {
-    await dbUpdateMessageToolInvocations({
-      messageId: unconfirmed.id,
-      toolInvocations: JSON.parse(JSON.stringify(invocations)),
-    });
-  }
-  const updates = (unconfirmed.toolInvocations || []).map((inv) => ({
-    type: 'tool-update' as const,
-    toolCallId: inv.toolCallId,
-    result: isConfirmed ? 'confirm' : 'deny',
-  }));
-  return { confirmed: isConfirmed, updates };
-}
-
 export async function POST(req: Request) {
+  const startTime = performance.now();
+
+  // Check for valid user session and required parameters
   const session = await verifyUser();
   const userId = session?.data?.data?.id;
   const publicKey = session?.data?.data?.publicKey;
@@ -109,20 +56,26 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Get the (newest) message sent to the API
     const { id: conversationId, message }: { id: string; message: Message } =
       await req.json();
     if (!message) return new Response('No message found', { status: 400 });
+    logWithTiming(startTime, '[chat/route] message received');
 
+    // Fetch existing messages for the conversation
     const existingMessages =
       (await dbGetConversationMessages({
         conversationId,
         limit: MAX_TOKEN_MESSAGES,
       })) ?? [];
 
+    logWithTiming(startTime, '[chat/route] fetched existing messages');
+
     if (existingMessages.length === 0 && message.role !== 'user') {
       return new Response('No user message found', { status: 400 });
     }
 
+    // Create a new conversation if it doesn't exist
     if (existingMessages.length === 0) {
       const title = await generateTitleFromUserMessage({
         message: message.content,
@@ -131,6 +84,7 @@ export async function POST(req: Request) {
       revalidatePath('/api/conversations');
     }
 
+    // Create a new user message in the DB if the current message is from the user
     const newUserMessage =
       message.role === 'user'
         ? await dbCreateMessages({
@@ -148,12 +102,17 @@ export async function POST(req: Request) {
           })
         : null;
 
+    // Check if there is an unconfirmed confirmation message that we need to handle
     const unconfirmed = getUnconfirmedConfirmationMessage(existingMessages);
-    const { confirmed, updates } = await handleConfirmation({
+
+    // Handle the confirmation message if it exists
+    const { confirmationHandled, updates } = await handleConfirmation({
       current: message,
       unconfirmed,
     });
+    logWithTiming(startTime, '[chat/route] handleConfirmation completed');
 
+    // Build the system prompt and append the history of attachments
     const attachments = existingMessages
       .filter((m) => m.experimental_attachments)
       .flatMap((m) => m.experimental_attachments!)
@@ -167,10 +126,17 @@ export async function POST(req: Request) {
       `Conversation ID: ${conversationId}`,
     ].join('\n\n');
 
-    const relevant = existingMessages.filter((m) => m.content !== '');
+    // Filter out empty messages and ensure sorting by createdAt ascending
+    const relevant = existingMessages
+      .filter((m) => m.content !== '')
+      .sort(
+        (a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0),
+      );
 
+    // Convert the message to a confirmation ('confirm' or 'deny') if it is for a confirmation prompt, otherwise add it to the relevant messages
     const confirmationResult = getConfirmationResult(message);
     if (confirmationResult !== undefined) {
+      // Fake message to provide the confirmation selection to the model
       relevant.push({
         id: message.id,
         content: confirmationResult,
@@ -181,16 +147,40 @@ export async function POST(req: Request) {
       relevant.push(message);
     }
 
+    logWithTiming(startTime, '[chat/route] calling createDataStreamResponse');
+
+    // Begin the stream response
     return createDataStreamResponse({
       execute: async (dataStream) => {
+        if (dataStream.onError) {
+          dataStream.onError((error: any) => {
+            console.error(
+              '[chat/route] createDataStreamResponse.execute dataStream error:',
+              error,
+            );
+          });
+        }
+
+        // Write any updates to the data stream (e.g. tool updates)
         if (updates.length) {
           updates.forEach((u) => dataStream.writeData(u));
         }
+
+        // Exclude the confirmation tool if we are handling a confirmation
         const { toolsRequired, usage: orchestratorUsage } =
-          await getToolsFromOrchestrator(relevant, confirmed);
+          await getToolsFromOrchestrator(relevant, confirmationHandled);
+
+        logWithTiming(
+          startTime,
+          '[chat/route] getToolsFromOrchestrator complete',
+        );
+
+        // Get a list of required tools from the orchestrator
         const tools = toolsRequired
           ? getToolsFromRequiredTools(toolsRequired)
           : defaultTools;
+
+        // Begin streaming text from the model
         const result = streamText({
           model: defaultModel,
           system: systemPrompt,
@@ -232,6 +222,11 @@ export async function POST(req: Request) {
           async onFinish({ response, usage }) {
             if (!userId) return;
             try {
+              logWithTiming(
+                startTime,
+                '[chat/route] streamText.onFinish complete',
+              );
+
               const finalMessages = appendResponseMessages({
                 messages: [],
                 responseMessages: response.messages,
@@ -240,6 +235,15 @@ export async function POST(req: Request) {
                   // Accept either a non-empty message or a tool invocation
                   m.content !== '' || (m.toolInvocations || []).length !== 0,
               );
+
+              // Increment createdAt by 1ms to avoid duplicate timestamps
+              finalMessages.forEach((m, index) => {
+                if (m.createdAt) {
+                  m.createdAt = new Date(m.createdAt.getTime() + index);
+                }
+              });
+
+              // Save the messages to the database
               const saved = await dbCreateMessages({
                 messages: finalMessages.map((m) => ({
                   conversationId,
@@ -254,16 +258,26 @@ export async function POST(req: Request) {
                     : undefined,
                 })),
               });
+
+              logWithTiming(
+                startTime,
+                '[chat/route] dbCreateMessages complete',
+              );
+
+              // Save the token stats
               if (saved && newUserMessage && isValidTokenUsage(usage)) {
                 let { promptTokens, completionTokens, totalTokens } = usage;
+
                 if (isValidTokenUsage(orchestratorUsage)) {
                   promptTokens += orchestratorUsage.promptTokens;
                   completionTokens += orchestratorUsage.completionTokens;
                   totalTokens += orchestratorUsage.totalTokens;
                 }
+
                 const messageIds = [...newUserMessage, ...saved].map(
                   (m) => m.id,
                 );
+
                 await dbCreateTokenStat({
                   userId,
                   messageIds,
@@ -271,7 +285,13 @@ export async function POST(req: Request) {
                   completionTokens,
                   totalTokens,
                 });
+
+                logWithTiming(
+                  startTime,
+                  '[chat/route] dbCreateTokenStat complete',
+                );
               }
+
               revalidatePath('/api/conversations');
             } catch (error) {
               console.error('[chat/route] Failed to save messages', error);
@@ -279,6 +299,9 @@ export async function POST(req: Request) {
           },
         });
         result.mergeIntoDataStream(dataStream);
+      },
+      onError: (_) => {
+        return 'An error occurred';
       },
     });
   } catch (error) {
