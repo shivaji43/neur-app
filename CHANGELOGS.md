@@ -1,5 +1,18 @@
 # Changelogs
 
+## v0.2.0
+
+- Improve Telegram notification connection & reliability
+- Action management feature - edit & pause automated actions
+- Privy embedded wallet integration
+- Backend optimizations (model token savings, improvements with automations)
+- Improved UX and stylings
+- Tool orchestration layer, improved agent selection and efficiency
+- Various tool fixes (token holders reliability + styling)
+- Swap + misc. txn improved land rates
+- Confirmation prompt UI buttons
+- Overall performance and reliability improvements
+
 ## v0.1.14
 
 - Removed images from Jina scraping results to reduce context bloat

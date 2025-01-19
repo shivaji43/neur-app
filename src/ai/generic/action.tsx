@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ActionEmitter } from '@/components/action-emitter';
 import { Card } from '@/components/ui/card';
 import { verifyUser } from '@/server/actions/user';
 import { dbCreateAction } from '@/server/db/queries';
@@ -157,6 +158,8 @@ const createActionTool = {
         params: {},
         timesExecuted: 0,
         lastExecutedAt: null,
+        lastFailureAt: null,
+        lastSuccessAt: null,
       });
 
       if (!action) {
@@ -202,12 +205,15 @@ const createActionTool = {
     };
 
     return (
-      <CreateActionResult
-        id={id}
-        description={description}
-        frequency={frequency}
-        maxExecutions={maxExecutions}
-      />
+      <>
+        <ActionEmitter actionId={id} />
+        <CreateActionResult
+          id={id}
+          description={description}
+          frequency={frequency}
+          maxExecutions={maxExecutions}
+        />
+      </>
     );
   },
 };
