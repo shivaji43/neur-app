@@ -135,7 +135,9 @@ export async function dbGetConversationMessages({
   try {
     const messages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: [{ createdAt: 'asc' }, { role: 'asc' }],
+      orderBy: limit
+        ? { createdAt: 'desc' }
+        : [{ createdAt: 'asc' }, { role: 'asc' }],
       take: limit,
     });
 

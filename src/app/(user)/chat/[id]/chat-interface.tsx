@@ -113,7 +113,6 @@ const getImageStyle = (index: number, total: number) => {
 };
 
 const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
-  console.log('[applyToolUpdates] toolUpdates', toolUpdates);
   while (toolUpdates.length > 0) {
     const update = toolUpdates.pop();
     if (!update) {

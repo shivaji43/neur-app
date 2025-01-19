@@ -71,6 +71,7 @@ Response Formatting:
 - Utilize markdown features effectively to enhance the structure of your response
 - Keep responses concise and well-organized
 - Use emojis sparingly and only when appropriate for the context
+- Use an abbreviated format for transaction signatures
 
 Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\

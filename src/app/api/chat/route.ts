@@ -58,10 +58,13 @@ async function handleConfirmation({
   current: Message;
   unconfirmed: Message | undefined;
 }): Promise<{ confirmed: boolean; updates: ToolUpdate[] }> {
+  const result = getConfirmationResult(current);
+  let invocations;
+  let isConfirmed = !!result;
   if (!unconfirmed) return { confirmed: false, updates: [] };
   if (current.role === 'user') {
-    const isConfirmed = await convertUserResponseToBoolean(current.content);
-    const invocations = unconfirmed.toolInvocations?.map((inv) =>
+    isConfirmed = await convertUserResponseToBoolean(current.content);
+    invocations = unconfirmed.toolInvocations?.map((inv) =>
       inv.toolName === 'askForConfirmation'
         ? {
             ...inv,
@@ -72,21 +75,21 @@ async function handleConfirmation({
           }
         : inv,
     );
-    if (invocations) {
-      await dbUpdateMessageToolInvocations({
-        messageId: unconfirmed.id,
-        toolInvocations: JSON.parse(JSON.stringify(invocations)),
-      });
-    }
-    const updates = (unconfirmed.toolInvocations || []).map((inv) => ({
-      type: 'tool-update' as const,
-      toolCallId: inv.toolCallId,
-      result: isConfirmed ? 'confirm' : 'deny',
-    }));
-    return { confirmed: true, updates };
+  } else if (!!result) {
+    invocations = current.toolInvocations;
   }
-  const result = getConfirmationResult(current);
-  return { confirmed: !!result, updates: [] };
+  if (invocations) {
+    await dbUpdateMessageToolInvocations({
+      messageId: unconfirmed.id,
+      toolInvocations: JSON.parse(JSON.stringify(invocations)),
+    });
+  }
+  const updates = (unconfirmed.toolInvocations || []).map((inv) => ({
+    type: 'tool-update' as const,
+    toolCallId: inv.toolCallId,
+    result: isConfirmed ? 'confirm' : 'deny',
+  }));
+  return { confirmed: isConfirmed, updates };
 }
 
 export async function POST(req: Request) {
@@ -107,8 +110,6 @@ export async function POST(req: Request) {
     const { id: conversationId, message }: { id: string; message: Message } =
       await req.json();
     if (!message) return new Response('No message found', { status: 400 });
-
-    console.log(`[chat/route] POST ${conversationId}`, message);
 
     const existingMessages =
       (await dbGetConversationMessages({
@@ -164,12 +165,10 @@ export async function POST(req: Request) {
       `Conversation ID: ${conversationId}`,
     ].join('\n\n');
 
-    const relevant = existingMessages
-      .slice(-MAX_TOKEN_MESSAGES)
-      .filter((m) => m.content !== '');
+    const relevant = existingMessages.filter((m) => m.content !== '');
 
     const confirmationResult = getConfirmationResult(message);
-    if (confirmationResult) {
+    if (confirmationResult !== undefined) {
       relevant.push({
         id: message.id,
         content: confirmationResult,
@@ -242,6 +241,7 @@ export async function POST(req: Request) {
               const saved = await dbCreateMessages({
                 messages: finalMessages.map((m) => ({
                   conversationId,
+                  createdAt: m.createdAt,
                   role: m.role,
                   content: m.content,
                   toolInvocations: m.toolInvocations
