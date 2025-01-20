@@ -1,10 +1,9 @@
 'use client';
 
-import * as React from 'react';
+import { useState } from 'react';
 
-import { Check, ChevronsUpDown, Filter } from 'lucide-react';
+import { Check, Filter } from 'lucide-react';
 
-import { FilterValues } from '@/app/(user)/saved-prompts/page';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -13,22 +12,29 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-import { Popover, PopoverContent, PopoverTrigger } from './ui/pop-over';
+import { FilterOption, FilterValue } from '../types/prompt';
 
-export function Combobox({
+interface FilterDropdownProps {
+  disabled: boolean;
+  filter: FilterValue;
+  filterOptions: FilterOption[];
+  updateFilter: (value: FilterValue) => void;
+}
+
+export function FilterDropdown({
   disabled,
-  setFilter,
   filter,
   filterOptions,
-}: {
-  disabled: boolean;
-  filter: string;
-  setFilter: React.Dispatch<React.SetStateAction<FilterValues>>;
-  filterOptions: { value: string; label: string }[];
-}) {
-  const [open, setOpen] = React.useState(false);
+  updateFilter,
+}: FilterDropdownProps) {
+  const [open, setOpen] = useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -56,8 +62,8 @@ export function Combobox({
                 <CommandItem
                   key={filterOption.value}
                   value={filterOption.value}
-                  onSelect={(currentValue: any) => {
-                    setFilter(currentValue as FilterValues);
+                  onSelect={() => {
+                    updateFilter(filterOption.value);
                     setOpen(false);
                   }}
                 >

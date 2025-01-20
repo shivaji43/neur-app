@@ -489,9 +489,9 @@ export async function dbUpdateSavedPrompt({
   content: string;
 }) {
   try {
-    await prisma.savedPrompt.update({
+    return await prisma.savedPrompt.update({
       where: { id },
-      data: { title, content },
+      data: { title, content, updatedAt: new Date() },
     });
   } catch (error) {
     console.error('[DB Error] Failed to update Saved Prompt:', {

@@ -1,37 +1,27 @@
 'use client';
 
-import React, { SetStateAction, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { SavedPrompt } from '@prisma/client';
 import { motion } from 'framer-motion';
-import { Loader2, Pencil, Plus, Search, Star, Trash } from 'lucide-react';
+import { Loader2, Pencil, Search, Star, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Combobox } from '@/components/dropdown-selector';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useUser } from '@/hooks/use-user';
 
-const filterOptions = [
+import { DeletePromptDialog } from './components/delete-prompt-dialog';
+import { EditPromptDialog } from './components/edit-prompt-dialog';
+import { FilterDropdown } from './components/filter-dropdown';
+import { FilterOption, FilterValue, PromptAction } from './types/prompt';
+
+const DEFAULT_FILTER: FilterValue = 'recentlyUsed';
+const EMPTY_ACTION: PromptAction = {
+  action: null,
+  id: null,
+};
+
+const filterOptions: FilterOption[] = [
   {
     value: 'recentlyUsed',
     label: 'Recently Used',
@@ -54,161 +44,20 @@ const filterOptions = [
   },
 ];
 
-export type FilterValues =
-  | 'recentlyUsed'
-  | 'editedRecently'
-  | 'latest'
-  | 'oldest'
-  | 'favorites';
-
-interface ManagePromptAction {
-  action: 'update' | 'delete' | 'save' | null;
-  id: string | null;
-}
-
-interface DeleteDialogBoxProps {
-  promptAction: ManagePromptAction;
-  setPromptAction: React.Dispatch<SetStateAction<ManagePromptAction>>;
-  handleDeletePrompt: () => Promise<void>;
-}
-
-interface EditPromptDialogBoxProps {
-  promptAction: ManagePromptAction;
-  setPromptAction: React.Dispatch<SetStateAction<ManagePromptAction>>;
-  handleEditPrompt: () => Promise<void>;
-  handleSavePrompt: () => Promise<void>;
-  title: string;
-  content: string;
-  setTitle: React.Dispatch<React.SetStateAction<string>>;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
-  isLoading: boolean;
-}
-
-function DeleteDialogBox({
-  promptAction,
-  setPromptAction,
-  handleDeletePrompt,
-}: DeleteDialogBoxProps) {
-  return (
-    <AlertDialog
-      open={promptAction.action === 'delete'}
-      onOpenChange={() =>
-        promptAction.action !== null &&
-        setPromptAction({ action: null, id: null })
-      }
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the saved
-            prompt.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDeletePrompt}>
-            Continue
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function EditPromptDialogBox({
-  promptAction,
-  setPromptAction,
-  handleEditPrompt,
-  handleSavePrompt,
-  title,
-  content,
-  setTitle,
-  setContent,
-  isLoading,
-}: EditPromptDialogBoxProps) {
-  return (
-    <Dialog
-      onOpenChange={() => {
-        if (promptAction.action !== null) {
-          setPromptAction({ action: null, id: null });
-        } else {
-          setTitle('');
-          setContent('');
-        }
-      }}
-      open={promptAction.action === 'save' || promptAction.action === 'update'}
-    >
-      <DialogTrigger asChild>
-        <Button
-          onClick={() => setPromptAction({ action: 'save', id: null })}
-          variant="secondary"
-          disabled={isLoading}
-        >
-          Add Prompt <Plus className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {promptAction.action === 'update' ? 'Edit' : 'Add'} Prompt
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-4 py-4">
-          <Input
-            autoComplete="off"
-            id="name"
-            type="text"
-            value={title}
-            placeholder="Title"
-            onChange={(e) => setTitle(e.target.value)}
-            className="col-span-3"
-          />
-          <Textarea
-            id="username"
-            value={content}
-            rows={4}
-            placeholder="Prompt"
-            onChange={(e) => setContent(e.target.value)}
-            className="col-span-3"
-          />
-        </div>
-        <DialogFooter>
-          <Button
-            disabled={isLoading}
-            onClick={
-              promptAction.action === 'update'
-                ? handleEditPrompt
-                : handleSavePrompt
-            }
-            type="submit"
-          >
-            Save {promptAction.action === 'update' ? 'Changes' : 'Prompt'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function SavedPromptsPage() {
-  const [filter, setFilter] = useState<FilterValues>('recentlyUsed');
-  const [search, setSearch] = useState<string>('');
   /**
    * To resuse the same dialog for both update and delete actions,
    * promptAction tracks what action is to be performed in which prompt (based on id)
    */
-  const [promptAction, setPromptAction] = useState<{
-    action: 'update' | 'delete' | 'save' | null;
-    id: string | null;
-  }>({ action: null, id: null });
+  const [promptAction, setPromptAction] = useState<PromptAction>(EMPTY_ACTION);
+
+  const [filter, setFilter] = useState<FilterValue>(DEFAULT_FILTER);
+  const [search, setSearch] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [primaryFilteredPrompts, setPrimaryFilteredPrompts] = useState<
-    SavedPrompt[]
-  >([]); // Primary Filter : To filter based on filter options, e.g. Recently used (or) Edited recently
   const [title, setTitle] = useState<string>('');
   const [content, setContent] = useState<string>('');
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+
   const { user } = useUser();
 
   useEffect(() => {
@@ -220,6 +69,7 @@ export default function SavedPromptsPage() {
             'Content-Type': 'application/json',
           },
         });
+
         const data = await res.json();
         setSavedPrompts(data);
         setIsLoading(false);
@@ -227,59 +77,79 @@ export default function SavedPromptsPage() {
         console.error(err);
       }
     }
+
     fetchSavedPrompts();
   }, []);
 
-  useEffect(() => {
-    const sortPrompts = () => {
-      let sorted = [...savedPrompts];
+  // Primary Filter: Filter based on options, e.g. Recently used (or) Edited recently
+  const primaryFilteredPrompts = useMemo(() => {
+    if (filter === 'favorites') {
+      return savedPrompts.filter((prompt) => prompt.favorite);
+    }
 
-      if (filter === 'recentlyUsed') {
-        sorted.sort((a, b) => {
-          const dateA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
-          const dateB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
-          return dateB - dateA;
-        });
-      } else if (filter === 'editedRecently') {
-        sorted.sort((a, b) => {
-          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return dateB - dateA;
-        });
-      } else if (filter === 'latest') {
-        sorted.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        });
-      } else if (filter === 'oldest') {
-        sorted.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateA - dateB;
-        });
-      } else if (filter === 'favorites') {
-        sorted = sorted.filter((prompt) => prompt.favorite);
-      }
+    const promptsToSort = [...savedPrompts];
+    if (filter === 'recentlyUsed') {
+      sortPrompts(promptsToSort, 'lastUsedAt');
+    } else if (filter === 'editedRecently') {
+      sortPrompts(promptsToSort, 'updatedAt');
+    } else if (filter === 'latest') {
+      sortPrompts(promptsToSort, 'createdAt');
+    } else if (filter === 'oldest') {
+      sortPrompts(promptsToSort, 'createdAt', true);
+    }
 
-      setPrimaryFilteredPrompts(sorted);
-    };
-
-    sortPrompts();
+    return promptsToSort;
   }, [filter, savedPrompts]);
+
+  // Secondary Filter : to filter based on the search term entered by the user in search bar
+  const secondaryFilteredPrompts = useMemo(() => {
+    const searchTerm = search.toLowerCase();
+    return searchTerm !== ''
+      ? primaryFilteredPrompts.filter((prompt) => {
+          return (
+            prompt.title.toLowerCase().includes(searchTerm) ||
+            prompt.content.toLowerCase().includes(searchTerm)
+          );
+        })
+      : primaryFilteredPrompts;
+  }, [search, primaryFilteredPrompts]);
+
+  function sortPrompts(
+    prompts: SavedPrompt[],
+    property: keyof SavedPrompt,
+    swapComparison = false,
+  ) {
+    prompts.sort((a, b) => {
+      const dateA =
+        a[property] && typeof a[property] !== 'boolean'
+          ? new Date(a[property]).getTime()
+          : 0;
+
+      const dateB =
+        b[property] && typeof b[property] !== 'boolean'
+          ? new Date(b[property]).getTime()
+          : 0;
+
+      return swapComparison ? dateA - dateB : dateB - dateA;
+    });
+  }
 
   async function handleSavePrompt() {
     if (!user) {
       toast.error('Unauthorized');
       return;
     }
+
     if (!title.trim()) {
       toast.error('Title cannot be empty');
       return;
-    } else if (!content.trim()) {
+    }
+
+    if (!content.trim()) {
       toast.error('Prompt cannot be empty');
       return;
     }
+
     setIsLoading(true);
     toast.promise(
       fetch('/api/saved-prompts', {
@@ -298,14 +168,15 @@ export default function SavedPromptsPage() {
           setSavedPrompts((old) => {
             return [...old, data];
           });
-          setPromptAction({ action: null, id: null });
+
+          resetPromptAction();
         })
         .catch((error) => {
           console.error('Failed to save prompt:', { error });
         }),
       {
-        loading: 'Saving prompt ...',
-        success: 'Saved prompt successful',
+        loading: 'Saving prompt...',
+        success: 'Prompt saved',
         error: 'Failed to save prompt',
       },
     );
@@ -315,6 +186,7 @@ export default function SavedPromptsPage() {
 
   async function handleDeletePrompt() {
     if (promptAction.id === '') return;
+
     setIsLoading(true);
     toast.promise(
       fetch('/api/saved-prompts', {
@@ -327,17 +199,18 @@ export default function SavedPromptsPage() {
         }),
       })
         .then(() => {
-          setPromptAction({ action: null, id: null });
           setSavedPrompts((old) =>
             old.filter((element) => element.id !== promptAction.id),
           );
+
+          resetPromptAction();
         })
         .catch((error) => {
           console.error('Failed to delete prompt:', error);
         }),
       {
-        loading: 'Deleting prompt ...',
-        success: 'Prompt deleted successfully',
+        loading: 'Deleting prompt...',
+        success: 'Prompt deleted',
         error: 'Failed to delete prompt',
       },
     );
@@ -351,10 +224,13 @@ export default function SavedPromptsPage() {
     if (!title.trim()) {
       toast.error('Title cannot be empty');
       return;
-    } else if (!content.trim()) {
+    }
+
+    if (!content.trim()) {
       toast.error('Prompt cannot be empty');
       return;
     }
+
     setIsLoading(true);
     toast.promise(
       fetch('/api/saved-prompts/edit', {
@@ -368,25 +244,29 @@ export default function SavedPromptsPage() {
           content: content.trim(),
         }),
       })
-        .then(() => {
-          setPromptAction({ action: null, id: null });
+        .then(async (res) => {
+          const { title, content, updatedAt } = await res.json();
+
           setSavedPrompts((old) =>
             old.map((element) =>
               element.id === promptAction.id
-                ? { ...element, title: title.trim(), content: content.trim() }
+                ? { ...element, title: title, content, updatedAt }
                 : element,
             ),
           );
+
+          resetPromptAction();
         })
         .catch((error) => {
           console.error('Failed to edit prompt:', error);
         }),
       {
-        loading: 'Editing prompt ...',
-        success: 'Prompt edited successfully',
+        loading: 'Editing prompt...',
+        success: 'Prompt edited',
         error: 'Failed to edit prompt',
       },
     );
+
     setIsLoading(false);
   }
 
@@ -403,31 +283,41 @@ export default function SavedPromptsPage() {
         }),
       })
         .then(() => {
-          setPromptAction({ action: null, id: null });
           setSavedPrompts((old) =>
             old.map((element) =>
               element.id === id ? { ...element, favorite } : element,
             ),
           );
+
+          resetPromptAction();
         })
         .catch((error) => {
           console.error('Failed to add prompt to favorites:', error);
         }),
       {
-        loading: 'Adding to favorite ...',
+        loading: 'Adding to favorites...',
         success: 'Prompt added to favorites',
         error: 'Failed to add to favorites',
       },
     );
   }
 
-  // Secondary Filter : to filter based on the search term entered by the user in search bar
-  const secondaryFilteredPrompts =
-    search !== ''
-      ? primaryFilteredPrompts.filter((prompt) =>
-          prompt.title.toLowerCase().includes(search.toLowerCase()),
-        )
-      : primaryFilteredPrompts;
+  function resetPromptAction() {
+    setPromptAction(EMPTY_ACTION);
+  }
+
+  function updatePromptAction(action: PromptAction) {
+    setPromptAction(action);
+  }
+
+  function updateFilter(value: FilterValue) {
+    // Unset current filter if selected again
+    if (value === filter) {
+      setFilter(DEFAULT_FILTER);
+    } else {
+      setFilter(value);
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 py-12">
@@ -441,16 +331,16 @@ export default function SavedPromptsPage() {
         />
       </div>
       <div className="flex flex-row items-center gap-4">
-        <Combobox
+        <FilterDropdown
           disabled={isLoading}
           filter={filter}
-          setFilter={setFilter}
           filterOptions={filterOptions}
+          updateFilter={updateFilter}
         />
 
-        <EditPromptDialogBox
+        <EditPromptDialog
           promptAction={promptAction}
-          setPromptAction={setPromptAction}
+          updatePromptAction={updatePromptAction}
           handleEditPrompt={handleEditPrompt}
           handleSavePrompt={handleSavePrompt}
           title={title}
@@ -488,8 +378,8 @@ export default function SavedPromptsPage() {
                 transition: { duration: 0.2 },
               }}
               whileTap={{ scale: 0.99 }}
-              className="hover_container flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3.5 text-left 
-              transition-colors duration-200 hover:bg-primary/5"
+              className="group flex flex-col gap-1.5 rounded-xl bg-muted/50 
+              p-3.5 text-left transition-colors duration-200 hover:bg-primary/5"
             >
               <div className="flex w-full flex-row items-center justify-between text-base font-medium">
                 <p>{prompt.title}</p>
@@ -501,7 +391,8 @@ export default function SavedPromptsPage() {
                     }
                   >
                     <Star
-                      className={`${!prompt.favorite && 'hover_content'} h-4 w-4`}
+                      fill={prompt.favorite ? 'hsl(var(--favorite))' : ''}
+                      className={`${!prompt.favorite && 'hidden'} ${prompt.favorite && 'text-favorite'} h-4 w-4 group-hover:block`}
                     />
                   </button>
                   <button
@@ -538,9 +429,9 @@ export default function SavedPromptsPage() {
         </div>
       )}
 
-      <DeleteDialogBox
+      <DeletePromptDialog
         promptAction={promptAction}
-        setPromptAction={setPromptAction}
+        onOpenChange={resetPromptAction}
         handleDeletePrompt={handleDeletePrompt}
       />
     </div>

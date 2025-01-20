@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
       content,
     }: { id: string; title: string; content: string } = await request.json();
 
-    await dbUpdateSavedPrompt({ id, title, content });
-    return NextResponse.json({ success: true });
+    const updatedPrompt = await dbUpdateSavedPrompt({ id, title, content });
+    return NextResponse.json(updatedPrompt);
   } catch (error) {
     console.error('Error editing the prompt:', error);
     return NextResponse.json('Failed to edit prompt', {

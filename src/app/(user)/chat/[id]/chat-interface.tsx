@@ -43,6 +43,8 @@ import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
+import { SavedPromptsMenu } from './components/saved-prompts-menu';
+
 // Types
 interface UploadingImage extends Attachment {
   localUrl: string;
@@ -74,24 +76,6 @@ interface ChatMessageProps {
   setSavedPrompts: React.Dispatch<SetStateAction<SavedPrompt[]>>;
   onPreviewImage: (preview: ImagePreview) => void;
   addToolResult: (result: ToolResult) => void;
-}
-
-interface SavedPromptsQuickmenuProps {
-  input: string;
-  fetchingSavedPrompts: boolean;
-  savedPrompts: SavedPrompt[];
-  filteredPrompts: SavedPrompt[];
-  setInput: React.Dispatch<SetStateAction<string>>;
-  updatePromptLastUsedAt: (id: string) => Promise<void>;
-}
-
-interface SavedPromptsQuickmenuProps {
-  input: string;
-  fetchingSavedPrompts: boolean;
-  savedPrompts: SavedPrompt[];
-  filteredPrompts: SavedPrompt[];
-  setInput: React.Dispatch<SetStateAction<string>>;
-  updatePromptLastUsedAt: (id: string) => Promise<void>;
 }
 
 interface AttachmentPreviewProps {
@@ -354,7 +338,7 @@ function ChatMessage({
 
   async function handleSavePrompt() {
     if (!user) {
-      toast.error('Unauthorized access');
+      toast.error('Unauthorized');
       return;
     }
     toast.promise(
@@ -379,8 +363,8 @@ function ChatMessage({
           console.error('Failed to save prompt:', { error });
         }),
       {
-        loading: 'Saving prompt ...',
-        success: 'Saved prompt successful',
+        loading: 'Saving prompt...',
+        success: 'Prompt saved',
         error: 'Failed to save prompt',
       },
     );
@@ -410,14 +394,12 @@ function ChatMessage({
         <div className="w-8" aria-hidden="true" />
       ) : null}
 
-      <div
-        className={cn(
-          'relative flex max-w-[85%] flex-row items-center',
-          isUser && 'hover_container',
-        )}
-      >
+      <div className="group relative flex max-w-[85%] flex-row items-center">
         {isUser && (
-          <button onClick={handleSavePrompt} className="hover_content mr-1">
+          <button
+            onClick={handleSavePrompt}
+            className="mr-1 hidden group-hover:block"
+          >
             <Bookmark className="h-4 w-4" />
           </button>
         )}
@@ -521,54 +503,6 @@ function ChatMessage({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function SavedPromptsQuickmenu({
-  input,
-  fetchingSavedPrompts,
-  savedPrompts,
-  filteredPrompts,
-  setInput,
-  updatePromptLastUsedAt,
-}: SavedPromptsQuickmenuProps) {
-  return (
-    <div
-      style={{ display: input.startsWith('/') ? 'flex' : 'none' }}
-      className="absolute bottom-[150px] left-0 z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]"
-    >
-      <p className="font-semibold">Saved Prompts</p>
-      {fetchingSavedPrompts ? (
-        <div className="flex h-full w-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : savedPrompts.length === 0 ? (
-        <div className="flex h-full w-full items-center justify-center gap-2">
-          No prompts saved yet
-        </div>
-      ) : filteredPrompts.length === 0 ? (
-        <div className=" flex h-full w-full items-center justify-center gap-2">
-          No match found
-        </div>
-      ) : (
-        filteredPrompts.map((filteredPrompt) => (
-          <div
-            onClick={() => {
-              setInput(filteredPrompt.content);
-              updatePromptLastUsedAt(filteredPrompt.id);
-            }}
-            key={filteredPrompt.id}
-            className="flex cursor-pointer flex-col gap-1.5 rounded-[0.5rem] bg-primary/10 p-2 text-left 
-                transition-colors duration-200 hover:bg-primary/5"
-          >
-            <p>{filteredPrompt.title.slice(0, 30) + '...'}</p>
-            <div className="text-xs text-muted-foreground/80">
-              {filteredPrompt.content.slice(0, 50) + '...'}
-            </div>
-          </div>
-        ))
-      )}
     </div>
   );
 }
@@ -813,7 +747,7 @@ export default function ChatInterface({
     },
   });
 
-  const [fetchingSavedPrompts, setFetchingSavedPrompts] = useState(true);
+  const [isFetchingSavedPrompts, setIsFetchingSavedPrompts] = useState(true);
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -841,7 +775,7 @@ export default function ChatInterface({
       } catch (err) {
         console.error(err);
       }
-      setFetchingSavedPrompts(false);
+      setIsFetchingSavedPrompts(false);
     }
     fetchSavedPrompts();
   }, []);
@@ -909,10 +843,11 @@ export default function ChatInterface({
           id,
         }),
       });
+
       const data = await response.json();
-      console.log(data);
+
       setSavedPrompts((old) =>
-        old.filter((prompt) =>
+        old.map((prompt) =>
           prompt.id !== id
             ? prompt
             : { ...prompt, lastUsedAt: data.lastUsedAt },
@@ -921,6 +856,10 @@ export default function ChatInterface({
     } catch (error) {
       console.error('Failed to update -lastUsedAt- for prompt:', { error });
     }
+  }
+
+  function handlePromptMenuClick(subtitle: string) {
+    setInput(subtitle);
   }
 
   useAnimationEffect();
@@ -935,7 +874,7 @@ export default function ChatInterface({
       <div className="no-scrollbar relative flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl">
           <div className="space-y-4 px-4 pb-36 pt-4">
-            {messages.map((message: any, index) => (
+            {messages.map((message, index) => (
               <ChatMessage
                 key={message.id}
                 message={message}
@@ -964,12 +903,12 @@ export default function ChatInterface({
           )}
 
           <form onSubmit={handleFormSubmit} className="relative space-y-4">
-            <SavedPromptsQuickmenu
+            <SavedPromptsMenu
               input={input}
-              fetchingSavedPrompts={fetchingSavedPrompts}
+              isFetchingSavedPrompts={isFetchingSavedPrompts}
               savedPrompts={savedPrompts}
               filteredPrompts={filteredPrompts}
-              setInput={setInput}
+              onPromptClick={handlePromptMenuClick}
               updatePromptLastUsedAt={updatePromptLastUsedAt}
             />
 

@@ -292,7 +292,6 @@ export function HomeContent() {
                       key={suggestion.title}
                       {...suggestion}
                       delay={0.3 + index * 0.1}
-                      isSavedCard={false}
                       onSelect={setInput}
                     />
                   ))}
@@ -315,7 +314,7 @@ export function HomeContent() {
                         .map((savedPrompt, index) => (
                           <SuggestionCard
                             id={savedPrompt.id}
-                            isSavedCard={true}
+                            useSubtitle={true}
                             title={savedPrompt.title}
                             subtitle={savedPrompt.content}
                             key={savedPrompt.id}
