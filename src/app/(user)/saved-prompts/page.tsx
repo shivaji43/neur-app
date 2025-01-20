@@ -478,7 +478,7 @@ export default function SavedPromptsPage() {
       ) : (
         <div className="grid w-full grid-cols-2 gap-4">
           {secondaryFilteredPrompts.map((prompt) => (
-            <motion.button
+            <motion.div
               key={prompt.id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -533,7 +533,7 @@ export default function SavedPromptsPage() {
               <div className="text-xs text-muted-foreground/80">
                 {prompt.content}
               </div>
-            </motion.button>
+            </motion.div>
           ))}
         </div>
       )}
