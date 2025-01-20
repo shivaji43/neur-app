@@ -4,6 +4,7 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -11,7 +12,7 @@ import {
 import Image from 'next/image';
 
 import { SavedPrompt } from '@prisma/client';
-import { Attachment, Message } from 'ai';
+import { Attachment, JSONValue, Message } from 'ai';
 import { useChat } from 'ai/react';
 import {
   Bookmark,
@@ -28,16 +29,19 @@ import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
 import { getToolConfig } from '@/ai/providers';
+import { Confirmation } from '@/components/confimation';
 import { FloatingWallet } from '@/components/floating-wallet';
 import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
-import { cn, throttle } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -58,12 +62,27 @@ interface MessageAttachmentsProps {
   onPreviewImage: (preview: ImagePreview) => void;
 }
 
+interface ToolResult {
+  toolCallId: string;
+  result: any;
+}
+
 interface ChatMessageProps {
   message: Message;
   index: number;
   messages: Message[];
   setSavedPrompts: React.Dispatch<SetStateAction<SavedPrompt[]>>;
   onPreviewImage: (preview: ImagePreview) => void;
+  addToolResult: (result: ToolResult) => void;
+}
+
+interface SavedPromptsQuickmenuProps {
+  input: string;
+  fetchingSavedPrompts: boolean;
+  savedPrompts: SavedPrompt[];
+  filteredPrompts: SavedPrompt[];
+  setInput: React.Dispatch<SetStateAction<string>>;
+  updatePromptLastUsedAt: (id: string) => Promise<void>;
 }
 
 interface SavedPromptsQuickmenuProps {
@@ -89,7 +108,12 @@ interface ToolInvocation {
   toolCallId: string;
   toolName: string;
   displayName?: string;
-  result?: unknown;
+  result?: {
+    result?: string;
+    message: string;
+  };
+  state?: string;
+  args?: any;
 }
 
 // Constants
@@ -124,6 +148,36 @@ const getImageStyle = (index: number, total: number) => {
   if (total === 2) return 'aspect-square';
   if (total === 3 && index === 0) return 'col-span-2 aspect-[2/1]';
   return 'aspect-square';
+};
+
+const applyToolUpdates = (messages: Message[], toolUpdates: ToolUpdate[]) => {
+  while (toolUpdates.length > 0) {
+    const update = toolUpdates.pop();
+    if (!update) {
+      continue;
+    }
+
+    if (update.type === 'tool-update') {
+      messages.forEach((msg) => {
+        const toolInvocation = msg.toolInvocations?.find(
+          (tool) => tool.toolCallId === update.toolCallId,
+        ) as ToolInvocation | undefined;
+
+        if (toolInvocation) {
+          if (!toolInvocation.result) {
+            toolInvocation.result = {
+              result: update.result,
+              message: toolInvocation.args?.message, // TODO: Don't think this is technically correct, but shouldn't affect UI
+            };
+          } else {
+            toolInvocation.result.result = update.result;
+          }
+        }
+      });
+    }
+  }
+
+  return messages;
 };
 
 const useAnimationEffect = () => {
@@ -200,57 +254,83 @@ function MessageAttachments({
 
 function MessageToolInvocations({
   toolInvocations,
+  addToolResult,
 }: {
   toolInvocations: ToolInvocation[];
+  addToolResult: (result: ToolResult) => void;
 }) {
   return (
     <div className="space-y-px">
-      {toolInvocations.map(({ toolCallId, toolName, displayName, result }) => {
-        const isCompleted = result !== undefined;
-        const isError =
-          isCompleted &&
-          typeof result === 'object' &&
-          result !== null &&
-          'error' in result;
-        const config = getToolConfig(toolName)!;
-        const finalDisplayName = displayName || config.displayName;
+      {toolInvocations.map(
+        ({ toolCallId, toolName, displayName, result, state, args }) => {
+          const toolResult = result as ToolActionResult;
+          if (toolName === 'askForConfirmation') {
+            return (
+              <div key={toolCallId} className="group">
+                <Confirmation
+                  message={args?.message}
+                  result={toolResult?.result}
+                  toolCallId={toolCallId}
+                  addResultUtility={(result) =>
+                    addToolResult({
+                      toolCallId,
+                      result: { result, message: args?.message },
+                    })
+                  }
+                />
+              </div>
+            );
+          }
+          const isCompleted = result !== undefined;
+          const isError =
+            isCompleted &&
+            typeof result === 'object' &&
+            result !== null &&
+            'error' in result;
+          const config = getToolConfig(toolName)!;
+          const finalDisplayName = displayName || config.displayName;
 
-        const header = (
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div
-              className={cn(
-                'h-1.5 w-1.5 rounded-full ring-2',
-                isCompleted
-                  ? isError
-                    ? 'bg-destructive ring-destructive/20'
-                    : 'bg-emerald-500 ring-emerald-500/20'
-                  : 'animate-pulse bg-amber-500 ring-amber-500/20',
+          const header = (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full ring-2',
+                  isCompleted
+                    ? isError
+                      ? 'bg-destructive ring-destructive/20'
+                      : 'bg-emerald-500 ring-emerald-500/20'
+                    : 'animate-pulse bg-amber-500 ring-amber-500/20',
+                )}
+              />
+              <span className="truncate text-xs font-medium text-foreground/90">
+                {finalDisplayName}
+              </span>
+              <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                {toolCallId.slice(0, 9)}
+              </span>
+            </div>
+          );
+
+          return (
+            <div key={toolCallId} className="group">
+              {isCompleted ? (
+                <ToolResult
+                  toolName={toolName}
+                  result={result}
+                  header={header}
+                />
+              ) : (
+                <>
+                  {header}
+                  <div className="mt-px px-3">
+                    <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
+                  </div>
+                </>
               )}
-            />
-            <span className="truncate text-xs font-medium text-foreground/90">
-              {finalDisplayName}
-            </span>
-            <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
-              {toolCallId.slice(0, 9)}
-            </span>
-          </div>
-        );
-
-        return (
-          <div key={toolCallId} className="group">
-            {isCompleted ? (
-              <ToolResult toolName={toolName} result={result} header={header} />
-            ) : (
-              <>
-                {header}
-                <div className="mt-px px-3">
-                  <div className="h-20 animate-pulse rounded-lg bg-muted/40" />
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })}
+            </div>
+          );
+        },
+      )}
     </div>
   );
 }
@@ -261,6 +341,7 @@ function ChatMessage({
   messages,
   setSavedPrompts,
   onPreviewImage,
+  addToolResult,
 }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const hasAttachments =
@@ -362,10 +443,17 @@ function ChatMessage({
             <div
               className={cn(
                 'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
-                isUser ? 'bg-primary text-primary-foreground' : 'bg-muted/60',
+                isUser ? 'bg-primary' : 'bg-muted/60',
               )}
             >
-              <div className="prose prose-neutral dark:prose-invert max-w-none">
+              <div
+                className={cn(
+                  'prose max-w-none leading-tight',
+                  isUser
+                    ? 'prose-invert dark:prose-neutral'
+                    : 'prose-neutral dark:prose-invert',
+                )}
+              >
                 <ReactMarkdown
                   rehypePlugins={[rehypeRaw]}
                   remarkPlugins={[remarkGfm]}
@@ -426,7 +514,10 @@ function ChatMessage({
           )}
 
           {message.toolInvocations && (
-            <MessageToolInvocations toolInvocations={message.toolInvocations} />
+            <MessageToolInvocations
+              toolInvocations={message.toolInvocations}
+              addToolResult={addToolResult}
+            />
           )}
         </div>
       </div>
@@ -668,20 +759,57 @@ export default function ChatInterface({
   initialMessages?: Message[];
 }) {
   const {
-    messages,
+    messages: chatMessages,
     input,
     handleSubmit,
     handleInputChange,
-    setInput,
     isLoading,
+    addToolResult,
+    data,
+    setInput,
+    setMessages,
   } = useChat({
     id,
+    maxSteps: 10,
     initialMessages,
+    sendExtraMessageFields: true,
     body: { id },
     onFinish: () => {
       window.history.replaceState({}, '', `/chat/${id}`);
       // Refresh wallet portfolio after AI response
       refresh();
+    },
+    experimental_prepareRequestBody: ({ messages }) => {
+      return {
+        message: messages[messages.length - 1],
+        id,
+      } as unknown as JSONValue;
+    },
+  });
+
+  const messages = useMemo(() => {
+    const toolUpdates = data as unknown as ToolUpdate[];
+    if (!toolUpdates || toolUpdates.length === 0) {
+      return chatMessages;
+    }
+
+    const updatedMessages = applyToolUpdates(chatMessages, toolUpdates);
+
+    return updatedMessages;
+  }, [chatMessages, data]);
+
+  // Use polling for fetching new messages
+  usePolling({
+    url: `/api/chat/${id}`,
+    id,
+    onUpdate: (data: Message[]) => {
+      if (!data) {
+        return;
+      }
+
+      if (data && data.length) {
+        setMessages(data);
+      }
     },
   });
 
@@ -723,6 +851,8 @@ export default function ChatInterface({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
+
+  scrollToBottom();
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -813,6 +943,7 @@ export default function ChatInterface({
                 messages={messages}
                 setSavedPrompts={setSavedPrompts}
                 onPreviewImage={setPreviewImage}
+                addToolResult={addToolResult}
               />
             ))}
             {isLoading &&

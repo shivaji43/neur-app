@@ -1,7 +1,9 @@
 import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import { JsonValue } from '@prisma/client/runtime/library';
 import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
+import { convertToUIMessages } from '@/lib/utils';
 import { NewAction } from '@/types/db';
 
 /**
@@ -12,12 +14,15 @@ import { NewAction } from '@/types/db';
  */
 export async function dbGetConversation({
   conversationId,
+  includeMessages,
 }: {
   conversationId: string;
+  includeMessages?: boolean;
 }) {
   try {
     return await prisma.conversation.findUnique({
       where: { id: conversationId },
+      include: includeMessages ? { messages: true } : undefined,
     });
   } catch (error) {
     console.error('[DB Error] Failed to get conversation:', {
@@ -84,6 +89,36 @@ export async function dbCreateMessages({
 }
 
 /**
+ * Updates the toolInvocations for a message
+ */
+export async function dbUpdateMessageToolInvocations({
+  messageId,
+  toolInvocations,
+}: {
+  messageId: string;
+  toolInvocations: JsonValue;
+}) {
+  if (!toolInvocations) {
+    return null;
+  }
+
+  try {
+    return await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        toolInvocations,
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update message:', {
+      messageId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
  * Retrieves all messages for a specific conversation
  * @param {Object} params - The parameters object
  * @param {string} params.conversationId - The conversation ID to fetch messages for
@@ -91,14 +126,22 @@ export async function dbCreateMessages({
  */
 export async function dbGetConversationMessages({
   conversationId,
+  limit,
 }: {
   conversationId: string;
+  limit?: number;
 }) {
   try {
-    return await prisma.message.findMany({
+    const messages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: limit
+        ? { createdAt: 'desc' }
+        : [{ createdAt: 'asc' }, { role: 'asc' }],
+      take: limit,
     });
+
+    const migratedMessages = convertToUIMessages(messages);
+    return migratedMessages;
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
       conversationId,
@@ -303,6 +346,76 @@ export async function dbUpdateUserTelegramChat({
       username,
       error: `${error}`,
     });
+    return null;
+  }
+}
+
+export async function dbGetUserActions({ userId }: { userId: string }) {
+  try {
+    const actions = await prisma.action.findMany({
+      where: {
+        userId,
+        completed: false,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return actions;
+  } catch (error) {
+    console.error('[DB Error] Failed to get user actions:', {
+      userId,
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbDeleteAction({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await prisma.action.delete({
+      where: {
+        id,
+        userId, // Ensure user owns the action
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to delete action:', { id, userId, error });
+    throw error;
+  }
+}
+
+export async function dbUpdateAction({
+  id,
+  userId,
+  data,
+}: {
+  id: string;
+  userId: string;
+  data: Partial<Action>;
+}) {
+  try {
+    // Validate and clean the data before update
+    const validData = {
+      description: data.description,
+      frequency: data.frequency === 0 ? null : data.frequency,
+      maxExecutions: data.maxExecutions === 0 ? null : data.maxExecutions,
+      // Only include fields we want to update
+    } as const;
+
+    return await prisma.action.update({
+      where: {
+        id,
+        userId,
+      },
+      data: validData,
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update action:', { id, userId, error });
     return null;
   }
 }

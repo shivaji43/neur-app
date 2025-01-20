@@ -16,7 +16,7 @@ import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
 
-const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
+const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const claude35Sonnet = anthropic('claude-3-5-sonnet-20241022');
@@ -26,6 +26,8 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: 'strict',
 });
+
+export const orchestratorModel = openai('gpt-4o-mini');
 
 const openAiModel = openai(process.env.OPENAI_MODEL_NAME || 'gpt-4o');
 
@@ -37,11 +39,8 @@ Critical Rules:
 - If the previous tool result contains the key-value pair 'noFollowUp: true':
   Do not respond with anything.
 - If the previous tool result contains the key-value pair 'suppressFollowUp: true':
-  Response only with something like:
+  Respond only with something like:
      - "Take a look at the results above"
-     - "I've displayed the information above"
-     - "The results are shown above"
-     - "You can see the details above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 
 Confirmation Handling:
@@ -66,27 +65,22 @@ Scheduled Actions:
 - Always ask for confirmation using the \`askForConfirmation\` tool before scheduling any action. Obey the rules outlined in the "Confirmation Handling" section.
 - If previous tool result is \`createActionTool\`, response only with something like:
   - "The action has been scheduled successfully"
-  - "The action has been created and scheduled"
-  - "The action has been added to the schedule"
-  - "The action has been set up for execution"
 
 Response Formatting:
 - Use proper line breaks between different sections of your response for better readability
-- Utilize markdown features effectively:
-  - Use \`code blocks\` for addresses, transactions, and technical terms
-  - Use **bold** for emphasis on important points
-  - Use bullet points and numbered lists for structured information
-  - Use > blockquotes for highlighting key information or warnings
-  - Use ### headings to organize long responses into sections
-  - Use tables for structured data comparison
+- Utilize markdown features effectively to enhance the structure of your response
 - Keep responses concise and well-organized
 - Use emojis sparingly and only when appropriate for the context
+- Use an abbreviated format for transaction signatures
 
 Common knowledge:
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
+
+Realtime knowledge:
+- { approximateCurrentTime: ${new Date().toISOString()}}
 `;
 
-export const defaultModel = usingAntropic ? claude35Sonnet : openAiModel;
+export const defaultModel = usingAnthropic ? claude35Sonnet : openAiModel;
 
 export interface ToolConfig {
   displayName?: string;
@@ -95,7 +89,7 @@ export interface ToolConfig {
   isExpandedByDefault?: boolean;
   description: string;
   parameters: z.ZodType<any>;
-  execute: <T>(
+  execute?: <T>(
     params: z.infer<T extends z.ZodType ? T : never>,
   ) => Promise<any>;
   render?: (result: unknown) => React.ReactNode | null;
@@ -136,6 +130,87 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...telegramTools,
 };
 
+export const coreTools: Record<string, ToolConfig> = {
+  ...actionTools,
+  ...utilTools,
+  ...jinaTools,
+};
+
+export const toolsets: Record<
+  string,
+  { tools: string[]; description: string }
+> = {
+  coreTools: {
+    tools: ['actionTools', 'utilTools', 'jupiterTools'],
+    description:
+      'Core utility tools for general operations, including actions, searching token info, utility functions.',
+  },
+  webTools: {
+    tools: ['jinaTools'],
+    description:
+      'Web scraping and content extraction tools for reading web pages and extracting content.',
+  },
+  defiTools: {
+    tools: ['solanaTools', 'dexscreenerTools'],
+    description:
+      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions.',
+  },
+  financeTools: {
+    tools: ['definedTools'],
+    description:
+      'Tools for retrieving and applying logic to static financial data, including analyzing trending tokens.',
+  },
+  tokenLaunchTools: {
+    tools: ['pumpfunTools'],
+    description:
+      'Tools for launching tokens on PumpFun, including token deployment and management.',
+  },
+  chartTools: {
+    tools: ['chartTools'],
+    description: 'Tools for generating and displaying various types of charts.',
+  },
+  nftTools: {
+    tools: ['magicEdenTools'],
+    description:
+      'Tools for interacting with NFTs, including Magic Eden integrations.',
+  },
+  socialTools: {
+    tools: ['telegramTools'],
+    description:
+      'Tools for interacting with Telegram for notifications and messaging.',
+  },
+};
+
+export const orchestrationPrompt = `
+You are Neur, an AI assistant specialized in Solana blockchain and DeFi operations.
+
+Your Task:
+Analyze the user's message and return the appropriate toolsets as a **JSON array of strings**.  
+Each toolset represents a group of tools relevant to the user's request.  
+
+Rules:
+- Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
+- Do not add any text, explanations, or comments outside the array.  
+- Be minimal — include only the toolsets necessary to handle the request.
+
+Available Tools:
+${Object.entries(defaultTools)
+  .map(([name, { description }]) => `- **${name}**: ${description}`)
+  .join('\n')}
+`;
+
 export function getToolConfig(toolName: string): ToolConfig | undefined {
   return defaultTools[toolName];
+}
+
+export function getToolsFromRequiredTools(
+  toolNames: string[],
+): Record<string, ToolConfig> {
+  return toolNames.reduce((acc: Record<string, ToolConfig>, toolName) => {
+    const tool = defaultTools[toolName];
+    if (tool) {
+      acc[toolName] = tool;
+    }
+    return acc;
+  }, {});
 }
