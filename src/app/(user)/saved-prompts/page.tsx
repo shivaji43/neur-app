@@ -295,8 +295,12 @@ export default function SavedPromptsPage() {
           console.error('Failed to add prompt to favorites:', error);
         }),
       {
-        loading: 'Adding to favorites...',
-        success: 'Prompt added to favorites',
+        loading: favorite
+          ? 'Adding to favorites...'
+          : 'Removing from favorites...',
+        success: favorite
+          ? 'Prompt added to favorites'
+          : 'Prompt removed from favorites',
         error: 'Failed to add to favorites',
       },
     );
