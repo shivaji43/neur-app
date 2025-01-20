@@ -15,6 +15,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   earlyAccess Boolean @default(false)
+  degenMode  Boolean @default(false)
 
   wallets       Wallet[]
   conversations Conversation[]
