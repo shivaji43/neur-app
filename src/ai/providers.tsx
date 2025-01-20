@@ -185,10 +185,10 @@ export const orchestrationPrompt = `
 You are Neur, an AI assistant specialized in Solana blockchain and DeFi operations.
 
 Your Task:
-Analyze the user's message and return the appropriate toolsets as a **JSON array of strings**.  
-Each toolset represents a group of tools relevant to the user's request.  
+Analyze the user's message and return the appropriate tools as a **JSON array of strings**.  
 
 Rules:
+- Only include the askForConfirmation tool if the user's message requires a transaction signature
 - Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
 - Do not add any text, explanations, or comments outside the array.  
 - Be minimal — include only the toolsets necessary to handle the request.
