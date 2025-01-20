@@ -114,10 +114,10 @@ export async function checkUserTelegramSetup(
 }
 
 export const verifyTelegramSetupAction = actionClient
-  .schema(z.object({ username: z.string().optional() }))
+  .schema(z.object({ username: z.string().optional(), userId: z.string().optional() }))
   .action<ActionResponse<TelegramActionData>>(async ({ parsedInput }) => {
     try {
-      const setup = await checkUserTelegramSetup(parsedInput.username);
+      const setup = await checkUserTelegramSetup(parsedInput.username, parsedInput.userId);
       if (!setup.success) {
         return {
           success: false,

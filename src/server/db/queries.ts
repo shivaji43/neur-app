@@ -306,3 +306,150 @@ export async function dbUpdateUserTelegramChat({
     return null;
   }
 }
+
+/**
+ * Retreieves the Saved Prompts for a user
+ */
+export async function dbGetSavedPrompts({ userId }: { userId: string }) {
+  try {
+    const prompts = await prisma.savedPrompt.findMany({
+      where: { userId },
+      orderBy: [
+        {
+          lastUsedAt: {
+            sort: 'desc',
+            nulls: 'last',
+          },
+        },
+      ],
+    });
+    return prompts;
+  } catch (error) {
+    console.error('[DB Error] Failed to fetch Saved Prompt:', {
+      userId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Creates a Saved Prompt for a user
+ */
+export async function dbCreateSavedPrompt({
+  userId,
+  title,
+  content,
+}: {
+  userId: string;
+  title: string;
+  content: string;
+}) {
+  try {
+    const prompt = await prisma.savedPrompt.create({
+      data: {
+        userId,
+        title,
+        content,
+      },
+    });
+    return prompt;
+  } catch (error) {
+    console.error('[DB Error] Failed to create Saved Prompt:', {
+      userId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Updates a Saved Prompt for a user
+ */
+export async function dbUpdateSavedPrompt({
+  id,
+  title,
+  content,
+}: {
+  id: string;
+  title: string;
+  content: string;
+}) {
+  try {
+    await prisma.savedPrompt.update({
+      where: { id },
+      data: { title, content },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update Saved Prompt:', {
+      id,
+      title,
+      error,
+    });
+  }
+}
+
+/**
+ * Updates status 'favorite' of saved prompt for a user
+ */
+export async function dbSetFavoritePrompt({
+  id,
+  favorite,
+}: {
+  id: string;
+  favorite: boolean;
+}) {
+  try {
+    await prisma.savedPrompt.update({
+      where: { id },
+      data: { favorite },
+    });
+  } catch (error) {
+    console.error(
+      '[DB Error] Failed to update status -favorite- of saved prompt:',
+      {
+        id,
+        error,
+      },
+    );
+  }
+}
+
+/**
+ * Updates status 'lastUsedAt' of saved prompt for a user
+ */
+export async function dbUpdatePromptLastUsedAt({ id }: { id: string }) {
+  try {
+    const prompt = await prisma.savedPrompt.update({
+      where: { id },
+      data: {
+        usageFrequency: {
+          increment: 1,
+        },
+        lastUsedAt: new Date(),
+      },
+    });
+    return prompt;
+  } catch (error) {
+    console.error('[DB Error] Failed to update -lastUsedAt- of prompt:', {
+      id,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Deletes a Saved Prompt for a user
+ */
+export async function dbDeleteSavedPrompt({ id }: { id: string }) {
+  try {
+    await prisma.savedPrompt.delete({
+      where: { id },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to delete Saved Prompt:', {
+      id,
+    });
+  }
+}

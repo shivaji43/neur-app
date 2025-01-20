@@ -1,13 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import Image from 'next/image';
 
+import { SavedPrompt } from '@prisma/client';
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import {
-  ChevronDown,
+  Bookmark,
   Image as ImageIcon,
   Loader2,
   SendHorizontal,
@@ -16,6 +23,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { toast } from 'sonner';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
@@ -26,6 +34,7 @@ import { ToolResult } from '@/components/message/tool-result';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
@@ -53,7 +62,17 @@ interface ChatMessageProps {
   message: Message;
   index: number;
   messages: Message[];
+  setSavedPrompts: React.Dispatch<SetStateAction<SavedPrompt[]>>;
   onPreviewImage: (preview: ImagePreview) => void;
+}
+
+interface SavedPromptsQuickmenuProps {
+  input: string;
+  fetchingSavedPrompts: boolean;
+  savedPrompts: SavedPrompt[];
+  filteredPrompts: SavedPrompt[];
+  setInput: React.Dispatch<SetStateAction<string>>;
+  updatePromptLastUsedAt: (id: string) => Promise<void>;
 }
 
 interface AttachmentPreviewProps {
@@ -240,6 +259,7 @@ function ChatMessage({
   message,
   index,
   messages,
+  setSavedPrompts,
   onPreviewImage,
 }: ChatMessageProps) {
   const isUser = message.role === 'user';
@@ -249,6 +269,41 @@ function ChatMessage({
   const showAvatar =
     !isUser && (index === 0 || messages[index - 1].role === 'user');
   const isConsecutive = index > 0 && messages[index - 1].role === message.role;
+  const { user } = useUser();
+
+  async function handleSavePrompt() {
+    if (!user) {
+      toast.error('Unauthorized access');
+      return;
+    }
+    toast.promise(
+      fetch('/api/saved-prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          title: message.content.trim().slice(0, 30),
+          content: message.content.trim(),
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          setSavedPrompts((old) => {
+            return [...old, data];
+          });
+        })
+        .catch((error) => {
+          console.error('Failed to save prompt:', { error });
+        }),
+      {
+        loading: 'Saving prompt ...',
+        success: 'Saved prompt successful',
+        error: 'Failed to save prompt',
+      },
+    );
+  }
 
   // Preprocess content to handle image dimensions
   const processedContent = message.content?.replace(
@@ -276,93 +331,153 @@ function ChatMessage({
 
       <div
         className={cn(
-          'relative flex max-w-[85%] flex-col gap-2',
-          isUser ? 'items-end' : 'items-start',
+          'relative flex max-w-[85%] flex-row items-center',
+          isUser && 'hover_container',
         )}
       >
-        {hasAttachments && (
-          <div
-            className={cn('w-full max-w-[400px]', message.content && 'mb-2')}
-          >
-            <MessageAttachments
-              attachments={message.experimental_attachments!}
-              messageId={message.id}
-              onPreviewImage={onPreviewImage}
-            />
-          </div>
+        {isUser && (
+          <button onClick={handleSavePrompt} className="hover_content mr-1">
+            <Bookmark className="h-4 w-4" />
+          </button>
         )}
+        <div
+          className={cn(
+            'relative flex flex-col gap-2',
+            isUser ? 'items-end' : 'items-start',
+          )}
+        >
+          {hasAttachments && (
+            <div
+              className={cn('w-full max-w-[400px]', message.content && 'mb-2')}
+            >
+              <MessageAttachments
+                attachments={message.experimental_attachments!}
+                messageId={message.id}
+                onPreviewImage={onPreviewImage}
+              />
+            </div>
+          )}
 
-        {message.content && (
-          <div
-            className={cn(
-              'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
-              isUser ? 'bg-primary text-primary-foreground' : 'bg-muted/60',
-            )}
-          >
-            <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <ReactMarkdown
-                rehypePlugins={[rehypeRaw]}
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ node, ...props }) => (
-                    <a {...props} target="_blank" rel="noopener noreferrer" />
-                  ),
-                  img: ({ node, alt, src, ...props }) => {
-                    if (!src) return null;
+          {message.content && (
+            <div
+              className={cn(
+                'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
+                isUser ? 'bg-primary text-primary-foreground' : 'bg-muted/60',
+              )}
+            >
+              <div className="prose prose-neutral dark:prose-invert max-w-none">
+                <ReactMarkdown
+                  rehypePlugins={[rehypeRaw]}
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a {...props} target="_blank" rel="noopener noreferrer" />
+                    ),
+                    img: ({ node, alt, src, ...props }) => {
+                      if (!src) return null;
 
-                    try {
-                      // Handle both relative and absolute URLs safely
-                      const url = new URL(src, 'http://dummy.com');
-                      const size = url.hash.match(/size=(\d+)x(\d+)/);
+                      try {
+                        // Handle both relative and absolute URLs safely
+                        const url = new URL(src, 'http://dummy.com');
+                        const size = url.hash.match(/size=(\d+)x(\d+)/);
 
-                      if (size) {
-                        const [, width, height] = size;
-                        // Remove hash from src
-                        url.hash = '';
-                        return (
-                          <Image
-                            src={url.pathname + url.search}
-                            alt={alt || ''}
-                            width={Number(width)}
-                            height={Number(height)}
-                            className="inline-block align-middle"
-                          />
-                        );
+                        if (size) {
+                          const [, width, height] = size;
+                          // Remove hash from src
+                          url.hash = '';
+                          return (
+                            <Image
+                              src={url.pathname + url.search}
+                              alt={alt || ''}
+                              width={Number(width)}
+                              height={Number(height)}
+                              className="inline-block align-middle"
+                            />
+                          );
+                        }
+                      } catch (e) {
+                        // If URL parsing fails, fallback to original src
+                        console.warn('Failed to parse image URL:', e);
                       }
-                    } catch (e) {
-                      // If URL parsing fails, fallback to original src
-                      console.warn('Failed to parse image URL:', e);
-                    }
 
-                    const thumbnailPattern = /_thumb\.(png|jpg|jpeg|gif)$/i;
-                    const isThumbnail = thumbnailPattern.test(src);
+                      const thumbnailPattern = /_thumb\.(png|jpg|jpeg|gif)$/i;
+                      const isThumbnail = thumbnailPattern.test(src);
 
-                    const width = isThumbnail ? 40 : 500;
-                    const height = isThumbnail ? 40 : 300;
+                      const width = isThumbnail ? 40 : 500;
+                      const height = isThumbnail ? 40 : 300;
 
-                    // Fallback to Image component with default dimensions
-                    return (
-                      <Image
-                        src={src}
-                        alt={alt || ''}
-                        width={width}
-                        height={height}
-                        className="inline-block align-middle"
-                      />
-                    );
-                  },
-                }}
-              >
-                {processedContent}
-              </ReactMarkdown>
+                      // Fallback to Image component with default dimensions
+                      return (
+                        <Image
+                          src={src}
+                          alt={alt || ''}
+                          width={width}
+                          height={height}
+                          className="inline-block align-middle"
+                        />
+                      );
+                    },
+                  }}
+                >
+                  {processedContent}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
+
+          {message.toolInvocations && (
+            <MessageToolInvocations toolInvocations={message.toolInvocations} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SavedPromptsQuickmenu({
+  input,
+  fetchingSavedPrompts,
+  savedPrompts,
+  filteredPrompts,
+  setInput,
+  updatePromptLastUsedAt,
+}: SavedPromptsQuickmenuProps) {
+  return (
+    <div
+      style={{ display: input.startsWith('/') ? 'flex' : 'none' }}
+      className="absolute bottom-[150px] left-0 z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]"
+    >
+      <p className="font-semibold">Saved Prompts</p>
+      {fetchingSavedPrompts ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : savedPrompts.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center gap-2">
+          No prompts saved yet
+        </div>
+      ) : filteredPrompts.length === 0 ? (
+        <div className=" flex h-full w-full items-center justify-center gap-2">
+          No match found
+        </div>
+      ) : (
+        filteredPrompts.map((filteredPrompt) => (
+          <div
+            onClick={() => {
+              setInput(filteredPrompt.content);
+              updatePromptLastUsedAt(filteredPrompt.id);
+            }}
+            key={filteredPrompt.id}
+            className="flex cursor-pointer flex-col gap-1.5 rounded-[0.5rem] bg-primary/10 p-2 text-left 
+                transition-colors duration-200 hover:bg-primary/5"
+          >
+            <p>{filteredPrompt.title.slice(0, 30) + '...'}</p>
+            <div className="text-xs text-muted-foreground/80">
+              {filteredPrompt.content.slice(0, 50) + '...'}
             </div>
           </div>
-        )}
-
-        {message.toolInvocations && (
-          <MessageToolInvocations toolInvocations={message.toolInvocations} />
-        )}
-      </div>
+        ))
+      )}
     </div>
   );
 }
@@ -552,18 +667,26 @@ export default function ChatInterface({
   id: string;
   initialMessages?: Message[];
 }) {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
-    useChat({
-      id,
-      initialMessages,
-      body: { id },
-      onFinish: () => {
-        window.history.replaceState({}, '', `/chat/${id}`);
-        // Refresh wallet portfolio after AI response
-        refresh();
-      },
-    });
+  const {
+    messages,
+    input,
+    handleSubmit,
+    handleInputChange,
+    setInput,
+    isLoading,
+  } = useChat({
+    id,
+    initialMessages,
+    body: { id },
+    onFinish: () => {
+      window.history.replaceState({}, '', `/chat/${id}`);
+      // Refresh wallet portfolio after AI response
+      refresh();
+    },
+  });
 
+  const [fetchingSavedPrompts, setFetchingSavedPrompts] = useState(true);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -575,6 +698,25 @@ export default function ChatInterface({
     isLoading: isPortfolioLoading,
     refresh,
   } = useWalletPortfolio();
+
+  useEffect(() => {
+    async function fetchSavedPrompts() {
+      try {
+        const res = await fetch('/api/saved-prompts', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json();
+        setSavedPrompts(data);
+      } catch (err) {
+        console.error(err);
+      }
+      setFetchingSavedPrompts(false);
+    }
+    fetchSavedPrompts();
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -626,19 +768,50 @@ export default function ChatInterface({
     scrollToBottom();
   };
 
+  async function updatePromptLastUsedAt(id: string) {
+    try {
+      const response = await fetch('/api/saved-prompts/update-lastUsedAt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+        }),
+      });
+      const data = await response.json();
+      console.log(data);
+      setSavedPrompts((old) =>
+        old.filter((prompt) =>
+          prompt.id !== id
+            ? prompt
+            : { ...prompt, lastUsedAt: data.lastUsedAt },
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to update -lastUsedAt- for prompt:', { error });
+    }
+  }
+
   useAnimationEffect();
+  const filteredPrompts = input.startsWith('/')
+    ? savedPrompts.filter((savedPrompt) =>
+        savedPrompt.title.toLowerCase().includes(input.slice(1).toLowerCase()),
+      )
+    : savedPrompts;
 
   return (
     <div className="flex h-full flex-col">
       <div className="no-scrollbar relative flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl">
           <div className="space-y-4 px-4 pb-36 pt-4">
-            {messages.map((message, index) => (
+            {messages.map((message: any, index) => (
               <ChatMessage
                 key={message.id}
                 message={message}
                 index={index}
                 messages={messages}
+                setSavedPrompts={setSavedPrompts}
                 onPreviewImage={setPreviewImage}
               />
             ))}
@@ -659,7 +832,16 @@ export default function ChatInterface({
             <FloatingWallet data={portfolio} isLoading={isPortfolioLoading} />
           )}
 
-          <form onSubmit={handleFormSubmit} className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="relative space-y-4">
+            <SavedPromptsQuickmenu
+              input={input}
+              fetchingSavedPrompts={fetchingSavedPrompts}
+              savedPrompts={savedPrompts}
+              filteredPrompts={filteredPrompts}
+              setInput={setInput}
+              updatePromptLastUsedAt={updatePromptLastUsedAt}
+            />
+
             <div className="relative overflow-hidden rounded-2xl bg-muted">
               {attachments.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto rounded-t-2xl bg-muted/50 p-3">
