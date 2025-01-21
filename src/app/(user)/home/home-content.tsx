@@ -376,7 +376,7 @@ export function HomeContent() {
       {!showChat && (
         <div
           className={cn(
-            'absolute inset-0 transition-opacity duration-300',
+            'absolute inset-0 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ',
             showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
           )}
         >
