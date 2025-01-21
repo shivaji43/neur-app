@@ -1,6 +1,6 @@
-import { version } from '../../package.json';
+import config from '../../package.json';
 
-export const APP_VERSION = version;
+export const APP_VERSION = config.version;
 export const IS_BETA = true;
 
 export const RPC_URL =
