@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     });
   }
 
-  // Quarter-hour cron job
+  // Minute cron job
   // Get all Actions that are not completed or paused
   const actions = await dbGetActions({
     triggered: true,
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   console.log(`[cron/action] Fetched ${actions.length} actions`);
 
-  // This job runs every 15 minutes, but we only need to process actions that are ready to be processed, based on their frequency
+  // This job runs every minute minute, but we only need to process actions that are ready to be processed, based on their frequency
   // Filter the actions to only include those that are ready to be processed based on their lastExecutedAt and frequency
   const now = new Date();
   const actionsToProcess = actions.filter((action) => {
