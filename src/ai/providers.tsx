@@ -189,7 +189,7 @@ Your Task:
 Analyze the user's message and return the appropriate tools as a **JSON array of strings**.  
 
 Rules:
-- Only include the askForConfirmation tool if the user's message requires a transaction signature
+- Only include the askForConfirmation tool if the user's message requires a transaction signature or if they are creating an action.
 - Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
 - Do not add any text, explanations, or comments outside the array.  
 - Be minimal — include only the toolsets necessary to handle the request.
