@@ -345,7 +345,7 @@ export function TokenHoldersResult({
                     <TableCell className="max-w-xs px-4 py-4">
                       <div className="flex flex-col justify-center gap-1">
                         <div className="font-mono">
-                          <TooltipProvider>
+                          <TooltipProvider delayDuration={0}>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <a

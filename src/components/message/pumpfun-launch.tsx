@@ -65,7 +65,7 @@ function DetailItem({
     <div className="flex items-center justify-between gap-4 rounded-lg border bg-card/50 p-3">
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium text-muted-foreground">{label}</div>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="w-fit cursor-help font-mono text-sm">
@@ -79,7 +79,7 @@ function DetailItem({
         </TooltipProvider>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <TooltipProvider>
+        <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -99,7 +99,7 @@ function DetailItem({
           </Tooltip>
         </TooltipProvider>
         {showExternalLink && link && (
-          <TooltipProvider>
+          <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
