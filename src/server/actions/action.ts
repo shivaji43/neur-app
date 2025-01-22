@@ -37,7 +37,7 @@ export async function processAction(action: ActionWithUser) {
 
   // flags for successful execution
   let successfulExecution = false;
-  let noToolExecution = false;
+  let noToolExecution = true;
 
   try {
     const conversation = await dbGetConversation({
@@ -84,6 +84,17 @@ export async function processAction(action: ActionWithUser) {
       startTime,
       `[action:${action.id}] getToolsFromOrchestrator completed`,
     );
+
+    // Check for any unknown tools
+    for (const toolName of toolsRequired ?? []) {
+      if (toolName.startsWith('INVALID_TOOL:')) {
+        console.error(
+          `[action:${action.id}] Unknown tool requested ${toolName}, skipping action`,
+        );
+        successfulExecution = false;
+        return;
+      }
+    }
 
     const tools = toolsRequired
       ? getToolsFromRequiredTools(toolsRequired)
@@ -144,8 +155,8 @@ export async function processAction(action: ActionWithUser) {
         return { ...toolCall, args: JSON.stringify(repairedArgs) };
       },
       onStepFinish({ toolResults, stepType }) {
-        if (stepType === 'initial' && toolResults.length === 0) {
-          noToolExecution = true;
+        if (stepType === 'tool-result' && toolResults.length > 0) {
+          noToolExecution = false;
         }
       },
       maxSteps: 15,

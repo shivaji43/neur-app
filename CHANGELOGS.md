@@ -1,5 +1,9 @@
 # Changelogs
 
+## v0.2.2
+
+- Improved action graceful failure logic
+
 ## v0.2.1
 
 - Fix navigation issue
