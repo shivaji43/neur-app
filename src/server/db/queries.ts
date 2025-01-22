@@ -221,9 +221,9 @@ export async function dbGetConversations({ userId }: { userId: string }) {
  * @returns {Promise<Action[]>} Array of actions
  */
 export async function dbGetActions({
-  triggered,
-  paused,
-  completed,
+  triggered = true,
+  paused = false,
+  completed = false,
 }: {
   triggered: boolean;
   paused: boolean;
@@ -235,6 +235,10 @@ export async function dbGetActions({
         triggered,
         paused,
         completed,
+        OR: [
+          { startTime: { lte: new Date() } },
+          { startTime: null }
+        ]
       },
       orderBy: { createdAt: 'desc' },
       include: { user: { include: { wallets: true } } },
@@ -401,6 +405,7 @@ export async function dbUpdateAction({
   try {
     // Validate and clean the data before update
     const validData = {
+      name: data.name,
       description: data.description,
       frequency: data.frequency === 0 ? null : data.frequency,
       maxExecutions: data.maxExecutions === 0 ? null : data.maxExecutions,

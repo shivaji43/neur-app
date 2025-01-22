@@ -37,7 +37,7 @@ export function LoadingStateSkeleton() {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">
-                        Connected Wallet
+                        Early Access Program
                       </Label>
                       <div className="mt-1">
                         <Skeleton className="h-6 w-full" />
@@ -45,7 +45,7 @@ export function LoadingStateSkeleton() {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">
-                        Synapses
+                        Degen Mode
                       </Label>
                       <div className="mt-1 flex flex-col items-center">
                         <Skeleton className="h-8 w-full" />

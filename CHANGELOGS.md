@@ -1,5 +1,16 @@
 # Changelogs
 
+## v0.2.2
+
+- Improved action graceful failure logic
+
+## v0.2.1
+
+- Fix navigation issue
+- Degen mode for skipping confirmations
+- Dynamic action scheduling
+- UI fixes
+
 ## v0.2.0
 
 - Improve Telegram notification connection & reliability

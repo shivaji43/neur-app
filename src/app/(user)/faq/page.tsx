@@ -54,7 +54,7 @@ const faqItems: FaqItem[] = [
           should see a `Connect` button next to Discord. Tap on that and connect
           to the Discord server.
           <br />
-          Once that is copmleted, you should now be `EAP VERIFIED` and see
+          Once that is completed, you should now be `EAP VERIFIED` and see
           custom Discord channels for EAP users. Your name will also be color
           differentiated from other users.
         </span>
