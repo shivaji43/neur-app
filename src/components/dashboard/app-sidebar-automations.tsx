@@ -48,6 +48,7 @@ import { useActions } from '@/hooks/use-actions';
 import { useUser } from '@/hooks/use-user';
 import { EVENTS } from '@/lib/events';
 import { cn } from '@/lib/utils';
+import { NO_CONFIRMATION_MESSAGE } from '@/lib/constants';
 
 interface ActionMenuItemProps {
   action: Action;
@@ -62,10 +63,12 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
-    description: action.description,
-    frequency: action.frequency || 0,
-    maxExecutions: action.maxExecutions || 0,
+    name: action.name || action.description,
+    description: action.description.replace(NO_CONFIRMATION_MESSAGE, ''),
+    frequency: action.frequency ?? null,
+    maxExecutions: action.maxExecutions ?? null,
   });
 
   const handleDelete = async () => {
@@ -93,9 +96,10 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
 
     try {
       const result = await onEdit(action.id, {
-        description: formData.description,
-        frequency: formData.frequency || null,
-        maxExecutions: formData.maxExecutions || null,
+        name: formData.name,
+        description: formData.description + NO_CONFIRMATION_MESSAGE,
+        frequency: formData.frequency,
+        maxExecutions: formData.maxExecutions,
       });
 
       if (result?.success) {
@@ -118,7 +122,7 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
       <SidebarMenuItem>
         <SidebarMenuButton asChild>
           <Link href={`/chat/${action.conversationId}`}>
-            <span>{action.description}</span>
+            <span>{action.name}</span>
           </Link>
         </SidebarMenuButton>
         <DropdownMenu>
@@ -154,6 +158,21 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                placeholder="Enter action name"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="description">Message</Label>
               <Input
                 id="description"
@@ -173,11 +192,11 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
               <Input
                 id="frequency"
                 type="number"
-                value={formData.frequency}
+                value={formData.frequency ?? ''}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    frequency: parseInt(e.target.value),
+                    frequency: e.target.value ? parseInt(e.target.value, 10) : null, // Parse or null
                   }))
                 }
                 placeholder="Enter frequency in seconds"
@@ -189,11 +208,11 @@ const ActionMenuItem = ({ action, onDelete, onEdit }: ActionMenuItemProps) => {
               <Input
                 id="maxExecutions"
                 type="number"
-                value={formData.maxExecutions}
+                value={formData.maxExecutions ?? ''}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    maxExecutions: parseInt(e.target.value),
+                    maxExecutions: e.target.value ? parseInt(e.target.value, 10) : null, // Parse or null
                   }))
                 }
                 placeholder="Enter max executions"

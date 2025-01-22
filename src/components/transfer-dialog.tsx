@@ -87,7 +87,6 @@ export function TokenTransferDialog({
       });
 
       if (!response?.data?.success || !response?.data?.data) {
-        console.error(response);
         toast.error('Transaction failed. Please try again.');
         return;
       }

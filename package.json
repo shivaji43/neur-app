@@ -1,6 +1,6 @@
 {
   "name": "neur-app",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "vercel-build": "NODE_OPTIONS=--max_old_space_size=2048 pnpm npx prisma generate && next build",
@@ -38,6 +38,7 @@
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@remixicon/react": "^4.6.0",
     "@solana/spl-token": "^0.4.9",
@@ -69,7 +70,7 @@
     "recharts": "^2.15.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
-    "solana-agent-kit": "github:slimeonmyhead/solana-agent-kit#9f8b3a5afafe9e14dec694c3c99fcbd19d84e70c",
+    "solana-agent-kit": "github:slimeonmyhead/solana-agent-kit#c571e8b59ed7d399a705578af2d58c95f7e9e826",
     "sonner": "^1.7.2",
     "swr": "^2.3.0",
     "tailwind-merge": "^2.6.0",

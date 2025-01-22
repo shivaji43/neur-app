@@ -15,6 +15,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   earlyAccess Boolean @default(false)
+  degenMode  Boolean @default(false)
 
   wallets       Wallet[]
   conversations Conversation[]
@@ -105,6 +106,7 @@ model Action {
   stoppedBy      Int[] // Array of rule IDs required to stop this action
   frequency      Int? // Frequency in seconds (e.g., 3600 for 1 hour, 86400 for 1 day)
   maxExecutions  Int? // Times to execute before stopping
+  name           String?   @db.VarChar(255) // User defined name for the action
   description    String    @db.VarChar(255) // Human readable description of the action, or message to send to AI
   actionType     String    @db.VarChar(255) // Type of action (e.g., "call_function", "invoke_api")
   params         Json? // JSON object for action parameters (e.g., inputs for the function)
@@ -118,6 +120,7 @@ model Action {
   priority       Int       @default(0) // Priority level for execution, higher numbers execute first
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  startTime      DateTime? // Time to start executing the action
 
   user         User         @relation(fields: [userId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id])

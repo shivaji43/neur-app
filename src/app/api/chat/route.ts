@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   const session = await verifyUser();
   const userId = session?.data?.data?.id;
   const publicKey = session?.data?.data?.publicKey;
+  const degenMode = session?.data?.data?.degenMode;
 
   if (!userId) {
     return new Response('Unauthorized', { status: 401 });
@@ -124,6 +125,7 @@ export async function POST(req: Request) {
       `User Solana wallet public key: ${publicKey}`,
       `User ID: ${userId}`,
       `Conversation ID: ${conversationId}`,
+      `Degen Mode: ${degenMode}`,
     ].join('\n\n');
 
     // Filter out empty messages and ensure sorting by createdAt ascending
@@ -168,7 +170,12 @@ export async function POST(req: Request) {
 
         // Exclude the confirmation tool if we are handling a confirmation
         const { toolsRequired, usage: orchestratorUsage } =
-          await getToolsFromOrchestrator(relevant, confirmationHandled);
+          await getToolsFromOrchestrator(
+            relevant,
+            degenMode || confirmationHandled,
+          );
+
+        console.log('toolsRequired', toolsRequired);
 
         logWithTiming(
           startTime,

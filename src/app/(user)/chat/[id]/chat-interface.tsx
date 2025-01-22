@@ -341,7 +341,7 @@ function ChatMessage({
 
       <div
         className={cn(
-          'relative flex max-w-[85%] flex-col gap-2',
+          'relative max-w-[85%] gap-2',
           isUser ? 'items-end' : 'items-start',
         )}
       >
@@ -366,7 +366,7 @@ function ChatMessage({
           >
             <div
               className={cn(
-                'prose max-w-none leading-tight',
+                'prose prose-sm max-w-prose break-words leading-tight md:prose-base',
                 isUser
                   ? 'prose-invert dark:prose-neutral'
                   : 'prose-neutral dark:prose-invert',
@@ -814,7 +814,7 @@ export default function ChatInterface({
                 onPaste={handlePaste}
                 placeholder="Send a message..."
                 className={cn(
-                  'min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-[1.3rem] focus-visible:ring-0',
+                  'min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-[1.3rem] text-base focus-visible:ring-0',
                   attachments.length > 0 ? 'rounded-t-none' : 'rounded-t-2xl',
                 )}
                 maxLength={MAX_CHARS}

@@ -14,7 +14,7 @@ export const Confirmation = ({
   addResultUtility: (result: string) => void;
 }) => {
   return (
-    <div className={message ? 'w-full' : ''}>
+    <div className={message ? 'mt-2 w-full' : 'mt-2'}>
       <div className={message ? 'w-full rounded-lg bg-muted/40 px-3 py-2' : ''}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div
@@ -33,7 +33,7 @@ export const Confirmation = ({
           </span>
         </div>
       </div>
-      <div className="mt-2 px-4">
+      <div className="mt-2 sm:px-4">
         {!message && (
           <div className="mt-px px-3">
             <div className="h-20 animate-pulse rounded-lg bg-muted/40" />

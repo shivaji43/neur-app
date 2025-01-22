@@ -290,16 +290,16 @@ export function HomeContent() {
 
   if (!hasEAP) {
     return (
-      <div className="relative h-screen w-full overflow-hidden">
+      <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
         {mainContent}
         <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <div className="mx-auto w-full max-w-xl px-6">
-            <Card className="relative overflow-hidden border-white/[0.1] bg-white/[0.02] p-8 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02]">
+          <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
+            <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-white/[0.02] dark:from-white/[0.02] dark:to-white/[0.01]" />
               <div className="relative space-y-6">
                 <div className="space-y-2 text-center">
-                  <h2 className="text-2xl font-semibold">
+                  <h2 className="text-lg font-semibold sm:text-2xl">
                     Early Access Program
                   </h2>
                   <div className="text-muted-foreground">
@@ -315,7 +315,7 @@ export function HomeContent() {
                     {EAP_BENEFITS.map((benefit, index) => (
                       <div key={index} className="flex items-start gap-2">
                         <CheckCircle2 className="mt-1 h-4 w-4 text-teal-500" />
-                        <span className="text-sm">{benefit}</span>
+                        <span className="text-xs sm:text-sm">{benefit}</span>
                       </div>
                     ))}
                   </div>
@@ -323,12 +323,14 @@ export function HomeContent() {
 
                 <div className="rounded-lg bg-white/[0.01] p-4 backdrop-blur-sm dark:bg-black/[0.01]">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium">Payment</span>
-                    <span className="text-lg font-semibold">
+                    <span className="text:xs font-medium sm:text-sm">
+                      Payment
+                    </span>
+                    <span className="text-base font-semibold sm:text-lg">
                       {EAP_PRICE} SOL
                     </span>
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs text-muted-foreground sm:text-sm">
                     Funds will be allocated to cover expenses such as LLM
                     integration, RPC data services, infrastructure maintenance,
                     and other operational costs, all aimed at ensuring the
@@ -341,7 +343,7 @@ export function HomeContent() {
                     href="https://x.com/neur_sh"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
                   >
                     <RiTwitterXFill className="mr-2 h-4 w-4" />
                     Follow Updates
@@ -349,7 +351,7 @@ export function HomeContent() {
                   <Button
                     onClick={handlePurchase}
                     disabled={isProcessing}
-                    className="bg-teal-500/70 ring-offset-0 hover:bg-teal-500/90 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-teal-500/60 dark:hover:bg-teal-500/80"
+                    className="bg-teal-500/70 text-xs ring-offset-0 hover:bg-teal-500/90 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-teal-500/60 dark:hover:bg-teal-500/80 sm:text-sm"
                   >
                     {isProcessing ? (
                       <>
@@ -371,23 +373,26 @@ export function HomeContent() {
 
   return (
     <div className="relative h-screen">
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-300',
-          showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
-        )}
-      >
-        {mainContent}
-      </div>
-
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-300',
-          showChat ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-      >
-        <ChatInterface id={chatId} initialMessages={messages} />
-      </div>
+      {!showChat && (
+        <div
+          className={cn(
+            'absolute inset-0 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ',
+            showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
+          )}
+        >
+          {mainContent}
+        </div>
+      )}
+      {showChat && (
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-300',
+            showChat ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        >
+          <ChatInterface id={chatId} initialMessages={messages} />
+        </div>
+      )}
     </div>
   );
 }

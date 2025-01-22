@@ -1,5 +1,7 @@
 'use client';
 
+import { startTransition, useOptimistic } from 'react';
+
 import { useRouter } from 'next/navigation';
 
 import {
@@ -12,6 +14,8 @@ import {
   usePrivy,
 } from '@privy-io/react-auth';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { HelpCircle } from 'lucide-react';
+import { mutate } from 'swr';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +24,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CopyableText } from '@/components/ui/copyable-text';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
 import { useEmbeddedWallets } from '@/hooks/use-wallets';
 import { cn } from '@/lib/utils';
@@ -27,8 +38,10 @@ import {
   formatPrivyId,
   formatUserCreationDate,
   formatWalletAddress,
+  truncate,
 } from '@/lib/utils/format';
 import { getUserID, grantDiscordRole } from '@/lib/utils/grant-discord-role';
+import { type UserUpdateData, updateUser } from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
 import { LoadingStateSkeleton } from './loading-skeleton';
@@ -48,6 +61,16 @@ export function AccountContent() {
     linkWallet,
     unlinkWallet,
   } = useUser();
+
+  const [optimisticUser, updateOptimisticUser] = useOptimistic(
+    {
+      degenMode: user?.degenMode || false,
+    },
+    (state, update: UserUpdateData) => ({
+      ...state,
+      ...update,
+    }),
+  );
 
   const {
     data: embeddedWallets = [],
@@ -121,6 +144,17 @@ export function AccountContent() {
     ...legacyWallets.map((w) => w.publicKey),
   ];
 
+  const handleUpdateUser = async (data: UserUpdateData) => {
+    startTransition(() => {
+      updateOptimisticUser(data);
+    });
+
+    const result = await updateUser(data);
+    if (result.success) {
+      await mutate(`user-${userData.privyId}`);
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col py-8">
       <div className="w-full px-8">
@@ -191,6 +225,38 @@ export function AccountContent() {
                         )}
                       </div>
                     </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          Degen Mode
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/70" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Enable Degen Mode to skip confirmation prompts
+                                for on-chain actions
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <div className="mt-1 flex h-8 items-center justify-between">
+                        <span className={cn('text-sm font-medium')}>
+                          {optimisticUser.degenMode ? 'Enabled' : 'Disabled'}
+                        </span>
+                        <Switch
+                          checked={optimisticUser.degenMode}
+                          onCheckedChange={async (checked) => {
+                            await handleUpdateUser({ degenMode: checked });
+                          }}
+                          aria-label="Toggle degen mode"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -223,9 +289,16 @@ export function AccountContent() {
                       <div>
                         <p className="text-sm font-medium">Wallet</p>
                         <p className="text-xs text-muted-foreground">
-                          {linkedSolanaWallet?.address
-                            ? `${linkedSolanaWallet?.address}`
-                            : 'Not connected'}
+                          <span className="hidden sm:inline">
+                            {linkedSolanaWallet?.address
+                              ? linkedSolanaWallet?.address
+                              : 'Not connected'}
+                          </span>
+                          <span className="sm:hidden">
+                            {linkedSolanaWallet?.address
+                              ? truncate(linkedSolanaWallet?.address)
+                              : 'Not connected'}
+                          </span>
                         </p>
                       </div>
                     </div>

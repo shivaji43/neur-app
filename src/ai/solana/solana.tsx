@@ -207,7 +207,7 @@ export function SwapResult({ result }: { result: SwapResult }) {
         {slippageBps ? ` (slippage ${slippageBps} bps)` : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-1 text-xs md:grid-cols-2 md:gap-x-6 md:gap-y-2">
+      <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm md:grid-cols-2 md:gap-x-6 md:gap-y-2">
         <div className="flex flex-col">
           <span className="text-muted-foreground">Input Mint</span>
           <span className="font-medium">{truncatedInput}</span>
@@ -345,7 +345,7 @@ export function TokenHoldersResult({
                     <TableCell className="max-w-xs px-4 py-4">
                       <div className="flex flex-col justify-center gap-1">
                         <div className="font-mono">
-                          <TooltipProvider>
+                          <TooltipProvider delayDuration={0}>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <a
@@ -433,7 +433,7 @@ export function TransferResult({ result }: { result: TransferResult }) {
         {truncatedReceiver}
       </div>
 
-      <div className="grid grid-cols-1 gap-1 text-xs md:grid-cols-2 md:gap-x-6 md:gap-y-2">
+      <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm md:grid-cols-2 md:gap-x-6 md:gap-y-2">
         <div className="flex flex-col">
           <span className="text-muted-foreground">Token Address</span>
           <span className="font-medium">{truncatedTokenAddress}</span>

@@ -4,12 +4,14 @@ import { ActionEmitter } from '@/components/action-emitter';
 import { Card } from '@/components/ui/card';
 import { verifyUser } from '@/server/actions/user';
 import { dbCreateAction } from '@/server/db/queries';
+import { NO_CONFIRMATION_MESSAGE } from '@/lib/constants';
 
 interface CreateActionResultProps {
   id: string;
   description: string;
   frequency: number;
   maxExecutions: number | null;
+  startTime: number | null;
 }
 
 function getFrequencyLabel(frequency: number): string {
@@ -29,27 +31,20 @@ function getFrequencyLabel(frequency: number): string {
   }
 }
 
-const NO_CONFIRMATION_MESSAGE = ' (Does not require confirmation)';
-function getNextExecutionTime(frequency: number): string {
-  // TODO: improve this - currently server executes actions every 15 minutes
-  const now = new Date();
-
-  // Set to next 15 minute interval
-  const next15 = new Date(now);
-  next15.setMilliseconds(0);
-  next15.setSeconds(0);
-
-  const minutes = next15.getMinutes();
-  const remainder = minutes % 15;
-
-  if (remainder === 0) {
-    // Already on a quarter-hour mark; move to the next one
-    next15.setMinutes(minutes + 15);
-  } else {
-    // Round up to the next quarter-hour
-    next15.setMinutes(minutes + (15 - remainder));
+function getNextExecutionTime(startTime: number | null): string {
+  if (startTime) {
+    return new Date(startTime).toLocaleString();
   }
-  return next15.toLocaleString();
+
+  // Set to the next minute interval
+  const nextMinute = new Date();
+  nextMinute.setMilliseconds(0); // Reset milliseconds
+  nextMinute.setSeconds(0); // Reset seconds
+
+  const currentMinutes = nextMinute.getMinutes();
+  nextMinute.setMinutes(currentMinutes + 1); // Move to the next minute
+
+  return nextMinute.toLocaleString();
 }
 
 function CreateActionResult({
@@ -57,9 +52,10 @@ function CreateActionResult({
   description,
   frequency,
   maxExecutions,
+  startTime
 }: CreateActionResultProps) {
   const frequencyLabel = getFrequencyLabel(frequency);
-  const nextExecution = getNextExecutionTime(frequency);
+  const nextExecution = getNextExecutionTime(startTime);
 
   return (
     <Card className="bg-card p-6">
@@ -114,6 +110,11 @@ const createActionTool = {
     conversationId: z
       .string()
       .describe('Conversation that the action belongs to'),
+    name: z
+      .string()
+      .describe(
+        'Shorthand human readable name to classify the action.',
+      ),
     description: z
       .string()
       .describe(
@@ -128,6 +129,10 @@ const createActionTool = {
       .number()
       .optional()
       .describe('Max number of times the action can be executed'),
+    startTimeOffset: z
+      .number()
+      .optional()
+      .describe('Offset in milliseconds for how long to wait before starting the action. Useful for scheduling actions in the future, e.g. 1 hour from now = 3600000'),
   }),
   execute: async function (
     params: z.infer<typeof this.parameters>,
@@ -140,9 +145,13 @@ const createActionTool = {
         return { success: false, error: 'Unauthorized' };
       }
 
+      console.log('action params');
+      console.dir(params);
+
       const action = await dbCreateAction({
         userId,
         conversationId: params.conversationId,
+        name: params.name,
         description: `${params.description}${NO_CONFIRMATION_MESSAGE}`,
         actionType: 'default',
         frequency: params.frequency,
@@ -160,6 +169,7 @@ const createActionTool = {
         lastExecutedAt: null,
         lastFailureAt: null,
         lastSuccessAt: null,
+        startTime: params.startTimeOffset ? new Date(Date.now() + params.startTimeOffset) : null,
       });
 
       if (!action) {
@@ -197,11 +207,12 @@ const createActionTool = {
       );
     }
 
-    const { id, description, frequency, maxExecutions } = typedResult.data as {
+    const { id, description, frequency, maxExecutions, startTime } = typedResult.data as {
       id: string;
       description: string;
       frequency: number;
       maxExecutions: number | null;
+      startTime: number | null;
     };
 
     return (
@@ -212,6 +223,7 @@ const createActionTool = {
           description={description}
           frequency={frequency}
           maxExecutions={maxExecutions}
+          startTime={startTime}
         />
       </>
     );
