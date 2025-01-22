@@ -193,6 +193,7 @@ Rules:
 - Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
 - Do not add any text, explanations, or comments outside the array.  
 - Be minimal — include only the toolsets necessary to handle the request.
+- If the request cannot be completed with the available toolsets, return an array describing the unknown tools ["INVALID_TOOL:\${INVALID_TOOL_NAME}"].
 
 Available Tools:
 ${Object.entries(defaultTools)
