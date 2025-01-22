@@ -32,7 +32,13 @@ export type PrismaUser = _PrismaUser & {
 
 export type NeurUser = Pick<
   PrismaUser,
-  'id' | 'privyId' | 'createdAt' | 'updatedAt' | 'earlyAccess' | 'wallets'
+  | 'id'
+  | 'privyId'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'earlyAccess'
+  | 'wallets'
+  | 'degenMode'
 > & {
   privyUser: PrivyUser;
   hasEAP: boolean;

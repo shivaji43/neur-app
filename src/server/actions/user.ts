@@ -1,9 +1,8 @@
 'use server';
 
+import { revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 
-import { Wallet } from '@prisma/client';
-import { Email } from '@privy-io/react-auth';
 import { PrivyClient } from '@privy-io/server-auth';
 import { WalletWithMetadata } from '@privy-io/server-auth';
 import { z } from 'zod';
@@ -92,7 +91,12 @@ const getOrCreateUser = actionClient
   });
 
 export const verifyUser = actionClient.action<
-  ActionResponse<{ id: string; publicKey?: string }>
+  ActionResponse<{
+    id: string;
+    degenMode: boolean;
+    publicKey?: string;
+    privyId: string;
+  }>
 >(async () => {
   const token = (await cookies()).get('privy-token')?.value;
   if (!token) {
@@ -108,6 +112,8 @@ export const verifyUser = actionClient.action<
       where: { privyId: claims.userId },
       select: {
         id: true,
+        degenMode: true,
+        privyId: true,
         wallets: {
           select: {
             publicKey: true,
@@ -130,7 +136,9 @@ export const verifyUser = actionClient.action<
       success: true,
       data: {
         id: user.id,
+        privyId: user.privyId,
         publicKey: user.wallets[0]?.publicKey,
+        degenMode: user.degenMode,
       },
     };
   } catch {
@@ -240,3 +248,26 @@ export const syncEmbeddedWallets = actionClient.action<
 export const getPrivyClient = actionClient.action(
   async () => PRIVY_SERVER_CLIENT,
 );
+
+export type UserUpdateData = {
+  degenMode?: boolean;
+};
+export async function updateUser(data: UserUpdateData) {
+  try {
+    const authResult = await verifyUser();
+    const userId = authResult?.data?.data?.id;
+    const privyId = authResult?.data?.data?.privyId;
+
+    if (!userId) {
+      return { success: false, error: 'UNAUTHORIZED' };
+    }
+    await prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+    revalidateTag(`user-${privyId}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update user' };
+  }
+}
