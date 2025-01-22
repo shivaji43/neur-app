@@ -24,6 +24,7 @@ import { useUser } from '@/hooks/use-user';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
+import { getSavedPrompts } from '@/server/actions/saved-prompt';
 
 import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
@@ -77,14 +78,10 @@ export function HomeContent() {
   useEffect(() => {
     async function fetchSavedPrompts() {
       try {
-        const res = await fetch('/api/saved-prompts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const data = await res.json();
-        setSavedPrompts(data);
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
+
+        setSavedPrompts(savedPrompts);
       } catch (err) {
         console.error(err);
       }

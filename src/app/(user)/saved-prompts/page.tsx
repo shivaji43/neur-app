@@ -9,6 +9,13 @@ import { toast } from 'sonner';
 
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/hooks/use-user';
+import {
+  createSavedPrompt,
+  deleteSavedPrompt,
+  editSavedPrompt,
+  getSavedPrompts,
+  setIsFavoriteSavedPrompt,
+} from '@/server/actions/saved-prompt';
 
 import { DeletePromptDialog } from './components/delete-prompt-dialog';
 import { EditPromptDialog } from './components/edit-prompt-dialog';
@@ -63,15 +70,10 @@ export default function SavedPromptsPage() {
   useEffect(() => {
     async function fetchSavedPrompts() {
       try {
-        const res = await fetch('/api/saved-prompts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
 
-        const data = await res.json();
-        setSavedPrompts(data);
+        setSavedPrompts(savedPrompts);
         setIsLoading(false);
       } catch (err) {
         console.error(err);
@@ -84,7 +86,7 @@ export default function SavedPromptsPage() {
   // Primary Filter: Filter based on options, e.g. Recently used (or) Edited recently
   const primaryFilteredPrompts = useMemo(() => {
     if (filter === 'favorites') {
-      return savedPrompts.filter((prompt) => prompt.favorite);
+      return savedPrompts.filter((prompt) => prompt.isFavorite);
     }
 
     const promptsToSort = [...savedPrompts];
@@ -140,40 +142,34 @@ export default function SavedPromptsPage() {
       return;
     }
 
-    if (!title.trim()) {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
       toast.error('Title cannot be empty');
       return;
     }
 
-    if (!content.trim()) {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
       toast.error('Prompt cannot be empty');
       return;
     }
 
     setIsLoading(true);
-    toast.promise(
-      fetch('/api/saved-prompts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          title: title.trim(),
-          content: content.trim(),
-        }),
-      })
-        .then(async (response) => {
-          const data = await response.json();
-          setSavedPrompts((old) => {
-            return [...old, data];
-          });
 
-          resetPromptAction();
-        })
-        .catch((error) => {
-          console.error('Failed to save prompt:', { error });
-        }),
+    toast.promise(
+      createSavedPrompt({
+        title: trimmedTitle,
+        content: trimmedContent,
+      }).then(async (res) => {
+        if (!res?.data?.data) {
+          throw new Error();
+        }
+
+        const savedPrompt = res.data.data;
+        setSavedPrompts((old) => [...old, savedPrompt]);
+
+        resetPromptAction();
+      }),
       {
         loading: 'Saving prompt...',
         success: 'Prompt saved',
@@ -185,29 +181,18 @@ export default function SavedPromptsPage() {
   }
 
   async function handleDeletePrompt() {
-    if (promptAction.id === '') return;
+    if (!promptAction.id) return;
 
     setIsLoading(true);
-    toast.promise(
-      fetch('/api/saved-prompts', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: promptAction.id,
-        }),
-      })
-        .then(() => {
-          setSavedPrompts((old) =>
-            old.filter((element) => element.id !== promptAction.id),
-          );
 
-          resetPromptAction();
-        })
-        .catch((error) => {
-          console.error('Failed to delete prompt:', error);
-        }),
+    toast.promise(
+      deleteSavedPrompt({ id: promptAction.id }).then(() => {
+        setSavedPrompts((old) =>
+          old.filter((element) => element.id !== promptAction.id),
+        );
+
+        resetPromptAction();
+      }),
       {
         loading: 'Deleting prompt...',
         success: 'Prompt deleted',
@@ -219,7 +204,10 @@ export default function SavedPromptsPage() {
   }
 
   async function handleEditPrompt() {
-    if (promptAction.id === '') return;
+    if (!promptAction.id) {
+      toast.error('Prompt not found');
+      return;
+    }
 
     if (!title.trim()) {
       toast.error('Title cannot be empty');
@@ -233,33 +221,26 @@ export default function SavedPromptsPage() {
 
     setIsLoading(true);
     toast.promise(
-      fetch('/api/saved-prompts/edit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: promptAction.id,
-          title: title.trim(),
-          content: content.trim(),
-        }),
-      })
-        .then(async (res) => {
-          const { title, content, updatedAt } = await res.json();
+      editSavedPrompt({
+        id: promptAction.id,
+        title: title.trim(),
+        content: content.trim(),
+      }).then(async (res) => {
+        if (!res?.data?.data) {
+          throw new Error();
+        }
 
-          setSavedPrompts((old) =>
-            old.map((element) =>
-              element.id === promptAction.id
-                ? { ...element, title: title, content, updatedAt }
-                : element,
-            ),
-          );
+        const { id, title, content, updatedAt } = res.data.data;
+        setSavedPrompts((old) =>
+          old.map((element) =>
+            element.id === id
+              ? { ...element, title: title, content, updatedAt }
+              : element,
+          ),
+        );
 
-          resetPromptAction();
-        })
-        .catch((error) => {
-          console.error('Failed to edit prompt:', error);
-        }),
+        resetPromptAction();
+      }),
       {
         loading: 'Editing prompt...',
         success: 'Prompt edited',
@@ -270,35 +251,27 @@ export default function SavedPromptsPage() {
     setIsLoading(false);
   }
 
-  async function handleAddToFavorites(id: string, favorite: boolean) {
+  async function handleAddToFavorites(id: string, isFavorite: boolean) {
     toast.promise(
-      fetch('/api/saved-prompts/favorite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-          favorite,
-        }),
-      })
-        .then(() => {
-          setSavedPrompts((old) =>
-            old.map((element) =>
-              element.id === id ? { ...element, favorite } : element,
-            ),
-          );
+      setIsFavoriteSavedPrompt({ id, isFavorite }).then((res) => {
+        if (!res?.data?.data) {
+          throw new Error();
+        }
 
-          resetPromptAction();
-        })
-        .catch((error) => {
-          console.error('Failed to add prompt to favorites:', error);
-        }),
+        const { id, isFavorite } = res.data.data;
+        setSavedPrompts((old) =>
+          old.map((element) =>
+            element.id === id ? { ...element, isFavorite } : element,
+          ),
+        );
+
+        resetPromptAction();
+      }),
       {
-        loading: favorite
+        loading: isFavorite
           ? 'Adding to favorites...'
           : 'Removing from favorites...',
-        success: favorite
+        success: isFavorite
           ? 'Prompt added to favorites'
           : 'Prompt removed from favorites',
         error: 'Failed to add to favorites',
@@ -391,12 +364,12 @@ export default function SavedPromptsPage() {
                   <button
                     className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                     onClick={() =>
-                      handleAddToFavorites(prompt.id, !prompt.favorite)
+                      handleAddToFavorites(prompt.id, !prompt.isFavorite)
                     }
                   >
                     <Star
-                      fill={prompt.favorite ? 'hsl(var(--favorite))' : ''}
-                      className={`${!prompt.favorite && 'hidden'} ${prompt.favorite && 'text-favorite'} h-4 w-4 group-hover:block`}
+                      fill={prompt.isFavorite ? 'hsl(var(--favorite))' : ''}
+                      className={`${!prompt.isFavorite && 'hidden'} ${prompt.isFavorite && 'text-favorite'} h-4 w-4 group-hover:block`}
                     />
                   </button>
                   <button

@@ -41,6 +41,11 @@ import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
+import {
+  createSavedPrompt,
+  getSavedPrompts,
+  setSavedPromptLastUsedAt,
+} from '@/server/actions/saved-prompt';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 import { SavedPromptsMenu } from './components/saved-prompts-menu';
@@ -341,27 +346,19 @@ function ChatMessage({
       toast.error('Unauthorized');
       return;
     }
+
     toast.promise(
-      fetch('/api/saved-prompts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          title: message.content.trim().slice(0, 30),
-          content: message.content.trim(),
-        }),
-      })
-        .then(async (response) => {
-          const data = await response.json();
-          setSavedPrompts((old) => {
-            return [...old, data];
-          });
-        })
-        .catch((error) => {
-          console.error('Failed to save prompt:', { error });
-        }),
+      createSavedPrompt({
+        title: message.content.trim().slice(0, 30),
+        content: message.content.trim(),
+      }).then((res) => {
+        if (!res?.data?.data) {
+          throw new Error();
+        }
+
+        const savedPrompt = res?.data?.data;
+        setSavedPrompts((old) => [...old, savedPrompt]);
+      }),
       {
         loading: 'Saving prompt...',
         success: 'Prompt saved',
@@ -764,19 +761,17 @@ export default function ChatInterface({
   useEffect(() => {
     async function fetchSavedPrompts() {
       try {
-        const res = await fetch('/api/saved-prompts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const data = await res.json();
-        setSavedPrompts(data);
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
+
+        setSavedPrompts(savedPrompts);
       } catch (err) {
         console.error(err);
       }
+
       setIsFetchingSavedPrompts(false);
     }
+
     fetchSavedPrompts();
   }, []);
 
@@ -834,23 +829,16 @@ export default function ChatInterface({
 
   async function updatePromptLastUsedAt(id: string) {
     try {
-      const response = await fetch('/api/saved-prompts/update-lastUsedAt', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id,
-        }),
-      });
+      const res = await setSavedPromptLastUsedAt({ id });
+      if (!res?.data?.data) {
+        throw new Error();
+      }
 
-      const data = await response.json();
+      const { lastUsedAt } = res.data.data;
 
       setSavedPrompts((old) =>
         old.map((prompt) =>
-          prompt.id !== id
-            ? prompt
-            : { ...prompt, lastUsedAt: data.lastUsedAt },
+          prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
         ),
       );
     } catch (error) {

@@ -8,7 +8,7 @@ CREATE TABLE "saved_prompts" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "lastUsedAt" TIMESTAMP(3),
-    "favorite" BOOLEAN NOT NULL DEFAULT false,
+    "isFavorite" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "saved_prompts_pkey" PRIMARY KEY ("id")
 );

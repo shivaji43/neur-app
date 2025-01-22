@@ -442,7 +442,7 @@ export async function dbGetSavedPrompts({ userId }: { userId: string }) {
       userId,
       error,
     });
-    return null;
+    return [];
   }
 }
 
@@ -503,23 +503,23 @@ export async function dbUpdateSavedPrompt({
 }
 
 /**
- * Updates status 'favorite' of saved prompt for a user
+ * Updates status 'isFavorite' of saved prompt for a user
  */
-export async function dbSetFavoritePrompt({
+export async function dbUpdateSavedPromptIsFavorite({
   id,
-  favorite,
+  isFavorite,
 }: {
   id: string;
-  favorite: boolean;
+  isFavorite: boolean;
 }) {
   try {
-    await prisma.savedPrompt.update({
+    return await prisma.savedPrompt.update({
       where: { id },
-      data: { favorite },
+      data: { isFavorite },
     });
   } catch (error) {
     console.error(
-      '[DB Error] Failed to update status -favorite- of saved prompt:',
+      '[DB Error] Failed to update status -isFavorite- of saved prompt:',
       {
         id,
         error,
@@ -531,7 +531,7 @@ export async function dbSetFavoritePrompt({
 /**
  * Updates status 'lastUsedAt' of saved prompt for a user
  */
-export async function dbUpdatePromptLastUsedAt({ id }: { id: string }) {
+export async function dbUpdateSavedPromptLastUsedAt({ id }: { id: string }) {
   try {
     const prompt = await prisma.savedPrompt.update({
       where: { id },
@@ -557,12 +557,16 @@ export async function dbUpdatePromptLastUsedAt({ id }: { id: string }) {
  */
 export async function dbDeleteSavedPrompt({ id }: { id: string }) {
   try {
-    await prisma.savedPrompt.delete({
+    const deletedPrompt = await prisma.savedPrompt.delete({
       where: { id },
     });
+
+    return !!deletedPrompt;
   } catch (error) {
     console.error('[DB Error] Failed to delete Saved Prompt:', {
       id,
     });
+
+    return false;
   }
 }
