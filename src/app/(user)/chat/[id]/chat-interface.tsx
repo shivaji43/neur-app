@@ -396,7 +396,7 @@ function ChatMessage({
         {isUser && (
           <button
             onClick={handleSavePrompt}
-            className="mr-1 hidden group-hover:block pl-4 pt-4 pb-4 pr-2"
+            className="mr-1 hidden group-hover:block hover:text-favorite pl-4 pt-4 pb-4 pr-2"
           >
             <Bookmark className="h-4 w-4" />
           </button>
