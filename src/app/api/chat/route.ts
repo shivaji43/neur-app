@@ -7,6 +7,7 @@ import {
   appendResponseMessages,
   createDataStreamResponse,
   generateObject,
+  smoothStream,
   streamText,
 } from 'ai';
 import { performance } from 'perf_hooks';
@@ -224,6 +225,7 @@ export async function POST(req: Request) {
             });
             return { ...toolCall, args: JSON.stringify(repairedArgs) };
           },
+          experimental_transform: smoothStream(),
           maxSteps: 15,
           messages: relevant,
           async onFinish({ response, usage }) {

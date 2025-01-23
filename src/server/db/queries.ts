@@ -132,16 +132,33 @@ export async function dbGetConversationMessages({
   limit?: number;
 }) {
   try {
+    // Double the limit to ensure we include all necessary context if required
+    const extendedLimit = limit ? limit * 2 : undefined;
+
     const messages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: limit
+      orderBy: extendedLimit
         ? { createdAt: 'desc' }
         : [{ createdAt: 'asc' }, { role: 'asc' }],
-      take: limit,
+      take: extendedLimit,
     });
 
-    const migratedMessages = convertToUIMessages(messages);
-    return migratedMessages;
+    if (extendedLimit) {
+      // Post-process to include all messages up to the first `user` role
+      let includeMessages = [];
+      for (let i = 0; i < messages.length; i++) {
+        includeMessages.push(messages[i]);
+
+        // Stop if we've reached the first `user` role AND we've fetched at least the original limit
+        if (messages[i].role === 'user' && includeMessages.length >= limit!) {
+          break;
+        }
+      }
+
+      return convertToUIMessages(includeMessages);
+    } else {
+      return convertToUIMessages(messages);
+    }
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
       conversationId,

@@ -277,6 +277,7 @@ function MessageToolInvocations({
             result !== null &&
             'error' in result;
           const config = getToolConfig(toolName)!;
+          // TODO: fix intermitent issue where config is undefined
           const finalDisplayName = displayName || config.displayName;
 
           const header = (
@@ -395,7 +396,7 @@ function ChatMessage({
         {isUser && (
           <button
             onClick={handleSavePrompt}
-            className="mr-1 hidden group-hover:block"
+            className="mr-1 hidden group-hover:block pl-4 pt-4 pb-4 pr-2"
           >
             <Bookmark className="h-4 w-4" />
           </button>

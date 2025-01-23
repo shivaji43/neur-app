@@ -26,6 +26,24 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: 'strict',
+  fetch: async (url, options) => {
+    const body = JSON.parse(options!.body! as string);
+
+    // attach openrouter provider order to body
+    const modifiedBody = {
+      ...body,
+      provider: {
+        order: ['Anthropic', 'OpenAI'],
+        allow_fallbacks: false,
+      },
+    }
+    
+    options!.body = JSON.stringify(modifiedBody);
+
+    // console.log(options!.body);
+
+    return await fetch(url, options);
+  },
 });
 
 export const orchestratorModel = openai('gpt-4o-mini');
@@ -76,6 +94,7 @@ Response Formatting:
 - Use an abbreviated format for transaction signatures
 
 Common knowledge:
+- { token: NEUR, description: The native token of Neur, twitter: @neur_sh, website: https://neur.sh/, address: 3N2ETvNpPNAxhcaXgkhKoY1yDnQfs41Wnxsx5qNJpump }
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
 
 Realtime knowledge:
@@ -156,7 +175,7 @@ export const toolsets: Record<
   defiTools: {
     tools: ['solanaTools', 'dexscreenerTools'],
     description:
-      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions.',
+      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token information and details.',
   },
   traderTools: {
     tools: ['birdeyeTools'],
