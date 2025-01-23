@@ -124,7 +124,11 @@ export function convertToUIMessages(
     try {
       parsedContent = JSON.parse(parsedContent);
     } catch (error) {
-      if (message.content || message.toolInvocations) {
+      if (
+        message.content ||
+        (Array.isArray(message.toolInvocations) &&
+          message.toolInvocations.length > 0)
+      ) {
         // If content is not JSON, treat it as a simple text message
         chatMessages.push({
           id: message.id,
