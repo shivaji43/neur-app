@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { SavedPrompt } from '@prisma/client';
 import { RiTwitterXFill } from '@remixicon/react';
 import { JSONValue } from 'ai';
 import { useChat } from 'ai/react';
@@ -23,6 +24,7 @@ import { useUser } from '@/hooks/use-user';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
+import { getSavedPrompts } from '@/server/actions/saved-prompt';
 
 import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
@@ -54,6 +56,9 @@ function SectionTitle({ children }: SectionTitleProps) {
 
 export function HomeContent() {
   const pathname = usePathname();
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [isFetchingSavedPrompts, setIsFetchingSavedPrompts] =
+    useState<boolean>(true);
   const suggestions = useMemo(() => getRandomSuggestions(4), []);
   const [showChat, setShowChat] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,6 +73,21 @@ export function HomeContent() {
   const resetChat = useCallback(() => {
     setShowChat(false);
     setChatId(uuidv4());
+  }, []);
+
+  useEffect(() => {
+    async function fetchSavedPrompts() {
+      try {
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
+
+        setSavedPrompts(savedPrompts);
+      } catch (err) {
+        console.error(err);
+      }
+      setIsFetchingSavedPrompts(false);
+    }
+    fetchSavedPrompts();
   }, []);
 
   const { messages, input, handleSubmit, setInput } = useChat({
@@ -275,6 +295,35 @@ export function HomeContent() {
                 </div>
               </div>
             </BlurFade>
+
+            {!isFetchingSavedPrompts && savedPrompts.length !== 0 && (
+              <BlurFade delay={0.3}>
+                <div className="space-y-2">
+                  <SectionTitle>Saved Prompts</SectionTitle>
+                  {isFetchingSavedPrompts ? (
+                    <div className="flex w-full items-center justify-center pt-20">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      {savedPrompts
+                        .slice(0, Math.min(4, savedPrompts.length))
+                        .map((savedPrompt, index) => (
+                          <SuggestionCard
+                            id={savedPrompt.id}
+                            useSubtitle={true}
+                            title={savedPrompt.title}
+                            subtitle={savedPrompt.content}
+                            key={savedPrompt.id}
+                            delay={0.3 + index * 0.1}
+                            onSelect={setInput}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </BlurFade>
+            )}
 
             <BlurFade delay={0.4}>
               <div className="space-y-2">

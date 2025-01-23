@@ -1,15 +1,30 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import Image from 'next/image';
 
+import { SavedPrompt } from '@prisma/client';
 import { Attachment, JSONValue, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { Image as ImageIcon, Loader2, SendHorizontal, X } from 'lucide-react';
+import {
+  Bookmark,
+  Image as ImageIcon,
+  Loader2,
+  SendHorizontal,
+  X,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { toast } from 'sonner';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
@@ -22,10 +37,18 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
+import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
+import {
+  createSavedPrompt,
+  getSavedPrompts,
+  setSavedPromptLastUsedAt,
+} from '@/server/actions/saved-prompt';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
+
+import { SavedPromptsMenu } from './components/saved-prompts-menu';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -55,6 +78,7 @@ interface ChatMessageProps {
   message: Message;
   index: number;
   messages: Message[];
+  setSavedPrompts: React.Dispatch<SetStateAction<SavedPrompt[]>>;
   onPreviewImage: (preview: ImagePreview) => void;
   addToolResult: (result: ToolResult) => void;
 }
@@ -304,6 +328,7 @@ function ChatMessage({
   message,
   index,
   messages,
+  setSavedPrompts,
   onPreviewImage,
   addToolResult,
 }: ChatMessageProps) {
@@ -314,6 +339,33 @@ function ChatMessage({
   const showAvatar =
     !isUser && (index === 0 || messages[index - 1].role === 'user');
   const isConsecutive = index > 0 && messages[index - 1].role === message.role;
+  const { user } = useUser();
+
+  async function handleSavePrompt() {
+    if (!user) {
+      toast.error('Unauthorized');
+      return;
+    }
+
+    toast.promise(
+      createSavedPrompt({
+        title: message.content.trim().slice(0, 30),
+        content: message.content.trim(),
+      }).then((res) => {
+        if (!res?.data?.data) {
+          throw new Error();
+        }
+
+        const savedPrompt = res?.data?.data;
+        setSavedPrompts((old) => [...old, savedPrompt]);
+      }),
+      {
+        loading: 'Saving prompt...',
+        success: 'Prompt saved',
+        error: 'Failed to save prompt',
+      },
+    );
+  }
 
   // Preprocess content to handle image dimensions
   const processedContent = message.content?.replace(
@@ -339,104 +391,111 @@ function ChatMessage({
         <div className="w-8" aria-hidden="true" />
       ) : null}
 
-      <div
-        className={cn(
-          'relative max-w-[85%] gap-2',
-          isUser ? 'items-end' : 'items-start',
-        )}
-      >
-        {hasAttachments && (
-          <div
-            className={cn('w-full max-w-[400px]', message.content && 'mb-2')}
+      <div className="group relative flex max-w-[85%] flex-row items-center">
+        {isUser && (
+          <button
+            onClick={handleSavePrompt}
+            className="mr-1 hidden group-hover:block"
           >
-            <MessageAttachments
-              attachments={message.experimental_attachments!}
-              messageId={message.id}
-              onPreviewImage={onPreviewImage}
-            />
-          </div>
+            <Bookmark className="h-4 w-4" />
+          </button>
         )}
+        <div
+          className={cn('relative gap-2', isUser ? 'items-end' : 'items-start')}
+        >
+          {hasAttachments && (
+            <div
+              className={cn('w-full max-w-[400px]', message.content && 'mb-2')}
+            >
+              <MessageAttachments
+                attachments={message.experimental_attachments!}
+                messageId={message.id}
+                onPreviewImage={onPreviewImage}
+              />
+            </div>
+          )}
 
-        {message.content && (
-          <div
-            className={cn(
-              'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
-              isUser ? 'bg-primary' : 'bg-muted/60',
-            )}
-          >
+          {message.content && (
             <div
               className={cn(
-                'prose prose-sm max-w-prose break-words leading-tight md:prose-base',
-                isUser
-                  ? 'prose-invert dark:prose-neutral'
-                  : 'prose-neutral dark:prose-invert',
+                'relative flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm',
+                isUser ? 'bg-primary' : 'bg-muted/60',
               )}
             >
-              <ReactMarkdown
-                rehypePlugins={[rehypeRaw]}
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ node, ...props }) => (
-                    <a {...props} target="_blank" rel="noopener noreferrer" />
-                  ),
-                  img: ({ node, alt, src, ...props }) => {
-                    if (!src) return null;
-
-                    try {
-                      // Handle both relative and absolute URLs safely
-                      const url = new URL(src, 'http://dummy.com');
-                      const size = url.hash.match(/size=(\d+)x(\d+)/);
-
-                      if (size) {
-                        const [, width, height] = size;
-                        // Remove hash from src
-                        url.hash = '';
-                        return (
-                          <Image
-                            src={url.pathname + url.search}
-                            alt={alt || ''}
-                            width={Number(width)}
-                            height={Number(height)}
-                            className="inline-block align-middle"
-                          />
-                        );
-                      }
-                    } catch (e) {
-                      // If URL parsing fails, fallback to original src
-                      console.warn('Failed to parse image URL:', e);
-                    }
-
-                    const thumbnailPattern = /_thumb\.(png|jpg|jpeg|gif)$/i;
-                    const isThumbnail = thumbnailPattern.test(src);
-
-                    const width = isThumbnail ? 40 : 500;
-                    const height = isThumbnail ? 40 : 300;
-
-                    // Fallback to Image component with default dimensions
-                    return (
-                      <Image
-                        src={src}
-                        alt={alt || ''}
-                        width={width}
-                        height={height}
-                        className="inline-block align-middle"
-                      />
-                    );
-                  },
-                }}
+              <div
+                className={cn(
+                  'prose prose-sm max-w-prose break-words leading-tight md:prose-base',
+                  isUser
+                    ? 'prose-invert dark:prose-neutral'
+                    : 'prose-neutral dark:prose-invert',
+                )}
               >
-                {processedContent}
-              </ReactMarkdown>
-            </div>
-          </div>
-        )}
+                <ReactMarkdown
+                  rehypePlugins={[rehypeRaw]}
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a {...props} target="_blank" rel="noopener noreferrer" />
+                    ),
+                    img: ({ node, alt, src, ...props }) => {
+                      if (!src) return null;
 
-        {message.toolInvocations && (
-          <MessageToolInvocations
-            toolInvocations={message.toolInvocations}
-            addToolResult={addToolResult}
-          />
-        )}
+                      try {
+                        // Handle both relative and absolute URLs safely
+                        const url = new URL(src, 'http://dummy.com');
+                        const size = url.hash.match(/size=(\d+)x(\d+)/);
+
+                        if (size) {
+                          const [, width, height] = size;
+                          // Remove hash from src
+                          url.hash = '';
+                          return (
+                            <Image
+                              src={url.pathname + url.search}
+                              alt={alt || ''}
+                              width={Number(width)}
+                              height={Number(height)}
+                              className="inline-block align-middle"
+                            />
+                          );
+                        }
+                      } catch (e) {
+                        // If URL parsing fails, fallback to original src
+                        console.warn('Failed to parse image URL:', e);
+                      }
+
+                      const thumbnailPattern = /_thumb\.(png|jpg|jpeg|gif)$/i;
+                      const isThumbnail = thumbnailPattern.test(src);
+
+                      const width = isThumbnail ? 40 : 500;
+                      const height = isThumbnail ? 40 : 300;
+
+                      // Fallback to Image component with default dimensions
+                      return (
+                        <Image
+                          src={src}
+                          alt={alt || ''}
+                          width={width}
+                          height={height}
+                          className="inline-block align-middle"
+                        />
+                      );
+                    },
+                  }}
+                >
+                  {processedContent}
+                </ReactMarkdown>
+              </div>
+            </div>
+          )}
+
+          {message.toolInvocations && (
+            <MessageToolInvocations
+              toolInvocations={message.toolInvocations}
+              addToolResult={addToolResult}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -635,6 +694,7 @@ export default function ChatInterface({
     isLoading,
     addToolResult,
     data,
+    setInput,
     setMessages,
   } = useChat({
     id,
@@ -681,6 +741,8 @@ export default function ChatInterface({
     },
   });
 
+  const [isFetchingSavedPrompts, setIsFetchingSavedPrompts] = useState(true);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -692,6 +754,23 @@ export default function ChatInterface({
     isLoading: isPortfolioLoading,
     refresh,
   } = useWalletPortfolio();
+
+  useEffect(() => {
+    async function fetchSavedPrompts() {
+      try {
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
+
+        setSavedPrompts(savedPrompts);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setIsFetchingSavedPrompts(false);
+    }
+
+    fetchSavedPrompts();
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -745,7 +824,35 @@ export default function ChatInterface({
     scrollToBottom();
   };
 
+  async function updatePromptLastUsedAt(id: string) {
+    try {
+      const res = await setSavedPromptLastUsedAt({ id });
+      if (!res?.data?.data) {
+        throw new Error();
+      }
+
+      const { lastUsedAt } = res.data.data;
+
+      setSavedPrompts((old) =>
+        old.map((prompt) =>
+          prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to update -lastUsedAt- for prompt:', { error });
+    }
+  }
+
+  function handlePromptMenuClick(subtitle: string) {
+    setInput(subtitle);
+  }
+
   useAnimationEffect();
+  const filteredPrompts = input.startsWith('/')
+    ? savedPrompts.filter((savedPrompt) =>
+        savedPrompt.title.toLowerCase().includes(input.slice(1).toLowerCase()),
+      )
+    : savedPrompts;
 
   return (
     <div className="flex h-full flex-col">
@@ -758,6 +865,7 @@ export default function ChatInterface({
                 message={message}
                 index={index}
                 messages={messages}
+                setSavedPrompts={setSavedPrompts}
                 onPreviewImage={setPreviewImage}
                 addToolResult={addToolResult}
               />
@@ -779,7 +887,16 @@ export default function ChatInterface({
             <FloatingWallet data={portfolio} isLoading={isPortfolioLoading} />
           )}
 
-          <form onSubmit={handleFormSubmit} className="space-y-4">
+          <form onSubmit={handleFormSubmit} className="relative space-y-4">
+            <SavedPromptsMenu
+              input={input}
+              isFetchingSavedPrompts={isFetchingSavedPrompts}
+              savedPrompts={savedPrompts}
+              filteredPrompts={filteredPrompts}
+              onPromptClick={handlePromptMenuClick}
+              updatePromptLastUsedAt={updatePromptLastUsedAt}
+            />
+
             <div className="relative overflow-hidden rounded-2xl bg-muted">
               {attachments.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto rounded-t-2xl bg-muted/50 p-3">
