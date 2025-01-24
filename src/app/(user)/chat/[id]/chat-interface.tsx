@@ -49,6 +49,7 @@ import {
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 import { SavedPromptsMenu } from './components/saved-prompts-menu';
+import { EVENTS } from '@/lib/events';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -730,7 +731,6 @@ export default function ChatInterface({
   // Use polling for fetching new messages
   usePolling({
     url: `/api/chat/${id}`,
-    id,
     onUpdate: (data: Message[]) => {
       if (!data) {
         return;
@@ -739,6 +739,8 @@ export default function ChatInterface({
       if (data && data.length) {
         setMessages(data);
       }
+
+      window.dispatchEvent(new CustomEvent(EVENTS.CONVERSATION_READ));
     },
   });
 

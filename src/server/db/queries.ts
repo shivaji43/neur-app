@@ -15,15 +15,26 @@ import { NewAction } from '@/types/db';
 export async function dbGetConversation({
   conversationId,
   includeMessages,
+  isServer,
 }: {
   conversationId: string;
   includeMessages?: boolean;
+  isServer?: boolean;
 }) {
   try {
-    return await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: includeMessages ? { messages: true } : undefined,
-    });
+    // Mark conversation as read if user is fetching
+    if (!isServer) {
+      return await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAt: new Date() },
+        include: includeMessages ? { messages: true } : undefined,
+      });
+    } else {
+      return await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: includeMessages ? { messages: true } : undefined,
+      });
+    }
   } catch (error) {
     console.error('[DB Error] Failed to get conversation:', {
       conversationId,
@@ -76,6 +87,13 @@ export async function dbCreateMessages({
   messages: Omit<PrismaMessage, 'id' | 'createdAt'>[];
 }) {
   try {
+    // Update conversation last message timestamp
+    const lastMessage = messages[messages.length - 1];
+    await prisma.conversation.update({
+      where: { id: lastMessage.conversationId },
+      data: { lastMessageAt: new Date() },
+    });
+
     return await prisma.message.createManyAndReturn({
       data: messages as Prisma.MessageCreateManyInput[],
     });
@@ -127,11 +145,21 @@ export async function dbUpdateMessageToolInvocations({
 export async function dbGetConversationMessages({
   conversationId,
   limit,
+  isServer,
 }: {
   conversationId: string;
   limit?: number;
+  isServer?: boolean;
 }) {
   try {
+    // Mark conversation as read if user is fetching
+    if (!isServer) {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAt: new Date() },
+      });
+    }
+
     // Double the limit to ensure we include all necessary context if required
     const extendedLimit = limit ? limit * 2 : undefined;
 
@@ -145,7 +173,7 @@ export async function dbGetConversationMessages({
 
     if (extendedLimit) {
       // Post-process to include all messages up to the first `user` role
-      let includeMessages = [];
+      const includeMessages = [];
       for (let i = 0; i < messages.length; i++) {
         includeMessages.push(messages[i]);
 

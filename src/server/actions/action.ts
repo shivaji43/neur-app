@@ -42,6 +42,7 @@ export async function processAction(action: ActionWithUser) {
   try {
     const conversation = await dbGetConversation({
       conversationId: action.conversationId,
+      isServer: true,
     });
 
     if (!conversation) {
@@ -174,9 +175,12 @@ export async function processAction(action: ActionWithUser) {
     });
 
     // Increment createdAt by 1ms to avoid duplicate timestamps
+    const now = new Date();
     finalMessages.forEach((m, index) => {
       if (m.createdAt) {
         m.createdAt = new Date(m.createdAt.getTime() + index);
+      } else {
+        m.createdAt = new Date(now.getTime() + index);
       }
     });
 
@@ -186,6 +190,7 @@ export async function processAction(action: ActionWithUser) {
       messages: finalMessages.map((message) => {
         return {
           conversationId: action.conversationId,
+          createdAt: message.createdAt,
           role: message.role,
           content: message.content,
           toolInvocations: message.toolInvocations

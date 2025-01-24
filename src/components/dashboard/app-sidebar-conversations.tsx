@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { Conversation } from '@prisma/client';
 import {
+  Bell,
   ChevronDown,
   Loader2,
   MoreHorizontal,
@@ -50,6 +51,8 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
 } from '../ui/sidebar';
+import { Tooltip, TooltipTrigger } from '../ui/tooltip';
+import usePolling from '@/hooks/use-polling';
 
 interface ConversationMenuItemProps {
   id: string;
@@ -57,6 +60,9 @@ interface ConversationMenuItemProps {
   active?: boolean;
   onDelete: (id: string) => Promise<void>;
   onRename: (id: string, newTitle: string) => Promise<void>;
+  lastMessageAt: Date | null;
+  lastReadAt: Date | null;
+  onMarkAsRead: (id: string) => void;
 }
 
 const ConversationMenuItem = ({
@@ -65,6 +71,9 @@ const ConversationMenuItem = ({
   active,
   onDelete,
   onRename,
+  lastMessageAt,
+  lastReadAt,
+  onMarkAsRead,
 }: ConversationMenuItemProps) => {
   const router = useRouter();
   const [isRenaming, setIsRenaming] = useState(false);
@@ -115,11 +124,20 @@ const ConversationMenuItem = ({
     }
   };
 
+  const hasUnread = lastMessageAt && lastReadAt && lastMessageAt > lastReadAt;
+
   return (
     <>
       <SidebarMenuItem>
         <SidebarMenuButton asChild isActive={active}>
-          <Link href={`/chat/${id}`}>
+          <Link href={`/chat/${id}`} onClick={() => onMarkAsRead(id)}>
+            {hasUnread && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Bell className="h-4 w-4 shrink-0 text-pending" />
+                </TooltipTrigger>
+              </Tooltip>
+            )}
             <span>{title}</span>
           </Link>
         </SidebarMenuButton>
@@ -190,6 +208,7 @@ export const AppSidebarConversations = () => {
     renameConversation,
     setActiveId,
     refreshConversations,
+    markAsRead
   } = useConversations(user?.id);
 
   // Add state for collapsible
@@ -201,7 +220,33 @@ export const AppSidebarConversations = () => {
       ? pathname.split('/')[2]
       : null;
     setActiveId(chatId);
+
+    const handleConversationRead = async () => {
+      if (chatId) {
+        markAsRead(chatId);
+      }
+    };
+
+    window.addEventListener(EVENTS.CONVERSATION_READ, handleConversationRead);
+  
+    return () => {
+      // Cleanup event listener on unmount or dependency change
+      window.removeEventListener(EVENTS.CONVERSATION_READ, handleConversationRead);
+    };
   }, [pathname, setActiveId, conversations, refreshConversations]);
+
+
+  const handleMarkAsRead = (id: string) => {
+    markAsRead(id);
+  };
+  
+  // Use polling for refreshing conversations
+  usePolling({
+    url: null,
+    onUpdate: () => {
+      refreshConversations();
+    },
+  });
 
   if (isUserLoading) {
     return (
@@ -250,6 +295,9 @@ export const AppSidebarConversations = () => {
                     active={conversation.id === activeId}
                     onDelete={deleteConversation}
                     onRename={renameConversation}
+                    lastMessageAt={conversation.lastMessageAt}
+                    lastReadAt={conversation.lastReadAt}
+                    onMarkAsRead={handleMarkAsRead}
                   />
                 ))}
               </SidebarMenu>
