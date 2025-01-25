@@ -158,53 +158,37 @@ export async function dbGetConversationMessages({
   try {
     // Mark conversation as read if user is fetching
     if (!isServer) {
+      console.log('Marking conversation as read', conversationId);
       await prisma.conversation.update({
         where: { id: conversationId },
         data: { lastReadAt: new Date() },
       });
     }
 
-    // Double the limit to ensure we include all necessary context if required
-    const extendedLimit = limit ? limit * 2 : undefined;
-
     const messages = await prisma.message.findMany({
       where: { conversationId },
-      orderBy: extendedLimit
+      orderBy: limit
         ? { createdAt: 'desc' }
         : [{ createdAt: 'asc' }, { role: 'asc' }],
-      take: extendedLimit,
+      take: limit,
     });
 
-    if (extendedLimit) {
-      // Post-process to include all messages up to the first `user` role
-      const includeMessages = [];
-      for (let i = 0; i < messages.length; i++) {
-        includeMessages.push(messages[i]);
+    const uiMessages = convertToUIMessages(messages);
 
-        // Stop if we've reached the first `user` role AND we've fetched at least the original limit
-        if (messages[i].role === 'user' && includeMessages.length >= limit!) {
-          break;
-        }
-      }
-
-      // If our final message is not a user message, add a fake empty user message
-      if (includeMessages[includeMessages.length - 1].role !== 'user') {
-        const lastMessageCreatedAt = includeMessages[includeMessages.length - 1].createdAt;
-        includeMessages.push({
-          id: 'fake',
-          conversationId,
-          createdAt: new Date(lastMessageCreatedAt.getTime() - 1),
-          role: 'user',
-          content: 'empty content',
-          toolInvocations: [],
-          experimental_attachments: [],
-        });
-      }
-
-      return convertToUIMessages(includeMessages);
-    } else {
-      return convertToUIMessages(messages);
+    // If our final message is not a user message, add a fake empty user message
+    if (limit && uiMessages.length && uiMessages[uiMessages.length - 1].role !== 'user') {
+      const lastMessageAt = uiMessages[uiMessages.length - 1].createdAt || new Date(1);
+      uiMessages.push({
+        id: 'fake',
+        createdAt: new Date(lastMessageAt.getTime() - 1),
+        role: 'user',
+        content: 'user message',
+        toolInvocations: [],
+        experimental_attachments: [],
+      });
     }
+
+    return uiMessages;
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
       conversationId,

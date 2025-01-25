@@ -705,9 +705,14 @@ export default function ChatInterface({
     sendExtraMessageFields: true,
     body: { id },
     onFinish: () => {
-      window.history.replaceState({}, '', `/chat/${id}`);
+      if (window.location.pathname === `/chat/${id}`) {
+        window.history.replaceState({}, '', `/chat/${id}`);
+      }
       // Refresh wallet portfolio after AI response
       refresh();
+
+      // Dispatch event to mark conversation as read
+      window.dispatchEvent(new CustomEvent(EVENTS.CONVERSATION_READ));
     },
     experimental_prepareRequestBody: ({ messages }) => {
       return {

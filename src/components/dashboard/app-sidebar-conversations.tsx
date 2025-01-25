@@ -53,6 +53,7 @@ import {
 } from '../ui/sidebar';
 import { Tooltip, TooltipTrigger } from '../ui/tooltip';
 import usePolling from '@/hooks/use-polling';
+import { markConversationAsRead } from '@/server/actions/conversation';
 
 interface ConversationMenuItemProps {
   id: string;
@@ -208,7 +209,7 @@ export const AppSidebarConversations = () => {
     renameConversation,
     setActiveId,
     refreshConversations,
-    markAsRead
+    markAsRead,
   } = useConversations(user?.id);
 
   // Add state for collapsible
@@ -219,11 +220,12 @@ export const AppSidebarConversations = () => {
     const chatId = pathname.startsWith('/chat/')
       ? pathname.split('/')[2]
       : null;
+
     setActiveId(chatId);
 
     const handleConversationRead = async () => {
       if (chatId) {
-        markAsRead(chatId);
+        handleMarkAsRead(chatId);
       }
     };
 
@@ -237,7 +239,11 @@ export const AppSidebarConversations = () => {
 
 
   const handleMarkAsRead = (id: string) => {
+    // Update conversation in local store
     markAsRead(id);
+
+    // Emit event to update conversation read status
+    markConversationAsRead({ id });
   };
   
   // Use polling for refreshing conversations
