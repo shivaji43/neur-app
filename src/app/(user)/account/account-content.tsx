@@ -45,10 +45,16 @@ import { type UserUpdateData, updateUser } from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
 import { LoadingStateSkeleton } from './loading-skeleton';
+import { useState } from 'react';
+import { SubscriptionSection } from '@/components/subscription/subscription-section';
+import { reactivateUser, subscribeUser, unsubscribeUser } from '@/server/actions/subscription';
+import { toast } from 'sonner';
 
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
+  const [isSubscribing, setIsSubscribing] = useState(false)
+
   const {
     isLoading: isUserLoading,
     user,
@@ -88,6 +94,78 @@ export function AccountContent() {
     },
   });
 
+  const handleSubscribe = async () => {
+    if (!privyUser?.wallet?.address) return;
+
+    try {
+      setIsSubscribing(true);
+      const response = await subscribeUser();
+
+      if (response?.data?.success) {
+        toast.success('Subscribed successfully');
+      } else if (response?.data?.error) {
+        toast.error('Failed to subscribe', {
+          description: response.data.error,
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to subscribe', {
+        description: 'Could not subscribe due to an unknown error',
+      });
+    } finally {
+      setIsSubscribing(false);
+      handleUpdateUser({});
+    }
+  }
+
+  const handleReactivate = async () => {
+    if (!privyUser?.wallet?.address) return;
+
+    try {
+      setIsSubscribing(true);
+      const response = await reactivateUser();
+
+      if (response?.data?.success) {
+        toast.success('Reactivated subscription');
+      } else if (response?.data?.error) {
+        toast.error('Failed to reactivate subscription', {
+          description: response.data.error,
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to reactivate subscription', {
+        description: 'Could not subscribe due to an unknown error',
+      });
+    } finally {
+      setIsSubscribing(false);
+      handleUpdateUser({});
+    }
+  }
+
+  const handleUnsubscribe = async () => {
+    if (!privyUser?.wallet?.address) return;
+
+    try {
+      setIsSubscribing(true)
+      const response = await unsubscribeUser();
+
+      if (response?.data?.success) {
+        toast.success('Unsubscribed successfully');
+      } else if (response?.data?.error) {
+        toast.error('Failed to unsubscribe', {
+          description: response.data.error,
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to unsubscribe', {
+        description: 'Could not unsubscribe due to an unknown error',
+      });
+    } finally {
+      setIsSubscribing(false);
+      handleUpdateUser({});
+    }
+  }
+
   if (isUserLoading || isWalletsLoading || !user) {
     return <LoadingStateSkeleton />;
   }
@@ -116,6 +194,9 @@ export function AccountContent() {
   const legacyWallets = embeddedWallets.filter(
     (w: EmbeddedWallet) => w.walletSource === 'CUSTOM' && w.chain === 'SOLANA',
   );
+
+  const activeWallet = embeddedWallets.find((w) => w.active);
+  const IS_SUBSCRIPTION_ENABLED = `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(
@@ -212,7 +293,7 @@ export function AccountContent() {
                           {user?.earlyAccess ? 'Active' : 'Not Active'}
                         </span>
 
-                        {!user?.earlyAccess && (
+                        {!user?.earlyAccess && !IS_SUBSCRIPTION_ENABLED && (
                           <div className="ml-auto">
                             <Button
                               variant="default"
@@ -440,6 +521,58 @@ export function AccountContent() {
               </CardContent>
             </Card>
           </section>
+          
+          {/* Subscription Section (displayed only if user is not EAP) */}
+          {user?.earlyAccess && IS_SUBSCRIPTION_ENABLED ? (
+            <section className="space-y-4">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Subscription Management
+              </h2>
+              <Card className="bg-sidebar">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="text-sm font-medium">EAP Status - subscription not required ❤️</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          ) : activeWallet && IS_SUBSCRIPTION_ENABLED ? (
+            <SubscriptionSection
+              isSubscribed={user?.subscription?.active ?? false}
+              nextPaymentDate={user?.subscription?.nextPaymentDate ? new Date(user?.subscription?.nextPaymentDate) : undefined}
+              endDate={user?.subscription?.endDate ? new Date(user?.subscription?.endDate) : undefined}
+              wallet={activeWallet}
+              paymentHistory={user?.subscription?.payments}
+              onSubscribe={handleSubscribe}
+              onUnsubscribe={handleUnsubscribe}
+              onReactivate={handleReactivate}
+            />
+          ) : IS_SUBSCRIPTION_ENABLED ? (
+            <section className="space-y-4">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Subscription Management
+              </h2>
+              <Card className="bg-sidebar">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="text-sm font-medium">Please ensure you have an active embedded wallet.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          ): null }
 
           {/* Privy Embedded Wallet Section */}
           <section className="space-y-4">

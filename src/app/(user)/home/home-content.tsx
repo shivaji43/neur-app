@@ -22,7 +22,7 @@ import TypingAnimation from '@/components/ui/typing-animation';
 import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
 import { SolanaUtils } from '@/lib/solana';
-import { cn } from '@/lib/utils';
+import { cn, getSubPriceFloat } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
 import { getSavedPrompts } from '@/server/actions/saved-prompt';
 
@@ -151,7 +151,8 @@ export function HomeContent() {
   const handleSend = async (value: string) => {
     if (!value.trim()) return;
 
-    if (!user?.earlyAccess) {
+    // If user is not in EAP or no active subscription, don't allow sending messages
+    if (!user?.earlyAccess && !user?.subscription?.active) {
       return;
     }
 
@@ -258,7 +259,7 @@ export function HomeContent() {
     <div
       className={cn(
         'mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6',
-        !hasEAP ? 'h-screen py-0' : 'py-12',
+        !hasEAP && !user?.subscription?.active ? 'h-screen py-0' : 'py-12',
       )}
     >
       <BlurFade delay={0.2}>
@@ -337,7 +338,10 @@ export function HomeContent() {
     </div>
   );
 
-  if (!hasEAP) {
+  
+  const IS_SUBSCRIPTION_ENABLED = `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
+
+  if (!IS_SUBSCRIPTION_ENABLED && !hasEAP) {
     return (
       <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
@@ -411,6 +415,61 @@ export function HomeContent() {
                       `Join EAP (${EAP_PRICE} SOL)`
                     )}
                   </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (IS_SUBSCRIPTION_ENABLED && !hasEAP && !user?.subscription?.active) {
+    return (
+      <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
+        <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
+        {mainContent}
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
+            <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-white/[0.02] dark:from-white/[0.02] dark:to-white/[0.01]" />
+              <div className="relative space-y-6">
+                <div className="space-y-2 text-center">
+                  <h2 className="text-lg font-semibold sm:text-2xl">
+                    Subscription Required
+                  </h2>
+                  <div className="text-muted-foreground">
+                    Subscribe to Neur for <Badge>BETA</Badge> access.
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white/[0.01] p-4 backdrop-blur-sm dark:bg-black/[0.01]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text:xs font-medium sm:text-sm">
+                      Monthly Subscription
+                    </span>
+                    <span className="text-base font-semibold sm:text-lg">
+                      {getSubPriceFloat()} SOL
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <Link
+                    href="https://x.com/neur_sh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    <RiTwitterXFill className="mr-2 h-4 w-4" />
+                    Follow Updates
+                  </Link>
+                  <Link
+                    href="/account"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    Manage Account
+                  </Link>
                 </div>
               </div>
             </Card>

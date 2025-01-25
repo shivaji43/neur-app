@@ -47,6 +47,11 @@ const getOrCreateUser = actionClient
             active: true,
           },
         },
+        subscription: {
+          include: {
+            payments: true,
+          }
+        }
       },
     });
 
@@ -86,6 +91,7 @@ const getOrCreateUser = actionClient
             chain: initalWallet.chain,
           },
         ],
+        subscription: null,
       },
     };
   });

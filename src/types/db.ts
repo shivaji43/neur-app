@@ -1,4 +1,4 @@
-import type { Action, Message, Wallet as _PrismaWallet } from '@prisma/client';
+import type { Action, Message, Subscription, SubscriptionPayment, Wallet as _PrismaWallet } from '@prisma/client';
 import { Prisma, User as _PrismaUser } from '@prisma/client';
 import type { Conversation as _PrismaConversation } from '@prisma/client';
 import { User as _PrivyUser } from '@privy-io/react-auth';
@@ -28,6 +28,9 @@ export type PrivyUser = _PrivyUser;
 
 export type PrismaUser = _PrismaUser & {
   wallets: EmbeddedWallet[];
+  subscription: (Subscription & {
+    payments: SubscriptionPayment[];
+  }) | null;
 };
 
 export type NeurUser = Pick<
@@ -39,6 +42,7 @@ export type NeurUser = Pick<
   | 'earlyAccess'
   | 'wallets'
   | 'degenMode'
+  | 'subscription'
 > & {
   privyUser: PrivyUser;
   hasEAP: boolean;

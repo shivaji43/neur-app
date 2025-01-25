@@ -26,6 +26,11 @@ export async function GET(request: Request) {
   // Filter the actions to only include those that are ready to be processed based on their lastExecutedAt and frequency
   const now = new Date();
   const actionsToProcess = actions.filter((action) => {
+    // Filter out actions where user is not EAP or does not have an active subscription
+    if (!action.user || (!action.user.earlyAccess && !action.user.subscription?.active)) {
+      return false;
+    }
+  
     // Filter out actions without a frequency
     if (!action.frequency) {
       return false;

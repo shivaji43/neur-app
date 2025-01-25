@@ -241,7 +241,7 @@ export async function dbGetActions({
         ]
       },
       orderBy: { createdAt: 'desc' },
-      include: { user: { include: { wallets: true } } },
+      include: { user: { include: { wallets: true, subscription: true } } },
     });
   } catch (error) {
     console.error('[DB Error] Failed to get actions:', {
