@@ -216,8 +216,8 @@ Analyze the user's message and return the appropriate tools as a **JSON array of
 Rules:
 - Only include the askForConfirmation tool if the user's message requires a transaction signature or if they are creating an action.
 - Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
-- Do not add any text, explanations, or comments outside the array.  
-- Be minimal — include only the toolsets necessary to handle the request.
+- Do not add any text, explanations, or comments outside the array.
+- Be complete — include all necessary toolsets to handle the request, if you're unsure, it's better to include the tool than to leave it out.
 - If the request cannot be completed with the available toolsets, return an array describing the unknown tools ["INVALID_TOOL:\${INVALID_TOOL_NAME}"].
 
 Available Tools:

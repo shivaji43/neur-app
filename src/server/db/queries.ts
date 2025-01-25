@@ -5,6 +5,7 @@ import _ from 'lodash';
 import prisma from '@/lib/prisma';
 import { convertToUIMessages } from '@/lib/utils';
 import { NewAction } from '@/types/db';
+import { tool } from 'ai';
 
 /**
  * Retrieves a conversation by its ID
@@ -89,10 +90,13 @@ export async function dbCreateMessages({
   try {
     // Update conversation last message timestamp
     const lastMessage = messages[messages.length - 1];
-    await prisma.conversation.update({
-      where: { id: lastMessage.conversationId },
-      data: { lastMessageAt: new Date() },
-    });
+
+    if (lastMessage) {
+      await prisma.conversation.update({
+        where: { id: lastMessage.conversationId },
+        data: { lastMessageAt: new Date() },
+      });
+    }
 
     return await prisma.message.createManyAndReturn({
       data: messages as Prisma.MessageCreateManyInput[],
@@ -181,6 +185,20 @@ export async function dbGetConversationMessages({
         if (messages[i].role === 'user' && includeMessages.length >= limit!) {
           break;
         }
+      }
+
+      // If our final message is not a user message, add a fake empty user message
+      if (includeMessages[includeMessages.length - 1].role !== 'user') {
+        const lastMessageCreatedAt = includeMessages[includeMessages.length - 1].createdAt;
+        includeMessages.push({
+          id: 'fake',
+          conversationId,
+          createdAt: new Date(lastMessageCreatedAt.getTime() - 1),
+          role: 'user',
+          content: 'empty content',
+          toolInvocations: [],
+          experimental_attachments: [],
+        });
       }
 
       return convertToUIMessages(includeMessages);

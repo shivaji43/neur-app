@@ -17,7 +17,6 @@ import {
 } from '@/ai/providers';
 import prisma from '@/lib/prisma';
 import { isValidTokenUsage, logWithTiming } from '@/lib/utils';
-import { retrieveAgentKit } from '@/server/actions/ai';
 import {
   dbCreateMessages,
   dbCreateTokenStat,
@@ -26,6 +25,7 @@ import {
 import { ActionWithUser } from '@/types/db';
 
 import { getToolsFromOrchestrator } from './orchestrator';
+import { retrieveAgentKitServer } from '../utils';
 
 const ACTION_PAUSE_THRESHOLD = 3;
 
@@ -78,8 +78,9 @@ export async function processAction(action: ActionWithUser) {
         ],
         true,
       );
-    const agent = (await retrieveAgentKit({ walletId: activeWallet.id }))?.data
-      ?.data?.agent;
+    const agent = await retrieveAgentKitServer({ userId: action.user.id, walletId: activeWallet.id });
+
+    console.log('toolsRequired', toolsRequired);
 
     logWithTiming(
       startTime,
@@ -106,7 +107,7 @@ export async function processAction(action: ActionWithUser) {
       const tool = clonedTools[toolName as keyof typeof clonedTools];
       clonedTools[toolName as keyof typeof clonedTools] = {
         ...tool,
-        agentKit: agent,
+        agentKit: agent.data?.agent,
         userId: action.userId,
       };
     }
