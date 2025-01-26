@@ -1,5 +1,12 @@
 # Changelogs
 
+## v0.2.3
+
+- Platform performance and stability improvements
+- Automation status UI
+- Conversation read receipts
+- Prompt management
+
 ## v0.2.2
 
 - Improved action graceful failure logic

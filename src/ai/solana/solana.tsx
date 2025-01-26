@@ -592,7 +592,7 @@ const swap = {
     agentKit: null,
     displayName: '🪙 Swap Tokens',
     description:
-      'Swap tokens using Jupiter Exchange with the embedded wallet. (requiresConfirmation)',
+      'Swap tokens using Jupiter Exchange with the embedded wallet. (requires confirmation)',
     parameters: z.object({
       requiresConfirmation: z.boolean().optional().default(true),
       inputMint: publicKeySchema.describe('Source token mint address'),

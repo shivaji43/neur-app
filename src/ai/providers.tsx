@@ -15,6 +15,7 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
+import { birdeyeTools } from './solana/birdeye';
 
 const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -25,6 +26,24 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: 'strict',
+  fetch: async (url, options) => {
+    const body = JSON.parse(options!.body! as string);
+
+    // attach openrouter provider order to body
+    const modifiedBody = {
+      ...body,
+      provider: {
+        order: ['Anthropic', 'OpenAI'],
+        allow_fallbacks: false,
+      },
+    }
+    
+    options!.body = JSON.stringify(modifiedBody);
+
+    // console.log(options!.body);
+
+    return await fetch(url, options);
+  },
 });
 
 export const orchestratorModel = openai('gpt-4o-mini');
@@ -75,6 +94,7 @@ Response Formatting:
 - Use an abbreviated format for transaction signatures
 
 Common knowledge:
+- { token: NEUR, description: The native token of Neur, twitter: @neur_sh, website: https://neur.sh/, address: 3N2ETvNpPNAxhcaXgkhKoY1yDnQfs41Wnxsx5qNJpump }
 - { user: toly, description: Co-Founder of Solana Labs, twitter: @aeyakovenko, wallet: toly.sol }\
 
 Realtime knowledge:
@@ -129,6 +149,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...utilTools,
   ...chartTools,
   ...telegramTools,
+  ...birdeyeTools,
 };
 
 export const coreTools: Record<string, ToolConfig> = {
@@ -154,7 +175,11 @@ export const toolsets: Record<
   defiTools: {
     tools: ['solanaTools', 'dexscreenerTools'],
     description:
-      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token definitions.',
+      'Tools for interacting with DeFi protocols on Solana, including swaps, market data, token information and details.',
+  },
+  traderTools: {
+    tools: ['birdeyeTools'],
+    description: 'Tools for analyzing and tracking traders and trades on Solana DEXes.',
   },
   financeTools: {
     tools: ['definedTools'],
@@ -191,8 +216,8 @@ Analyze the user's message and return the appropriate tools as a **JSON array of
 Rules:
 - Only include the askForConfirmation tool if the user's message requires a transaction signature or if they are creating an action.
 - Only return the toolsets in the format: ["toolset1", "toolset2", ...].  
-- Do not add any text, explanations, or comments outside the array.  
-- Be minimal — include only the toolsets necessary to handle the request.
+- Do not add any text, explanations, or comments outside the array.
+- Be complete — include all necessary toolsets to handle the request, if you're unsure, it's better to include the tool than to leave it out.
 - If the request cannot be completed with the available toolsets, return an array describing the unknown tools ["INVALID_TOOL:\${INVALID_TOOL_NAME}"].
 
 Available Tools:
