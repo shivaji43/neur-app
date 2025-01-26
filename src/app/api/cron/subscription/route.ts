@@ -1,10 +1,11 @@
-import prisma from "@/lib/prisma";
-import { searchWalletAssets } from "@/lib/solana/helius";
-import { canAffordSubscription, getSubPriceFloat } from "@/lib/utils";
-import { transferToken } from "@/server/actions/ai";
-import { SOL_MINT } from "@/types/helius/portfolio";
-import { PaymentError, PaymentErrorCode } from "@/types/subscription";
-import { PaymentStatus, WalletSource } from "@prisma/client";
+import { PaymentStatus } from '@prisma/client';
+
+import prisma from '@/lib/prisma';
+import { searchWalletAssets } from '@/lib/solana/helius';
+import { canAffordSubscription, getSubPriceFloat } from '@/lib/utils';
+import { transferTokenServer } from '@/server/utils';
+import { SOL_MINT } from '@/types/helius/portfolio';
+import { PaymentError, PaymentErrorCode } from '@/types/subscription';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic'; // static by default, unless reading the request
@@ -29,15 +30,19 @@ export async function GET(request: Request) {
     },
     include: {
       user: {
-        include: { wallets: true }
+        include: { wallets: true },
       },
     },
   });
 
-  console.log(`[cron/subscription] Fetched ${activeSubscriptions.length} subscriptions to process`);
+  console.log(
+    `[cron/subscription] Fetched ${activeSubscriptions.length} subscriptions to process`,
+  );
 
   const paymentPromises = activeSubscriptions.map(async (subscription) => {
-    console.log(`[cron/subscription:${subscription.id}] Processing subscription`);
+    console.log(
+      `[cron/subscription:${subscription.id}] Processing subscription`,
+    );
 
     // First, create a new subscription payment record
     const payment = await prisma.subscriptionPayment.create({
@@ -51,36 +56,45 @@ export async function GET(request: Request) {
 
     try {
       // Validate user has valid active wallet
-      const activeWallet = subscription.user?.wallets.find((wallet) => wallet.active);
+      const activeWallet = subscription.user?.wallets.find(
+        (wallet) => wallet.active,
+      );
       if (!activeWallet) {
-        throw new PaymentError(PaymentErrorCode.BAD_WALLET, 'User does not have an active wallet');
+        throw new PaymentError(
+          PaymentErrorCode.BAD_WALLET,
+          'User does not have an active wallet',
+        );
       }
 
       // Check the balance of the Privy wallet
       const portfolio = await searchWalletAssets(activeWallet.publicKey);
       const hasEnoughBalance = canAffordSubscription(portfolio);
       if (!hasEnoughBalance) {
-        throw new PaymentError(PaymentErrorCode.INSUFFICIENT_BALANCE, 'Insufficient balance');
+        throw new PaymentError(
+          PaymentErrorCode.INSUFFICIENT_BALANCE,
+          'Insufficient balance',
+        );
       }
 
       // Initiate the transfer of funds
-      const response = await transferToken({
+      const response = await transferTokenServer({
+        userId: subscription.userId,
         walletId: activeWallet.id,
         receiverAddress: process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!,
         tokenAddress: SOL_MINT,
         amount: getSubPriceFloat(),
         tokenSymbol: 'SOL',
       });
-      
+
       // If successful, update the subscription record and subscription payment record
-      if (response?.data?.success) {
+      if (response?.success) {
         // Mark subscription payment as successful
         await prisma.subscriptionPayment.update({
           where: { id: payment.id },
           data: {
-            status: PaymentStatus.SUCCESS, 
-            transactionHash: response.data?.data?.signature
-          }
+            status: PaymentStatus.SUCCESS,
+            transactionHash: response.data?.signature,
+          },
         });
 
         // Update the subscription record with the next payment date
@@ -93,27 +107,40 @@ export async function GET(request: Request) {
             nextPaymentDate,
           },
         });
-      } else if (!response?.data?.success || !response?.data?.data) {
-        console.error(`[cron/subscription:${subscription.id}] Error in transferToken:`);
+      } else if (!response?.success || !response?.data) {
+        console.error(
+          `[cron/subscription:${subscription.id}] Error in transferToken:`,
+        );
         console.dir(response?.data, { depth: null });
-        throw new PaymentError(PaymentErrorCode.TRANSFER_FAILED, 'Failed to transfer funds');
+        throw new PaymentError(
+          PaymentErrorCode.TRANSFER_FAILED,
+          'Failed to transfer funds',
+        );
       }
     } catch (err: unknown) {
       let errorMessage = 'Unknown error occurred';
       let errorCode = PaymentErrorCode.UNKNOWN;
       if (err instanceof PaymentError) {
-        console.error(`[cron/subscription:${subscription.id}] Payment error occurred: ${err.message} (code: ${err.code})`);
+        console.error(
+          `[cron/subscription:${subscription.id}] Payment error occurred: ${err.message} (code: ${err.code})`,
+        );
         errorMessage = err.message;
         errorCode = err.code;
       } else if (err instanceof Error) {
-        console.error(`[cron/subscription:${subscription.id}] Generic error occurred: ${err.message}`);
+        console.error(
+          `[cron/subscription:${subscription.id}] Generic error occurred: ${err.message}`,
+        );
         errorMessage = err.message;
         errorCode = PaymentErrorCode.EXTERNAL_ERROR;
       } else {
-        console.error(`[cron/subscription:${subscription.id}] Unknown error occurred: ${err}`);
+        console.error(
+          `[cron/subscription:${subscription.id}] Unknown error occurred: ${err}`,
+        );
       }
 
-      console.log(`[cron/subscription:${subscription.id}] Marking subscription payment as failed`);
+      console.log(
+        `[cron/subscription:${subscription.id}] Marking subscription payment as failed`,
+      );
 
       // Mark the subscription as inactive and update the subscription payment status
       await prisma.subscription.update({
@@ -148,19 +175,25 @@ export async function GET(request: Request) {
     },
   });
 
-  console.log(`[cron/subscription] Fetched ${inactiveSubscriptions.length} subscriptions to cancel`);
+  console.log(
+    `[cron/subscription] Fetched ${inactiveSubscriptions.length} subscriptions to cancel`,
+  );
 
-  const cancellationPromises = inactiveSubscriptions.map(async (subscription) => {
-    console.log(`[cron/subscription:${subscription.id}] Cancelling subscription`);
+  const cancellationPromises = inactiveSubscriptions.map(
+    async (subscription) => {
+      console.log(
+        `[cron/subscription:${subscription.id}] Cancelling subscription`,
+      );
 
-    // Mark the subscription as inactive
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        active: false,
-      },
-    });
-  });
+      // Mark the subscription as inactive
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          active: false,
+        },
+      });
+    },
+  );
 
   await Promise.allSettled(cancellationPromises);
 
