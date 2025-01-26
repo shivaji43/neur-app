@@ -30,6 +30,7 @@ import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
+import { EVENTS } from '@/lib/events';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
@@ -97,7 +98,10 @@ export function HomeContent() {
     onFinish: () => {
       // Only refresh if we have a new conversation that's not in the list
       if (chatId && !conversations?.find((conv) => conv.id === chatId)) {
-        refreshConversations();
+        refreshConversations().then(() => {
+          // Dispatch event to mark conversation as read
+          window.dispatchEvent(new CustomEvent(EVENTS.CONVERSATION_READ));
+        });
       }
     },
     experimental_prepareRequestBody: ({ messages }) => {
