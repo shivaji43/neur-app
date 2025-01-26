@@ -1,7 +1,10 @@
 export class PaymentError extends Error {
-  constructor(public code: number, message: string) {
-      super(message);
-      this.name = "NeurPaymentError";
+  constructor(
+    public code: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'NeurPaymentError';
   }
 }
 

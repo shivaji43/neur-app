@@ -27,10 +27,13 @@ export async function GET(request: Request) {
   const now = new Date();
   const actionsToProcess = actions.filter((action) => {
     // Filter out actions where user is not EAP or does not have an active subscription
-    if (!action.user || (!action.user.earlyAccess && !action.user.subscription?.active)) {
+    if (
+      !action.user ||
+      (!action.user.earlyAccess && !action.user.subscription?.active)
+    ) {
       return false;
     }
-  
+
     // Filter out actions without a frequency
     if (!action.frequency) {
       return false;

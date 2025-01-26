@@ -1,4 +1,3 @@
-import { EmbeddedWallet } from '@/types/db';
 import { Message as PrismaMessage } from '@prisma/client';
 import {
   Attachment,
@@ -9,8 +8,11 @@ import {
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { searchWalletAssets } from './solana/helius';
+
+import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
+
+import { searchWalletAssets } from './solana/helius';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -228,16 +230,20 @@ export function logWithTiming(startTime: number, message: string) {
   console.log(`${message} (${elapsedTime}ms)`);
 }
 
-export function canAffordSubscription(walletPortfolio?: Awaited<ReturnType<typeof searchWalletAssets>>): boolean {
+export function canAffordSubscription(
+  walletPortfolio?: Awaited<ReturnType<typeof searchWalletAssets>>,
+): boolean {
   const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
     (t) => t.id === SOL_MINT,
   );
 
   const balance = solBalanceInfo
-  ? solBalanceInfo.token_info.balance // Keep balance in lamports
-  : undefined;
+    ? solBalanceInfo.token_info.balance // Keep balance in lamports
+    : undefined;
 
-  const subscriptionPriceLamports = Number(process.env.NEXT_PUBLIC_SUB_LAMPORTS); // Subscription price in lamports
+  const subscriptionPriceLamports = Number(
+    process.env.NEXT_PUBLIC_SUB_LAMPORTS,
+  ); // Subscription price in lamports
 
   const hasEnoughBalance = balance && balance >= subscriptionPriceLamports;
 

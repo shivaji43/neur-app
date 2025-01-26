@@ -85,12 +85,18 @@ export const retrieveAgentKit = actionClient
       return { success: false, error: 'UNAUTHORIZED', data: null };
     }
 
-    const result = await getAgentKit({ userId, walletId: parsedInput?.walletId });
+    const result = await getAgentKit({
+      userId,
+      walletId: parsedInput?.walletId,
+    });
 
     return result;
   });
 
-export const getAgentKit = async ({ userId, walletId }: {
+export const getAgentKit = async ({
+  userId,
+  walletId,
+}: {
   userId: string;
   walletId?: string;
 }) => {

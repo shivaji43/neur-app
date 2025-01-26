@@ -50,8 +50,8 @@ const getOrCreateUser = actionClient
         subscription: {
           include: {
             payments: true,
-          }
-        }
+          },
+        },
       },
     });
 

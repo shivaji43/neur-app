@@ -1,6 +1,7 @@
 'use client';
 
 import { startTransition, useOptimistic } from 'react';
+import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -15,9 +16,11 @@ import {
 } from '@privy-io/react-auth';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { HelpCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { mutate } from 'swr';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
+import { SubscriptionSection } from '@/components/subscription/subscription-section';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,19 +44,20 @@ import {
   truncate,
 } from '@/lib/utils/format';
 import { getUserID, grantDiscordRole } from '@/lib/utils/grant-discord-role';
+import {
+  reactivateUser,
+  subscribeUser,
+  unsubscribeUser,
+} from '@/server/actions/subscription';
 import { type UserUpdateData, updateUser } from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
 import { LoadingStateSkeleton } from './loading-skeleton';
-import { useState } from 'react';
-import { SubscriptionSection } from '@/components/subscription/subscription-section';
-import { reactivateUser, subscribeUser, unsubscribeUser } from '@/server/actions/subscription';
-import { toast } from 'sonner';
 
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
-  const [isSubscribing, setIsSubscribing] = useState(false)
+  const [isSubscribing, setIsSubscribing] = useState(false);
 
   const {
     isLoading: isUserLoading,
@@ -116,7 +120,7 @@ export function AccountContent() {
       setIsSubscribing(false);
       handleUpdateUser({});
     }
-  }
+  };
 
   const handleReactivate = async () => {
     if (!privyUser?.wallet?.address) return;
@@ -140,13 +144,13 @@ export function AccountContent() {
       setIsSubscribing(false);
       handleUpdateUser({});
     }
-  }
+  };
 
   const handleUnsubscribe = async () => {
     if (!privyUser?.wallet?.address) return;
 
     try {
-      setIsSubscribing(true)
+      setIsSubscribing(true);
       const response = await unsubscribeUser();
 
       if (response?.data?.success) {
@@ -164,7 +168,7 @@ export function AccountContent() {
       setIsSubscribing(false);
       handleUpdateUser({});
     }
-  }
+  };
 
   if (isUserLoading || isWalletsLoading || !user) {
     return <LoadingStateSkeleton />;
@@ -196,7 +200,8 @@ export function AccountContent() {
   );
 
   const activeWallet = embeddedWallets.find((w) => w.active);
-  const IS_SUBSCRIPTION_ENABLED = `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
+  const IS_SUBSCRIPTION_ENABLED =
+    `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(
@@ -521,7 +526,7 @@ export function AccountContent() {
               </CardContent>
             </Card>
           </section>
-          
+
           {/* Subscription Section (displayed only if user is not EAP) */}
           {user?.earlyAccess && IS_SUBSCRIPTION_ENABLED ? (
             <section className="space-y-4">
@@ -534,7 +539,9 @@ export function AccountContent() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div>
-                          <p className="text-sm font-medium">EAP Status - subscription not required ❤️</p>
+                          <p className="text-sm font-medium">
+                            EAP Status - subscription not required ❤️
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -545,8 +552,16 @@ export function AccountContent() {
           ) : activeWallet && IS_SUBSCRIPTION_ENABLED ? (
             <SubscriptionSection
               isSubscribed={user?.subscription?.active ?? false}
-              nextPaymentDate={user?.subscription?.nextPaymentDate ? new Date(user?.subscription?.nextPaymentDate) : undefined}
-              endDate={user?.subscription?.endDate ? new Date(user?.subscription?.endDate) : undefined}
+              nextPaymentDate={
+                user?.subscription?.nextPaymentDate
+                  ? new Date(user?.subscription?.nextPaymentDate)
+                  : undefined
+              }
+              endDate={
+                user?.subscription?.endDate
+                  ? new Date(user?.subscription?.endDate)
+                  : undefined
+              }
               wallet={activeWallet}
               paymentHistory={user?.subscription?.payments}
               onSubscribe={handleSubscribe}
@@ -564,7 +579,9 @@ export function AccountContent() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div>
-                          <p className="text-sm font-medium">Please ensure you have an active embedded wallet.</p>
+                          <p className="text-sm font-medium">
+                            Please ensure you have an active embedded wallet.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -572,7 +589,7 @@ export function AccountContent() {
                 </CardContent>
               </Card>
             </section>
-          ): null }
+          ) : null}
 
           {/* Privy Embedded Wallet Section */}
           <section className="space-y-4">
