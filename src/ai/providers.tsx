@@ -8,6 +8,7 @@ import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
 import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
+import { birdeyeTools } from './solana/birdeye';
 import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
@@ -15,7 +16,6 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
-import { birdeyeTools } from './solana/birdeye';
 
 const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -36,8 +36,8 @@ const openai = createOpenAI({
         order: ['Anthropic', 'OpenAI'],
         allow_fallbacks: false,
       },
-    }
-    
+    };
+
     options!.body = JSON.stringify(modifiedBody);
 
     // console.log(options!.body);
@@ -179,7 +179,8 @@ export const toolsets: Record<
   },
   traderTools: {
     tools: ['birdeyeTools'],
-    description: 'Tools for analyzing and tracking traders and trades on Solana DEXes.',
+    description:
+      'Tools for analyzing and tracking traders and trades on Solana DEXes.',
   },
   financeTools: {
     tools: ['definedTools'],

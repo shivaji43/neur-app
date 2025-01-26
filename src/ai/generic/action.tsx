@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 import { ActionEmitter } from '@/components/action-emitter';
 import { Card } from '@/components/ui/card';
+import { NO_CONFIRMATION_MESSAGE } from '@/lib/constants';
 import { verifyUser } from '@/server/actions/user';
 import { dbCreateAction } from '@/server/db/queries';
-import { NO_CONFIRMATION_MESSAGE } from '@/lib/constants';
 
 interface CreateActionResultProps {
   id: string;
@@ -52,7 +52,7 @@ function CreateActionResult({
   description,
   frequency,
   maxExecutions,
-  startTime
+  startTime,
 }: CreateActionResultProps) {
   const frequencyLabel = getFrequencyLabel(frequency);
   const nextExecution = getNextExecutionTime(startTime);
@@ -112,9 +112,7 @@ const createActionTool = {
       .describe('Conversation that the action belongs to'),
     name: z
       .string()
-      .describe(
-        'Shorthand human readable name to classify the action.',
-      ),
+      .describe('Shorthand human readable name to classify the action.'),
     description: z
       .string()
       .describe(
@@ -132,7 +130,9 @@ const createActionTool = {
     startTimeOffset: z
       .number()
       .optional()
-      .describe('Offset in milliseconds for how long to wait before starting the action. Useful for scheduling actions in the future, e.g. 1 hour from now = 3600000'),
+      .describe(
+        'Offset in milliseconds for how long to wait before starting the action. Useful for scheduling actions in the future, e.g. 1 hour from now = 3600000',
+      ),
   }),
   execute: async function (
     params: z.infer<typeof this.parameters>,
@@ -169,7 +169,9 @@ const createActionTool = {
         lastExecutedAt: null,
         lastFailureAt: null,
         lastSuccessAt: null,
-        startTime: params.startTimeOffset ? new Date(Date.now() + params.startTimeOffset) : null,
+        startTime: params.startTimeOffset
+          ? new Date(Date.now() + params.startTimeOffset)
+          : null,
       });
 
       if (!action) {
@@ -207,13 +209,14 @@ const createActionTool = {
       );
     }
 
-    const { id, description, frequency, maxExecutions, startTime } = typedResult.data as {
-      id: string;
-      description: string;
-      frequency: number;
-      maxExecutions: number | null;
-      startTime: number | null;
-    };
+    const { id, description, frequency, maxExecutions, startTime } =
+      typedResult.data as {
+        id: string;
+        description: string;
+        frequency: number;
+        maxExecutions: number | null;
+        startTime: number | null;
+      };
 
     return (
       <>

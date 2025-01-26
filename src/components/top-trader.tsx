@@ -24,7 +24,8 @@ export default function TopTrader({
               href={`https://solscan.io/account/${trader.address}#portfolio`}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate font-mono text-base font-medium">
+              className="truncate font-mono text-base font-medium"
+            >
               {trader.address.slice(0, 4)}...{trader.address.slice(-4)}
             </a>
             <span

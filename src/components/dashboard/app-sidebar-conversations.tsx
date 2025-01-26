@@ -41,9 +41,11 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useConversations } from '@/hooks/use-conversations';
+import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { EVENTS } from '@/lib/events';
 import { cn } from '@/lib/utils';
+import { markConversationAsRead } from '@/server/actions/conversation';
 
 import {
   SidebarGroup,
@@ -52,8 +54,6 @@ import {
   SidebarMenu,
 } from '../ui/sidebar';
 import { Tooltip, TooltipTrigger } from '../ui/tooltip';
-import usePolling from '@/hooks/use-polling';
-import { markConversationAsRead } from '@/server/actions/conversation';
 
 interface ConversationMenuItemProps {
   id: string;
@@ -230,13 +230,15 @@ export const AppSidebarConversations = () => {
     };
 
     window.addEventListener(EVENTS.CONVERSATION_READ, handleConversationRead);
-  
+
     return () => {
       // Cleanup event listener on unmount or dependency change
-      window.removeEventListener(EVENTS.CONVERSATION_READ, handleConversationRead);
+      window.removeEventListener(
+        EVENTS.CONVERSATION_READ,
+        handleConversationRead,
+      );
     };
   }, [pathname, setActiveId, conversations, refreshConversations]);
-
 
   const handleMarkAsRead = (id: string) => {
     // Update conversation in local store
@@ -245,7 +247,7 @@ export const AppSidebarConversations = () => {
     // Emit event to update conversation read status
     markConversationAsRead({ id });
   };
-  
+
   // Use polling for refreshing conversations
   usePolling({
     url: null,

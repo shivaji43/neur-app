@@ -3,10 +3,10 @@
 import { SavedPrompt } from '@prisma/client';
 import { z } from 'zod';
 
+import prisma from '@/lib/prisma';
 import { ActionResponse, actionClient } from '@/lib/safe-action';
 
 import { verifyUser } from './user';
-import prisma from '@/lib/prisma';
 
 export const markConversationAsRead = actionClient
   .schema(z.object({ id: z.string() }))
@@ -22,7 +22,7 @@ export const markConversationAsRead = actionClient
     await prisma.conversation.update({
       where: { id },
       data: { lastReadAt: new Date() },
-    })
+    });
 
     return { success: true };
   });
