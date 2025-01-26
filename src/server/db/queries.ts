@@ -5,6 +5,7 @@ import _ from 'lodash';
 import prisma from '@/lib/prisma';
 import { convertToUIMessages } from '@/lib/utils';
 import { NewAction } from '@/types/db';
+import { tool } from 'ai';
 
 /**
  * Retrieves a conversation by its ID
@@ -15,15 +16,26 @@ import { NewAction } from '@/types/db';
 export async function dbGetConversation({
   conversationId,
   includeMessages,
+  isServer,
 }: {
   conversationId: string;
   includeMessages?: boolean;
+  isServer?: boolean;
 }) {
   try {
-    return await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: includeMessages ? { messages: true } : undefined,
-    });
+    // Mark conversation as read if user is fetching
+    if (!isServer) {
+      return await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAt: new Date() },
+        include: includeMessages ? { messages: true } : undefined,
+      });
+    } else {
+      return await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        include: includeMessages ? { messages: true } : undefined,
+      });
+    }
   } catch (error) {
     console.error('[DB Error] Failed to get conversation:', {
       conversationId,
@@ -76,6 +88,16 @@ export async function dbCreateMessages({
   messages: Omit<PrismaMessage, 'id' | 'createdAt'>[];
 }) {
   try {
+    // Update conversation last message timestamp
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage) {
+      await prisma.conversation.update({
+        where: { id: lastMessage.conversationId },
+        data: { lastMessageAt: new Date() },
+      });
+    }
+
     return await prisma.message.createManyAndReturn({
       data: messages as Prisma.MessageCreateManyInput[],
     });
@@ -127,11 +149,22 @@ export async function dbUpdateMessageToolInvocations({
 export async function dbGetConversationMessages({
   conversationId,
   limit,
+  isServer,
 }: {
   conversationId: string;
   limit?: number;
+  isServer?: boolean;
 }) {
   try {
+    // Mark conversation as read if user is fetching
+    if (!isServer) {
+      console.log('Marking conversation as read', conversationId);
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAt: new Date() },
+      });
+    }
+
     const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: limit
@@ -140,8 +173,22 @@ export async function dbGetConversationMessages({
       take: limit,
     });
 
-    const migratedMessages = convertToUIMessages(messages);
-    return migratedMessages;
+    const uiMessages = convertToUIMessages(messages);
+
+    // If our final message is not a user message, add a fake empty user message
+    if (limit && uiMessages.length && uiMessages[uiMessages.length - 1].role !== 'user') {
+      const lastMessageAt = uiMessages[uiMessages.length - 1].createdAt || new Date(1);
+      uiMessages.push({
+        id: 'fake',
+        createdAt: new Date(lastMessageAt.getTime() - 1),
+        role: 'user',
+        content: 'user message',
+        toolInvocations: [],
+        experimental_attachments: [],
+      });
+    }
+
+    return uiMessages;
   } catch (error) {
     console.error('[DB Error] Failed to get conversation messages:', {
       conversationId,

@@ -81,48 +81,55 @@ export const retrieveAgentKit = actionClient
     const userId = authResult?.data?.data?.id;
 
     if (!userId) {
-      return { success: false, error: 'UNAUTHORIZED' };
+      return { success: false, error: 'UNAUTHORIZED', data: null };
     }
 
-    const whereClause = parsedInput?.walletId
-      ? { ownerId: userId, id: parsedInput.walletId }
-      : { ownerId: userId, active: true };
+    const result = await getAgentKit({ userId, walletId: parsedInput?.walletId });
 
-    const wallet = await prisma.wallet.findFirst({
-      where: whereClause,
-    });
-
-    if (!wallet) {
-      return { success: false, error: 'WALLET_NOT_FOUND' };
-    }
-
-    console.log('[retrieveAgentKit] wallet', wallet.publicKey);
-
-    let walletAdapter: WalletAdapter;
-    if (wallet.encryptedPrivateKey) {
-      walletAdapter = new BaseWallet(
-        await decryptPrivateKey(wallet?.encryptedPrivateKey),
-      );
-    } else {
-      const privyClientResponse = await getPrivyClient();
-      const privyClient = privyClientResponse?.data;
-      if (!privyClient) {
-        return { success: false, error: 'PRIVY_CLIENT_NOT_FOUND' };
-      }
-      walletAdapter = new PrivyEmbeddedWallet(
-        privyClient,
-        new PublicKey(wallet.publicKey),
-      );
-    }
-
-    const openaiKey = process.env.OPENAI_API_KEY!;
-    const agent = new SolanaAgentKit(walletAdapter, RPC_URL, {
-      OPENAI_API_KEY: openaiKey,
-      HELIUS_API_KEY: process.env.HELIUS_API_KEY!,
-    });
-
-    return { success: true, data: { agent } };
+    return result;
   });
+
+export const getAgentKit = async ({ userId, walletId }: {
+  userId: string;
+  walletId?: string;
+}) => {
+  const whereClause = walletId
+    ? { ownerId: userId, id: walletId }
+    : { ownerId: userId, active: true };
+
+  const wallet = await prisma.wallet.findFirst({
+    where: whereClause,
+  });
+
+  if (!wallet) {
+    return { success: false, error: 'WALLET_NOT_FOUND' };
+  }
+
+  let walletAdapter: WalletAdapter;
+  if (wallet.encryptedPrivateKey) {
+    walletAdapter = new BaseWallet(
+      await decryptPrivateKey(wallet?.encryptedPrivateKey),
+    );
+  } else {
+    const privyClientResponse = await getPrivyClient();
+    const privyClient = privyClientResponse?.data;
+    if (!privyClient) {
+      return { success: false, error: 'PRIVY_CLIENT_NOT_FOUND' };
+    }
+    walletAdapter = new PrivyEmbeddedWallet(
+      privyClient,
+      new PublicKey(wallet.publicKey),
+    );
+  }
+
+  const openaiKey = process.env.OPENAI_API_KEY!;
+  const agent = new SolanaAgentKit(walletAdapter, RPC_URL, {
+    OPENAI_API_KEY: openaiKey,
+    HELIUS_API_KEY: process.env.HELIUS_API_KEY!,
+  });
+
+  return { success: true, data: { agent } };
+};
 
 export const transferToken = actionClient
   .schema(

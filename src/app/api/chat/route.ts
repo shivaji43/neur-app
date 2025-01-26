@@ -7,6 +7,7 @@ import {
   appendResponseMessages,
   createDataStreamResponse,
   generateObject,
+  smoothStream,
   streamText,
 } from 'ai';
 import { performance } from 'perf_hooks';
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
       (await dbGetConversationMessages({
         conversationId,
         limit: MAX_TOKEN_MESSAGES,
+        isServer: true,
       })) ?? [];
 
     logWithTiming(startTime, '[chat/route] fetched existing messages');
@@ -224,6 +226,7 @@ export async function POST(req: Request) {
             });
             return { ...toolCall, args: JSON.stringify(repairedArgs) };
           },
+          experimental_transform: smoothStream(),
           maxSteps: 15,
           messages: relevant,
           async onFinish({ response, usage }) {
@@ -244,9 +247,12 @@ export async function POST(req: Request) {
               );
 
               // Increment createdAt by 1ms to avoid duplicate timestamps
+              const now = new Date();
               finalMessages.forEach((m, index) => {
                 if (m.createdAt) {
                   m.createdAt = new Date(m.createdAt.getTime() + index);
+                } else {
+                  m.createdAt = new Date(now.getTime() + index);
                 }
               });
 

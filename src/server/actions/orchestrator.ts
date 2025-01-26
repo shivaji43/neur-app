@@ -8,9 +8,11 @@ export async function getToolsFromOrchestrator(
   messages: Message[] | undefined,
   excludeConfirmationTool: boolean,
 ): Promise<{ usage: LanguageModelUsage; toolsRequired: string[] | undefined }> {
+  const system = excludeConfirmationTool ? orchestrationPrompt.replace(/(requires confirmation)/g, '') : orchestrationPrompt;
+
   const { object: toolsRequired, usage } = await generateObject({
     model: orchestratorModel,
-    system: orchestrationPrompt,
+    system,
     output: 'array',
     schema: z
       .string()
