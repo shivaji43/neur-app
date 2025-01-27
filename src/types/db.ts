@@ -51,6 +51,8 @@ export type NeurUser = Pick<
   | 'wallets'
   | 'degenMode'
   | 'subscription'
+  | 'referralCode'
+  | 'referringUserId'
 > & {
   privyUser: PrivyUser;
   hasEAP: boolean;

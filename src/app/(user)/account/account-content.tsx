@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { mutate } from 'swr';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
+import { ReferralSection } from '@/components/referral-section';
 import { SubscriptionSection } from '@/components/subscription/subscription-section';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ import { LoadingStateSkeleton } from './loading-skeleton';
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
+  const [isUpdatingReferralCode, setIsUpdatingReferralCode] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
   const {
@@ -170,6 +172,22 @@ export function AccountContent() {
     }
   };
 
+  const handleUpdateReferralCode = async (referralCode: string) => {
+    try {
+      const result = await handleUpdateUser({
+        referralCode,
+      });
+
+      if (result.success) {
+        toast.success('Referral code updated');
+      } else {
+        toast.error(result.error || 'Failed to update referral code');
+      }
+    } catch (err) {
+      toast.error('Failed to update referral code');
+    }
+  };
+
   if (isUserLoading || isWalletsLoading || !user) {
     return <LoadingStateSkeleton />;
   }
@@ -239,6 +257,8 @@ export function AccountContent() {
     if (result.success) {
       await mutate(`user-${userData.privyId}`);
     }
+
+    return result;
   };
 
   return (
@@ -348,6 +368,13 @@ export function AccountContent() {
               </CardContent>
             </Card>
           </section>
+
+          {/* Referrals */}
+          <ReferralSection
+            referralCode={user?.referralCode}
+            referringUserId={user?.referringUserId}
+            handleUpdateReferralCode={handleUpdateReferralCode}
+          />
 
           {/* Connected Accounts Section */}
           <section className="space-y-4">
@@ -539,7 +566,7 @@ export function AccountContent() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div>
-                          <p className="text-sm font-medium">
+                          <p className="text-sm">
                             EAP Status - subscription not required ❤️
                           </p>
                         </div>

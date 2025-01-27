@@ -26,13 +26,15 @@ model SavedPrompt {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  privyId   String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String     @id @default(cuid())
+  privyId   String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-  earlyAccess Boolean @default(false)
-  degenMode  Boolean @default(false)
+  earlyAccess Boolean  @default(false)
+  degenMode  Boolean   @default(false)
+  referralCode String? @unique
+  referringUserId String?
 
   wallets       Wallet[]
   conversations Conversation[]
