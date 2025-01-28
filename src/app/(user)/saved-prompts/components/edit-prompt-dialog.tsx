@@ -81,7 +81,9 @@ export const EditPromptDialog = ({
           placeholder="Prompt"
           maxLength={2000}
           onChange={(e) => setContent(e.target.value)}
-          className={`col-span-3 resize-none ${content.length > 500 ? 'min-h-[400px]' : 'min-h-[200px]'}`}
+          className={`col-span-3 resize-none 
+            ${content.length > 500 ? 'md:min-h-[400px] min-h-[300px]' : 'md:min-h-[200px] min-h-[100px]'}
+          `}
         />
         <div className="text-sm text-gray-500">
           {content.length}/2000 chars
