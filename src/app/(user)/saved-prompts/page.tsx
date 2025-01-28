@@ -399,7 +399,7 @@ export default function SavedPromptsPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground/80">
-                {prompt.content}
+                {prompt.content.trim().slice(0, 150)+"..."}
               </div>
             </motion.div>
           ))}
