@@ -117,6 +117,7 @@ export interface ToolConfig {
   agentKit?: any;
   userId?: any;
   requiresConfirmation?: boolean;
+  requiredEnvVars?: string[];
 }
 
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {
@@ -151,6 +152,30 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...telegramTools,
   ...birdeyeTools,
 };
+
+export function filterTools(
+  tools: Record<string, ToolConfig>,
+): Record<string, ToolConfig> {
+  const disabledTools = process.env.NEXT_PUBLIC_DISABLED_TOOLS
+    ? JSON.parse(process.env.NEXT_PUBLIC_DISABLED_TOOLS)
+    : [];
+
+  return Object.fromEntries(
+    Object.entries(tools).filter(([toolName, toolConfig]) => {
+      if (disabledTools.includes(toolName)) {
+        return false;
+      }
+      if(toolConfig.requiredEnvVars){
+        for (const envVar of toolConfig.requiredEnvVars) {
+          if(!process.env[envVar] || process.env[envVar] == ''){
+            return false;
+          }
+        }
+      }
+      return true;
+    }),
+  );
+}
 
 export const coreTools: Record<string, ToolConfig> = {
   ...actionTools,
@@ -234,8 +259,9 @@ export function getToolConfig(toolName: string): ToolConfig | undefined {
 export function getToolsFromRequiredTools(
   toolNames: string[],
 ): Record<string, ToolConfig> {
+  const enabledTools = filterTools(defaultTools);
   return toolNames.reduce((acc: Record<string, ToolConfig>, toolName) => {
-    const tool = defaultTools[toolName];
+    const tool = enabledTools[toolName];
     if (tool) {
       acc[toolName] = tool;
     }
