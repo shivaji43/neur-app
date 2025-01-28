@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
 import { useEmbeddedWallets } from '@/hooks/use-wallets';
-import { cn } from '@/lib/utils';
+import { IS_SUBSCRIPTION_ENABLED, cn } from '@/lib/utils';
 import {
   formatPrivyId,
   formatUserCreationDate,
@@ -218,8 +218,6 @@ export function AccountContent() {
   );
 
   const activeWallet = embeddedWallets.find((w) => w.active);
-  const IS_SUBSCRIPTION_ENABLED =
-    `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(

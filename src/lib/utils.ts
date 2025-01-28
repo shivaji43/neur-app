@@ -255,3 +255,14 @@ export function getSubPriceFloat(): number {
 
   return lamports / 1_000_000_000;
 }
+
+export function getTrialTokensFloat(): number {
+  const lamports = Number(process.env.NEXT_PUBLIC_TRIAL_LAMPORTS || 0);
+
+  return lamports / 1_000_000_000;
+}
+
+export const IS_SUBSCRIPTION_ENABLED =
+  `${process.env.NEXT_PUBLIC_SUB_ENABLED}` === 'true';
+export const IS_TRIAL_ENABLED =
+  `${process.env.NEXT_PUBLIC_TRIAL_ENABLED}` === 'true';
