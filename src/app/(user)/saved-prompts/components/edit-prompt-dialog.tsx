@@ -59,7 +59,7 @@ export const EditPromptDialog = ({
         Add Prompt <Plus className="h-4 w-4" />
       </Button>
     </DialogTrigger>
-    <DialogContent className="sm:max-w-[425px]">
+    <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
         <DialogTitle>
           {promptAction.action === 'update' ? 'Edit' : 'Add'} Prompt
@@ -79,9 +79,13 @@ export const EditPromptDialog = ({
           value={content}
           rows={4}
           placeholder="Prompt"
+          maxLength={2000}
           onChange={(e) => setContent(e.target.value)}
           className="col-span-3"
         />
+        <div className="text-sm text-gray-500">
+          {content.length}/2000 chars
+        </div>
       </div>
       <DialogFooter>
         <Button

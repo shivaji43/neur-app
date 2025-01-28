@@ -8,6 +8,7 @@ interface SavedPromptsMenuProps {
   filteredPrompts: SavedPrompt[];
   onPromptClick: (subtitle: string) => void;
   updatePromptLastUsedAt: (id: string) => Promise<void>;
+  onHomeScreen?: boolean;
 }
 
 export const SavedPromptsMenu = ({
@@ -17,10 +18,11 @@ export const SavedPromptsMenu = ({
   filteredPrompts,
   onPromptClick,
   updatePromptLastUsedAt,
+  onHomeScreen = false,
 }: SavedPromptsMenuProps) => (
   <div
     style={{ display: input.startsWith('/') ? 'flex' : 'none' }}
-    className="absolute bottom-[150px] left-0 z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]"
+    className={`${onHomeScreen == false ? 'absolute bottom-[150px] left-0' : ''} z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]`}
   >
     <p className="font-semibold">Saved Prompts</p>
     {isFetchingSavedPrompts ? (

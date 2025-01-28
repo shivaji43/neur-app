@@ -48,7 +48,7 @@ import {
 } from '@/server/actions/saved-prompt';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
-import { SavedPromptsMenu } from './components/saved-prompts-menu';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { EVENTS } from '@/lib/events';
 
 // Types
@@ -351,7 +351,7 @@ function ChatMessage({
 
     toast.promise(
       createSavedPrompt({
-        title: message.content.trim().slice(0, 30),
+        title: message.content.trim().slice(0, 30)+"...",
         content: message.content.trim(),
       }).then((res) => {
         if (!res?.data?.data) {
