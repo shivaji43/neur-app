@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { PromptAction } from '../types/prompt';
-
+import { MAX_CHARS } from '../../home/conversation-input';
 interface EditPromptDialogProps {
   promptAction: PromptAction;
   updatePromptAction: (action: PromptAction) => void;
@@ -79,14 +79,14 @@ export const EditPromptDialog = ({
           value={content}
           rows={4}
           placeholder="Prompt"
-          maxLength={2000}
+          maxLength={MAX_CHARS}
           onChange={(e) => setContent(e.target.value)}
           className={`col-span-3 resize-none 
             ${content.length > 500 ? 'md:min-h-[400px] min-h-[300px]' : 'md:min-h-[200px] min-h-[100px]'}
           `}
         />
         <div className="text-sm text-gray-500">
-          {content.length}/2000 chars
+          {content.length}/{MAX_CHARS} chars
         </div>
       </div>
       <DialogFooter>

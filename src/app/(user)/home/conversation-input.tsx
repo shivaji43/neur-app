@@ -13,7 +13,7 @@ interface ConversationInputProps {
   onSubmit: (value: string) => Promise<void>;
 }
 
-const MAX_CHARS = 2000;
+export const MAX_CHARS = 2000;
 
 export function ConversationInput({
   value,
