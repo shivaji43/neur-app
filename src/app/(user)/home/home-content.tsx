@@ -167,17 +167,8 @@ export function HomeContent() {
       type: 'submit'
     } as React.FormEvent;
   
-    // Prepare message data with attachments if present
-    const currentAttachments = attachments.map(
-      ({ url, name, contentType }) => ({
-        url,
-        name,
-        contentType,
-      }),
-    );
-  
     // Submit the message
-    await handleSubmit(fakeEvent, { data: value, experimental_attachments: currentAttachments });
+    await handleSubmit(fakeEvent, { data: value, experimental_attachments: attachments });
     
     // Update UI state and URL
     setShowChat(true);
@@ -296,6 +287,8 @@ export function HomeContent() {
             value={input}
             onChange={setInput}
             onSubmit={handleSend}
+            savedPrompts={savedPrompts}
+            setSavedPrompts={setSavedPrompts}
           />
         </BlurFade>
 

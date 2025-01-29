@@ -1,20 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import Image from 'next/image';
+
+import { Attachment } from 'ai';
 import { Image as ImageIcon, SendHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 
 import { BorderBeam } from '@/components/ui/border-beam';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Attachment } from 'ai';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
+
+import { SavedPromptsMenu } from '../chat/[id]/components/saved-prompts-menu';
+import { SavedPrompt } from '@prisma/client';
+import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
 
 interface ConversationInputProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string, attachments: Attachment[]) => Promise<void>;
   onChat?: boolean;
+  savedPrompts?: SavedPrompt[];
+  setSavedPrompts?: (savedPrompts: SavedPrompt[]) => void;
 }
 
 const MAX_CHARS = 2000;
@@ -24,11 +32,11 @@ interface UploadingImage extends Attachment {
   uploading: boolean;
 }
 
-function AttachmentPreview({ 
-  attachment, 
-  onRemove 
-}: { 
-  attachment: UploadingImage; 
+function AttachmentPreview({
+  attachment,
+  onRemove,
+}: {
+  attachment: UploadingImage;
   onRemove: () => void;
 }) {
   return (
@@ -59,11 +67,31 @@ export function ConversationInput({
   value,
   onChange,
   onSubmit,
-  onChat=false,
+  onChat = false,
+  savedPrompts = [],
+  setSavedPrompts = () => {},
 }: ConversationInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<UploadingImage[]>([]);
+  const [isFetchingSavedPrompts, setIsFetchingSavedPrompts] = useState(true);
+
+  useEffect(() => {
+    async function fetchSavedPrompts() {
+      try {
+        const res = await getSavedPrompts();
+        const savedPrompts = res?.data?.data || [];
+
+        setSavedPrompts(savedPrompts);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setIsFetchingSavedPrompts(false);
+    }
+
+    fetchSavedPrompts();
+  }, []);
 
   const handleImageUpload = useCallback(async (file: File) => {
     const localUrl = URL.createObjectURL(file);
@@ -140,12 +168,14 @@ export function ConversationInput({
       return;
     }
 
-    const currentAttachments = attachments.map(({ url, name, contentType }) => ({
-      url,
-      name,
-      contentType,
-    }));
-    
+    const currentAttachments = attachments.map(
+      ({ url, name, contentType }) => ({
+        url,
+        name,
+        contentType,
+      }),
+    );
+
     setAttachments([]);
     await onSubmit(value, currentAttachments);
   };
@@ -184,10 +214,53 @@ export function ConversationInput({
     };
   }, [attachments]);
 
+    async function updatePromptLastUsedAt(id: string) {
+      try {
+        const res = await setSavedPromptLastUsedAt({ id });
+        if (!res?.data?.data) {
+          throw new Error();
+        }
+  
+        const { lastUsedAt } = res.data.data;
+  
+        setSavedPrompts((old) =>
+          old.map((prompt) =>
+            prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
+          ),
+        );
+      } catch (error) {
+        console.error('Failed to update -lastUsedAt- for prompt:', { error });
+      }
+    }
+
+  const filteredPrompts = value.startsWith('/')
+  ? savedPrompts.filter((savedPrompt) =>
+      savedPrompt.title.toLowerCase().includes(value.slice(1).toLowerCase()),
+    )
+  : savedPrompts;
+
+  console.log('filteredPrompts:', filteredPrompts);
+
+  function handlePromptMenuClick(subtitle: string) {
+    onChange(subtitle);
+  }
+
   return (
-    <div className={`relative ${!onChat ? "duration-500 animate-in fade-in slide-in-from-bottom-4" : ""}`}>
+    <div
+      className={`relative ${!onChat ? 'duration-500 animate-in fade-in slide-in-from-bottom-4' : ''}`}
+    >
       <div className="relative rounded-xl bg-muted">
         <form onSubmit={handleSubmit} className="flex flex-col">
+          {onChat && (
+            <SavedPromptsMenu
+              input={value}
+              isFetchingSavedPrompts={onChat? isFetchingSavedPrompts: false}
+              savedPrompts={savedPrompts}
+              filteredPrompts={filteredPrompts}
+              onPromptClick={handlePromptMenuClick}
+              updatePromptLastUsedAt={updatePromptLastUsedAt}
+            />
+          )}
           {attachments.length > 0 && (
             <div className="flex gap-2 overflow-x-auto rounded-t-xl bg-muted/50 p-3">
               {attachments.map((attachment) => (
@@ -207,10 +280,12 @@ export function ConversationInput({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             maxLength={MAX_CHARS}
-            placeholder={onChat ? "Send a message...": "Start a new conversation..."}
+            placeholder={
+              onChat ? 'Send a message...' : 'Start a new conversation...'
+            }
             className={cn(
-              "min-h-[110px] w-full resize-none overflow-hidden border-0 bg-transparent px-4 py-3 text-base focus-visible:ring-0",
-              attachments.length > 0 ? "rounded-t-none" : "rounded-t-xl"
+              'min-h-[110px] w-full resize-none overflow-hidden border-0 bg-transparent px-4 py-3 text-base focus-visible:ring-0',
+              attachments.length > 0 ? 'rounded-t-none' : 'rounded-t-xl',
             )}
           />
 
@@ -221,7 +296,7 @@ export function ConversationInput({
               </span>
             </div>
 
-            <div className='flex'>
+            <div className="flex">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -240,12 +315,15 @@ export function ConversationInput({
               >
                 <ImageIcon className="h-5 w-5" />
               </Button>
-              
+
               <Button
                 type="submit"
                 size="icon"
                 variant="ghost"
-                disabled={(!value.trim() && attachments.length === 0) || attachments.some((att) => att.uploading)}
+                disabled={
+                  (!value.trim() && attachments.length === 0) ||
+                  attachments.some((att) => att.uploading)
+                }
                 className="group relative flex h-8 w-8 items-center justify-center rounded-lg 
                   transition-all duration-200 ease-in-out
                   hover:bg-primary hover:text-primary-foreground 
