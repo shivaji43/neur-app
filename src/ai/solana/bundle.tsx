@@ -95,6 +95,76 @@ export const bundleTools = {
             </div>
           </div>
 
+          <div className="rounded-lg bg-destructive/10 p-4">
+            <h3 className="mb-2 text-sm font-medium">⚠️ Suspicious Activity</h3>
+            <div className="space-y-3">
+              {analysis.suspiciousPatterns.snipers.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-destructive">
+                    🎯 Potential Snipers ({analysis.suspiciousPatterns.snipers.length})
+                  </p>
+                  <div className="grid gap-2">
+                    {analysis.suspiciousPatterns.snipers.map((sniper) => (
+                      <div key={sniper.bundleAddress} className="rounded-lg bg-destructive/5 p-3">
+                        <p className="text-xs font-medium">
+                          <code>{sniper.bundleAddress.slice(0, 8)}...</code>
+                        </p>
+                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                          <p>Supply: {sniper.supplyPercentage.toFixed(2)}%</p>
+                          <p>Velocity: {sniper.purchaseVelocity.toFixed(0)} tokens/hour</p>
+                          <p>Time Window: {((sniper.lastPurchaseTime - sniper.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {analysis.suspiciousPatterns.rapidAccumulation.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-orange-500">
+                    ⚡ Rapid Accumulation ({analysis.suspiciousPatterns.rapidAccumulation.length})
+                  </p>
+                  <div className="grid gap-2">
+                    {analysis.suspiciousPatterns.rapidAccumulation.map((bundle) => (
+                      <div key={bundle.bundleAddress} className="rounded-lg bg-orange-500/5 p-3">
+                        <p className="text-xs font-medium">
+                          <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                        </p>
+                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                          <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                          <p>Time: {((bundle.lastPurchaseTime - bundle.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {analysis.suspiciousPatterns.coordinatedBuying.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-blue-500">
+                    🤝 Coordinated Buying ({analysis.suspiciousPatterns.coordinatedBuying.length})
+                  </p>
+                  <div className="grid gap-2">
+                    {analysis.suspiciousPatterns.coordinatedBuying.map((bundle) => (
+                      <div key={bundle.bundleAddress} className="rounded-lg bg-blue-500/5 p-3">
+                        <p className="text-xs font-medium">
+                          <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                        </p>
+                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                          <p>Transactions: {bundle.transactions.length}</p>
+                          <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                          <p>Time Window: {((bundle.lastPurchaseTime - bundle.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {analysis.largestBundle && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Largest Bundle</h3>
