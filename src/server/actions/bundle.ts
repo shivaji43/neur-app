@@ -95,15 +95,37 @@ async function identifyBundlesBySlot(
 
 function analyzeSuspiciousPatterns(bundles: Bundle[]) {
   return {
-    rapidAccumulation: bundles.filter((b) => b.purchaseVelocity > 1000), // More than 1000 tokens per hour
+    // Rapid accumulation (potential snipers)
+    rapidAccumulation: bundles.filter((b) => {
+      const timeWindow = b.lastPurchaseTime - b.firstPurchaseTime;
+      const isQuickPurchase = timeWindow < 10000; // Within 10 seconds
+      const isLargeAmount = b.supplyPercentage > 1; // Over 1% of supply
+      return isQuickPurchase && isLargeAmount;
+    }),
+
+    // Price manipulation
     priceManipulation: bundles.filter((b) => {
       const prices = b.transactions.map((t) => t.price);
       const priceVariance = Math.max(...prices) / Math.min(...prices);
       return priceVariance > 2; // Price doubled within the bundle
     }),
-    coordinatedBuying: bundles.filter(
-      (b) => b.transactions.length >= 5 && b.supplyPercentage > 5,
+
+    // Coordinated buying (potential snipers working together)
+    coordinatedBuying: bundles.filter((b) => 
+      b.transactions.length >= 3 && // Multiple transactions
+      b.supplyPercentage > 2 && // Significant supply
+      (b.lastPurchaseTime - b.firstPurchaseTime) < 30000 // Within 30 seconds
     ),
+
+    // Sniper characteristics
+    snipers: bundles.filter((b) => {
+      const isEarlyBuyer = b.firstPurchaseTime < Date.now() - (24 * 60 * 60 * 1000); // Within first 24h
+      const hasHighVelocity = b.purchaseVelocity > 500; // High tokens/hour
+      const isLargeHolder = b.supplyPercentage > 1; // Over 1% of supply
+      const quickExecution = (b.lastPurchaseTime - b.firstPurchaseTime) < 15000; // Within 15 seconds
+
+      return isEarlyBuyer && (hasHighVelocity || (isLargeHolder && quickExecution));
+    })
   };
 }
 

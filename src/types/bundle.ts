@@ -35,6 +35,7 @@ export interface MintBundleAnalysis {
     rapidAccumulation: Bundle[];
     priceManipulation: Bundle[];
     coordinatedBuying: Bundle[];
+    snipers: Bundle[];
   };
 }
 
