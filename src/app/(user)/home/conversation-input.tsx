@@ -67,9 +67,15 @@ export function ConversationInput({
           />
 
           <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">
-              {value.length}/{MAX_CHARS}
-            </span>
+
+            <div className='flex flex-row items-center justify-between w-full'>
+              <span className="text-xs text-muted-foreground">
+                Type / to search for saved prompts (eg. /Solana Price...)
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {value.length}/{MAX_CHARS}
+              </span>
+            </div>
 
             <Button
               type="submit"
