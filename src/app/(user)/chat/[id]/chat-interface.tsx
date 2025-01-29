@@ -985,7 +985,7 @@ export default function ChatInterface({
 
             <div className='flex flex-row items-center justify-between w-full'>
               <span className="text-xs text-muted-foreground">
-                Type / to search for saved prompts (eg. /Solana Price...)
+                Type / to search for saved prompts (e.g. /Solana Price...)
               </span>
               <span className="text-xs text-muted-foreground">
                 {input.length}/{MAX_CHARS}
