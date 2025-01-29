@@ -1,11 +1,16 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+
+
 import { chunkArray } from '@/lib/utils';
 import rawKnownAddresses from '@/lib/utils/known-addresses.json';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
+
+
 import { RPC_URL } from '../constants';
+
 
 export interface Holder {
   owner: string;
@@ -27,7 +32,9 @@ type HeliusMethod =
   | 'getBalance'
   | 'getTokenAccounts'
   | 'getAccountInfo'
-  | 'getMultipleAccounts';
+  | 'getMultipleAccounts'
+  | 'getSignaturesForAddress'
+  | 'getTransaction';
 
 const KNOWN_ADDRESSES: Record<string, string> = rawKnownAddresses as Record<
   string,
@@ -400,4 +407,41 @@ export async function getHoldersClassification(
     totalHolders: holderMap.size,
     totalSupply,
   };
+}
+
+export async function getTransactionHistory(
+  mintAddress: string,
+  limit: number = 100,
+) {
+  // First get signatures
+  const signaturesData = await fetchHelius('getSignaturesForAddress', [
+    mintAddress,
+    { limit },
+  ]);
+
+  if (!signaturesData.result?.length) {
+    return [];
+  }
+
+  // Then get full transaction data for each signature
+  const transactions = await Promise.all(
+    signaturesData.result.map(async (sig: any) => {
+      const txData = await fetchHelius('getTransaction', [sig.signature]);
+      const tx = txData.result;
+
+      if (!tx) return null;
+
+      return {
+        signature: sig.signature,
+        slot: tx.slot,
+        timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
+        price: tx.meta?.preBalances?.[0]
+          ? (tx.meta.preBalances[0] - tx.meta.postBalances[0]) / 1e9
+          : 0,
+        quantity: tx.meta?.postTokenBalances?.[0]?.uiTokenAmount?.uiAmount || 0,
+      };
+    }),
+  );
+
+  return transactions.filter((tx): tx is NonNullable<typeof tx> => tx !== null);
 }
