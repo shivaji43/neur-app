@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 
-import { SavedPromptsMenu } from '../chat/[id]/components/saved-prompts-menu';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { SavedPrompt } from '@prisma/client';
 import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
 
@@ -25,7 +25,7 @@ interface ConversationInputProps {
   setSavedPrompts: (savedPrompts: SavedPrompt[]) => void;
 }
 
-const MAX_CHARS = 2000;
+export const MAX_CHARS = 2000;
 
 interface UploadingImage extends Attachment {
   localUrl: string;
@@ -239,7 +239,6 @@ export function ConversationInput({
     )
   : savedPrompts;
 
-  console.log('filteredPrompts:', filteredPrompts);
 
   function handlePromptMenuClick(subtitle: string) {
     onChange(subtitle);
@@ -290,7 +289,11 @@ export function ConversationInput({
           />
 
           <div className="flex items-center justify-between border-t px-4 py-2">
-            <div className="flex items-center gap-2">
+            
+            <div className='flex flex-row items-center justify-between w-full'>
+              <span className="text-xs text-muted-foreground">
+                Type / to search for saved prompts (e.g. /Solana Price...)
+              </span>
               <span className="text-xs text-muted-foreground">
                 {value.length}/{MAX_CHARS}
               </span>

@@ -25,12 +25,14 @@ import { EVENTS } from '@/lib/events';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
-import { getSavedPrompts } from '@/server/actions/saved-prompt';
+import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
 
 import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
+
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
@@ -256,6 +258,38 @@ export function HomeContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [chatId, resetChat]);
 
+
+    const filteredPrompts = input.startsWith('/')
+    ? savedPrompts.filter((savedPrompt) =>
+        savedPrompt.title
+          .toLowerCase()
+          .includes(input.slice(1).toLowerCase()),
+      )
+    : savedPrompts;
+  
+    function handlePromptMenuClick(subtitle: string) {
+      setInput(subtitle);
+    }
+  
+    async function updatePromptLastUsedAt(id: string) {
+      try {
+        const res = await setSavedPromptLastUsedAt({ id });
+        if (!res?.data?.data) {
+          throw new Error();
+        }
+  
+        const { lastUsedAt } = res.data.data;
+  
+        setSavedPrompts((old) =>
+          old.map((prompt) =>
+            prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
+          ),
+        );
+      } catch (error) {
+        console.error('Failed to update -lastUsedAt- for prompt:', { error });
+      }
+    }
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -289,6 +323,15 @@ export function HomeContent() {
             onSubmit={handleSend}
             savedPrompts={savedPrompts}
             setSavedPrompts={setSavedPrompts}
+          />
+          <SavedPromptsMenu
+            input={input}
+            isFetchingSavedPrompts={false}
+            savedPrompts={savedPrompts}
+            filteredPrompts={filteredPrompts}
+            onPromptClick={handlePromptMenuClick}
+            updatePromptLastUsedAt={updatePromptLastUsedAt}
+            onHomeScreen={true}
           />
         </BlurFade>
 

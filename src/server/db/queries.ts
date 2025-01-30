@@ -482,6 +482,7 @@ export async function dbGetSavedPrompts({ userId }: { userId: string }) {
     const prompts = await prisma.savedPrompt.findMany({
       where: { userId },
       orderBy: [
+        { isFavorite: 'desc' },
         {
           lastUsedAt: {
             sort: 'desc',
