@@ -39,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
+import { EVENTS } from '@/lib/events';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import {
@@ -49,7 +50,6 @@ import {
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
-import { EVENTS } from '@/lib/events';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -397,7 +397,7 @@ function ChatMessage({
         {isUser && (
           <button
             onClick={handleSavePrompt}
-            className="mr-1 hidden group-hover:block hover:text-favorite pl-4 pt-4 pb-4 pr-2"
+            className="mr-1 hidden pb-4 pl-4 pr-2 pt-4 group-hover:block hover:text-favorite"
           >
             <Bookmark className="h-4 w-4" />
           </button>
