@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 
-import { SavedPromptsMenu } from '../chat/[id]/components/saved-prompts-menu';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { SavedPrompt } from '@prisma/client';
 import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
 
@@ -239,7 +239,6 @@ export function ConversationInput({
     )
   : savedPrompts;
 
-  console.log('filteredPrompts:', filteredPrompts);
 
   function handlePromptMenuClick(subtitle: string) {
     onChange(subtitle);
