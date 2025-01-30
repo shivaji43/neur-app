@@ -24,19 +24,31 @@ async function identifyBundlesBySlot(
 
     // Group transactions by slot
     const slotGroups = new Map<number, BundleTransaction[]>();
+    const buyersBySlot = new Map<number, Set<string>>();
 
     for (const tx of transactions) {
+      // Only consider positive price transactions (purchases)
+      if (tx.price <= 0) continue;
+
       const slot = tx.slot;
       if (!slotGroups.has(slot)) {
         slotGroups.set(slot, []);
+        buyersBySlot.set(slot, new Set());
       }
+
       slotGroups.get(slot)?.push({
         signature: tx.signature,
         slot: tx.slot,
         timestamp: tx.timestamp,
-        price: tx.price,
-        quantity: tx.quantity,
+        price: Math.abs(tx.price), // Ensure positive price
+        quantity: Math.abs(tx.quantity), // Ensure positive quantity
       });
+
+      // Track unique buyers per slot
+      const buyer = tx.buyer;
+      if (buyer) {
+        buyersBySlot.get(slot)?.add(buyer);
+      }
     }
 
     // Convert slot groups to bundles
@@ -49,16 +61,17 @@ async function identifyBundlesBySlot(
       // Calculate bundle metrics
       const totalQuantity = txs.reduce((sum, tx) => sum + tx.quantity, 0);
       const supplyPercentage = (totalQuantity / totalSupply) * 100;
-      const solSpent = txs.reduce((sum, tx) => sum + tx.price * tx.quantity, 0);
+      const solSpent = txs.reduce((sum, tx) => sum + tx.price, 0);
+      const uniqueBuyers = buyersBySlot.get(slot)?.size || 0;
 
       const bundle: Bundle = {
         slot,
-        bundleAddress: txs[0].signature, // Using first transaction signature as identifier
+        bundleAddress: txs[0].signature,
         transactions: txs,
         supplyPercentage,
         solSpent,
         currentHoldings: totalQuantity, // This should be updated with current holdings
-        isPumpfunBundle: false, // This should be verified against pump.fun data
+        isPumpfunBundle: false,
         avgPricePerToken: solSpent / totalQuantity,
         firstPurchaseTime: Math.min(...txs.map((tx) => tx.timestamp)),
         lastPurchaseTime: Math.max(...txs.map((tx) => tx.timestamp)),
@@ -67,6 +80,7 @@ async function identifyBundlesBySlot(
           ((Math.max(...txs.map((tx) => tx.timestamp)) -
             Math.min(...txs.map((tx) => tx.timestamp))) /
             3600000),
+        uniqueBuyers,
       };
 
       bundles.push(bundle);
@@ -80,7 +94,9 @@ async function identifyBundlesBySlot(
       totalBundles: bundles.length,
       totalSolSpent: bundles.reduce((sum, bundle) => sum + bundle.solSpent, 0),
       totalUniqueWallets: new Set(
-        bundles.flatMap((b) => b.transactions.map((t) => t.signature)),
+        Array.from(buyersBySlot.values()).flatMap((buyers) =>
+          Array.from(buyers),
+        ),
       ).size,
       totalSupply,
       largestBundle: bundles[0] || null,
@@ -111,21 +127,25 @@ function analyzeSuspiciousPatterns(bundles: Bundle[]) {
     }),
 
     // Coordinated buying (potential snipers working together)
-    coordinatedBuying: bundles.filter((b) => 
-      b.transactions.length >= 3 && // Multiple transactions
-      b.supplyPercentage > 2 && // Significant supply
-      (b.lastPurchaseTime - b.firstPurchaseTime) < 30000 // Within 30 seconds
+    coordinatedBuying: bundles.filter(
+      (b) =>
+        b.transactions.length >= 3 && // Multiple transactions
+        b.supplyPercentage > 2 && // Significant supply
+        b.lastPurchaseTime - b.firstPurchaseTime < 30000, // Within 30 seconds
     ),
 
     // Sniper characteristics
     snipers: bundles.filter((b) => {
-      const isEarlyBuyer = b.firstPurchaseTime < Date.now() - (24 * 60 * 60 * 1000); // Within first 24h
+      const isEarlyBuyer =
+        b.firstPurchaseTime < Date.now() - 24 * 60 * 60 * 1000; // Within first 24h
       const hasHighVelocity = b.purchaseVelocity > 500; // High tokens/hour
       const isLargeHolder = b.supplyPercentage > 1; // Over 1% of supply
-      const quickExecution = (b.lastPurchaseTime - b.firstPurchaseTime) < 15000; // Within 15 seconds
+      const quickExecution = b.lastPurchaseTime - b.firstPurchaseTime < 15000; // Within 15 seconds
 
-      return isEarlyBuyer && (hasHighVelocity || (isLargeHolder && quickExecution));
-    })
+      return (
+        isEarlyBuyer && (hasHighVelocity || (isLargeHolder && quickExecution))
+      );
+    }),
   };
 }
 

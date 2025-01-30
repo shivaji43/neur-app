@@ -4,13 +4,11 @@ import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { chunkArray } from '@/lib/utils';
 import rawKnownAddresses from '@/lib/utils/known-addresses.json';
+import { BundleTransaction } from '@/types/bundle';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
-
-
 import { RPC_URL } from '../constants';
-
 
 export interface Holder {
   owner: string;
@@ -55,6 +53,11 @@ const fetchHelius = async (method: HeliusMethod, params: any) => {
       }),
     });
 
+    // Check for rate limiting response
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+
     if (!response.ok) {
       throw new Error(
         `Helius API error: ${response.status} ${response.statusText}`,
@@ -70,6 +73,12 @@ const fetchHelius = async (method: HeliusMethod, params: any) => {
 
     return data;
   } catch (error) {
+    if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+      return {
+        status: 429,
+        error: 'Helius API request failed: Too many requests',
+      };
+    }
     if (error instanceof Error) {
       throw new Error(`Helius API request failed: ${error.message}`);
     }
@@ -409,39 +418,110 @@ export async function getHoldersClassification(
   };
 }
 
+/**
+ * Get transaction history for a given mint address
+ * 1) Get signatures for the mint address
+ * 2) Get full transaction data for each signature
+ * 3) Return an array of transaction history
+ *
+ * @param mintAddress - The mint address to get transaction history for
+ * @param limit - The maximum number of transactions to return
+ * @returns An array of transaction history
+ */
 export async function getTransactionHistory(
   mintAddress: string,
   limit: number = 100,
 ) {
-  // First get signatures
-  const signaturesData = await fetchHelius('getSignaturesForAddress', [
-    mintAddress,
-    { limit },
-  ]);
+  const transactions: BundleTransaction[] = [];
 
-  if (!signaturesData.result?.length) {
-    return [];
+  try {
+    const signaturesData = await fetchHelius('getSignaturesForAddress', [
+      mintAddress,
+      { limit },
+    ]);
+
+    if (!signaturesData.result?.length) {
+      return transactions;
+    }
+
+    const signatures = signaturesData.result;
+    const batchSize = 25;
+
+    for (let i = 0; i < signatures.length; i += batchSize) {
+      try {
+        const batch = signatures.slice(i, i + batchSize);
+
+        // Fetch batch of transactions
+        const batchTxs = await Promise.all(
+          batch.map(async (sig: any) => {
+            try {
+              const txData = await fetchHelius('getTransaction', [
+                sig.signature,
+                { maxSupportedTransactionVersion: 0 },
+              ]);
+              const tx = txData.result;
+
+              if (!tx) return null;
+
+              if (tx?.status === 429) {
+                console.log('[getTransactionHistory] tx.status', tx.status);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                return null;
+              }
+
+              const preBalance = tx.meta?.preBalances?.[0];
+              const postBalance = tx.meta?.postBalances?.[0];
+              const price =
+                preBalance !== postBalance
+                  ? (preBalance - postBalance) / Math.pow(10, 9) // Adjust for token decimals
+                  : 0;
+
+              // Calculate quantity from postTokenBalances
+              const quantity =
+                preBalance !== postBalance ? preBalance - postBalance : 0;
+
+              return {
+                signature: sig.signature,
+                slot: tx.slot,
+                timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
+                quantity,
+                price,
+                buyer: tx.meta?.postTokenBalances?.[0]?.owner,
+              };
+            } catch (error) {
+              console.error(
+                `Failed to fetch transaction ${sig.signature}:`,
+                error,
+              );
+              return null;
+            }
+          }),
+        );
+
+        transactions.push(
+          ...batchTxs.filter((tx): tx is NonNullable<typeof tx> => tx !== null),
+        );
+
+        // Add delay between batches
+        if (i + batchSize < signatures.length) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        console.warn(
+          'Rate limit hit or error, returning partial results:',
+          error,
+        );
+        // Return partial results instead of failing completely
+        return transactions;
+      }
+    }
+
+    return transactions;
+  } catch (error) {
+    console.warn(
+      'Error in getTransactionHistory, returning partial results:',
+      error,
+    );
+    return transactions;
   }
-
-  // Then get full transaction data for each signature
-  const transactions = await Promise.all(
-    signaturesData.result.map(async (sig: any) => {
-      const txData = await fetchHelius('getTransaction', [sig.signature]);
-      const tx = txData.result;
-
-      if (!tx) return null;
-
-      return {
-        signature: sig.signature,
-        slot: tx.slot,
-        timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
-        price: tx.meta?.preBalances?.[0]
-          ? (tx.meta.preBalances[0] - tx.meta.postBalances[0]) / 1e9
-          : 0,
-        quantity: tx.meta?.postTokenBalances?.[0]?.uiTokenAmount?.uiAmount || 0,
-      };
-    }),
-  );
-
-  return transactions.filter((tx): tx is NonNullable<typeof tx> => tx !== null);
 }

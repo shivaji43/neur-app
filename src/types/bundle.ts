@@ -7,6 +7,7 @@ export interface BundleTransaction {
   timestamp: number;
   price: number;
   quantity: number;
+  buyer?: string;
 }
 
 export interface Bundle {
@@ -21,6 +22,7 @@ export interface Bundle {
   firstPurchaseTime: number;
   lastPurchaseTime: number;
   purchaseVelocity: number; // tokens per hour during active period
+  uniqueBuyers: number;
 }
 
 export interface MintBundleAnalysis {

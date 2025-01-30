@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
+
+
 import { analyzeMintBundles } from '@/server/actions/bundle';
 import { type MintBundleAnalysis } from '@/types/bundle';
+
 
 export const bundleTools = {
   analyzeBundles: {
@@ -10,7 +13,7 @@ export const bundleTools = {
     description:
       'Analyze potential bundles and snipers for a given mint address, including statistics about supply percentage, estimated SOL spent, and current holdings.',
     parameters: z.object({
-      mintAddress: z.string().describe("The NFT collection's mint address"),
+      mintAddress: z.string().describe("The token's mint address"),
     }),
     execute: async ({ mintAddress }: { mintAddress: string }) => {
       try {
@@ -101,18 +104,33 @@ export const bundleTools = {
               {analysis.suspiciousPatterns.snipers.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-destructive">
-                    🎯 Potential Snipers ({analysis.suspiciousPatterns.snipers.length})
+                    🎯 Potential Snipers (
+                    {analysis.suspiciousPatterns.snipers.length})
                   </p>
                   <div className="grid gap-2">
                     {analysis.suspiciousPatterns.snipers.map((sniper) => (
-                      <div key={sniper.bundleAddress} className="rounded-lg bg-destructive/5 p-3">
+                      <div
+                        key={sniper.bundleAddress}
+                        className="rounded-lg bg-destructive/5 p-3"
+                      >
                         <p className="text-xs font-medium">
                           <code>{sniper.bundleAddress.slice(0, 8)}...</code>
                         </p>
                         <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                           <p>Supply: {sniper.supplyPercentage.toFixed(2)}%</p>
-                          <p>Velocity: {sniper.purchaseVelocity.toFixed(0)} tokens/hour</p>
-                          <p>Time Window: {((sniper.lastPurchaseTime - sniper.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                          <p>
+                            Velocity: {sniper.purchaseVelocity.toFixed(0)}{' '}
+                            tokens/hour
+                          </p>
+                          <p>
+                            Time Window:{' '}
+                            {(
+                              (sniper.lastPurchaseTime -
+                                sniper.firstPurchaseTime) /
+                              1000
+                            ).toFixed(1)}
+                            s
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -123,20 +141,34 @@ export const bundleTools = {
               {analysis.suspiciousPatterns.rapidAccumulation.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-orange-500">
-                    ⚡ Rapid Accumulation ({analysis.suspiciousPatterns.rapidAccumulation.length})
+                    ⚡ Rapid Accumulation (
+                    {analysis.suspiciousPatterns.rapidAccumulation.length})
                   </p>
                   <div className="grid gap-2">
-                    {analysis.suspiciousPatterns.rapidAccumulation.map((bundle) => (
-                      <div key={bundle.bundleAddress} className="rounded-lg bg-orange-500/5 p-3">
-                        <p className="text-xs font-medium">
-                          <code>{bundle.bundleAddress.slice(0, 8)}...</code>
-                        </p>
-                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                          <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
-                          <p>Time: {((bundle.lastPurchaseTime - bundle.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                    {analysis.suspiciousPatterns.rapidAccumulation.map(
+                      (bundle) => (
+                        <div
+                          key={bundle.bundleAddress}
+                          className="rounded-lg bg-orange-500/5 p-3"
+                        >
+                          <p className="text-xs font-medium">
+                            <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                          </p>
+                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                            <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                            <p>
+                              Time:{' '}
+                              {(
+                                (bundle.lastPurchaseTime -
+                                  bundle.firstPurchaseTime) /
+                                1000
+                              ).toFixed(1)}
+                              s
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -144,21 +176,35 @@ export const bundleTools = {
               {analysis.suspiciousPatterns.coordinatedBuying.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-blue-500">
-                    🤝 Coordinated Buying ({analysis.suspiciousPatterns.coordinatedBuying.length})
+                    🤝 Coordinated Buying (
+                    {analysis.suspiciousPatterns.coordinatedBuying.length})
                   </p>
                   <div className="grid gap-2">
-                    {analysis.suspiciousPatterns.coordinatedBuying.map((bundle) => (
-                      <div key={bundle.bundleAddress} className="rounded-lg bg-blue-500/5 p-3">
-                        <p className="text-xs font-medium">
-                          <code>{bundle.bundleAddress.slice(0, 8)}...</code>
-                        </p>
-                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                          <p>Transactions: {bundle.transactions.length}</p>
-                          <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
-                          <p>Time Window: {((bundle.lastPurchaseTime - bundle.firstPurchaseTime) / 1000).toFixed(1)}s</p>
+                    {analysis.suspiciousPatterns.coordinatedBuying.map(
+                      (bundle) => (
+                        <div
+                          key={bundle.bundleAddress}
+                          className="rounded-lg bg-blue-500/5 p-3"
+                        >
+                          <p className="text-xs font-medium">
+                            <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                          </p>
+                          <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                            <p>Transactions: {bundle.transactions.length}</p>
+                            <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                            <p>
+                              Time Window:{' '}
+                              {(
+                                (bundle.lastPurchaseTime -
+                                  bundle.firstPurchaseTime) /
+                                1000
+                              ).toFixed(1)}
+                              s
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </div>
               )}
