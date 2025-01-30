@@ -24,8 +24,8 @@ import {
 } from '@/server/db/queries';
 import { ActionWithUser } from '@/types/db';
 
-import { getToolsFromOrchestrator } from './orchestrator';
 import { retrieveAgentKitServer } from '../utils';
+import { getToolsFromOrchestrator } from './orchestrator';
 
 const ACTION_PAUSE_THRESHOLD = 3;
 
@@ -78,7 +78,10 @@ export async function processAction(action: ActionWithUser) {
         ],
         true,
       );
-    const agent = await retrieveAgentKitServer({ userId: action.user.id, walletId: activeWallet.id });
+    const agent = await retrieveAgentKitServer({
+      userId: action.user.id,
+      walletId: activeWallet.id,
+    });
 
     console.log('toolsRequired', toolsRequired);
 

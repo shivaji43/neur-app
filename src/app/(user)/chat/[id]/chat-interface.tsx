@@ -39,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
+import { EVENTS } from '@/lib/events';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import {
@@ -50,6 +51,9 @@ import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
 import { EVENTS } from '@/lib/events';
 import { ConversationInput } from '../../home/conversation-input';
+
+import { SavedPromptsMenu } from './components/saved-prompts-menu';
+
 
 // Types
 interface UploadingImage extends Attachment {

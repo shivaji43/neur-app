@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import TypingAnimation from '@/components/ui/typing-animation';
 import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
+import { EVENTS } from '@/lib/events';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
@@ -30,7 +31,6 @@ import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
-import { EVENTS } from '@/lib/events';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
