@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
 import ChatInterface from '@/app/(user)/chat/[id]/chat-interface';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { Badge } from '@/components/ui/badge';
 import BlurFade from '@/components/ui/blur-fade';
 import { Button } from '@/components/ui/button';
@@ -25,14 +26,15 @@ import { EVENTS } from '@/lib/events';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
-import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
+import {
+  getSavedPrompts,
+  setSavedPromptLastUsedAt,
+} from '@/server/actions/saved-prompt';
 
 import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
-
-import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
@@ -162,16 +164,19 @@ export function HomeContent() {
     if (!value.trim() && (!attachments || attachments.length === 0)) {
       return;
     }
-  
+
     // Create a synthetic event for handleSubmit
     const fakeEvent = {
       preventDefault: () => {},
-      type: 'submit'
+      type: 'submit',
     } as React.FormEvent;
-  
+
     // Submit the message
-    await handleSubmit(fakeEvent, { data: value, experimental_attachments: attachments });
-    
+    await handleSubmit(fakeEvent, {
+      data: value,
+      experimental_attachments: attachments,
+    });
+
     // Update UI state and URL
     setShowChat(true);
     window.history.replaceState(null, '', `/chat/${chatId}`);
@@ -258,37 +263,34 @@ export function HomeContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [chatId, resetChat]);
 
-
-    const filteredPrompts = input.startsWith('/')
+  const filteredPrompts = input.startsWith('/')
     ? savedPrompts.filter((savedPrompt) =>
-        savedPrompt.title
-          .toLowerCase()
-          .includes(input.slice(1).toLowerCase()),
+        savedPrompt.title.toLowerCase().includes(input.slice(1).toLowerCase()),
       )
     : savedPrompts;
-  
-    function handlePromptMenuClick(subtitle: string) {
-      setInput(subtitle);
-    }
-  
-    async function updatePromptLastUsedAt(id: string) {
-      try {
-        const res = await setSavedPromptLastUsedAt({ id });
-        if (!res?.data?.data) {
-          throw new Error();
-        }
-  
-        const { lastUsedAt } = res.data.data;
-  
-        setSavedPrompts((old) =>
-          old.map((prompt) =>
-            prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
-          ),
-        );
-      } catch (error) {
-        console.error('Failed to update -lastUsedAt- for prompt:', { error });
+
+  function handlePromptMenuClick(subtitle: string) {
+    setInput(subtitle);
+  }
+
+  async function updatePromptLastUsedAt(id: string) {
+    try {
+      const res = await setSavedPromptLastUsedAt({ id });
+      if (!res?.data?.data) {
+        throw new Error();
       }
+
+      const { lastUsedAt } = res.data.data;
+
+      setSavedPrompts((old) =>
+        old.map((prompt) =>
+          prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to update -lastUsedAt- for prompt:', { error });
     }
+  }
 
   if (isLoading) {
     return (

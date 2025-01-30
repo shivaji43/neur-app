@@ -1,20 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import Image from 'next/image';
 
+import { SavedPrompt } from '@prisma/client';
 import { Attachment } from 'ai';
 import { Image as ImageIcon, SendHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
-
-import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
-import { SavedPrompt } from '@prisma/client';
-import { getSavedPrompts, setSavedPromptLastUsedAt } from '@/server/actions/saved-prompt';
+import {
+  getSavedPrompts,
+  setSavedPromptLastUsedAt,
+} from '@/server/actions/saved-prompt';
 
 interface ConversationInputProps {
   value: string;
@@ -22,7 +31,7 @@ interface ConversationInputProps {
   onSubmit: (value: string, attachments: Attachment[]) => Promise<void>;
   onChat?: boolean;
   savedPrompts: SavedPrompt[];
-  setSavedPrompts: (savedPrompts: SavedPrompt[]) => void;
+  setSavedPrompts: Dispatch<SetStateAction<SavedPrompt[]>>;
 }
 
 export const MAX_CHARS = 2000;
@@ -80,9 +89,9 @@ export function ConversationInput({
     async function fetchSavedPrompts() {
       try {
         const res = await getSavedPrompts();
-        const Prompts = res?.data?.data || [];
+        const prompts = res?.data?.data || [];
 
-        setSavedPrompts(Prompts);
+        setSavedPrompts(prompts);
       } catch (err) {
         console.error(err);
       }
@@ -214,31 +223,30 @@ export function ConversationInput({
     };
   }, [attachments]);
 
-    async function updatePromptLastUsedAt(id: string) {
-      try {
-        const res = await setSavedPromptLastUsedAt({ id });
-        if (!res?.data?.data) {
-          throw new Error();
-        }
-  
-        const { lastUsedAt } = res.data.data;
-  
-        setSavedPrompts((old) =>
-          old.map((prompt) =>
-            prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
-          ),
-        );
-      } catch (error) {
-        console.error('Failed to update -lastUsedAt- for prompt:', { error });
+  async function updatePromptLastUsedAt(id: string) {
+    try {
+      const res = await setSavedPromptLastUsedAt({ id });
+      if (!res?.data?.data) {
+        throw new Error();
       }
+
+      const { lastUsedAt } = res.data.data;
+
+      setSavedPrompts((old) =>
+        old.map((prompt) =>
+          prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to update -lastUsedAt- for prompt:', { error });
     }
+  }
 
   const filteredPrompts = value.startsWith('/')
-  ? savedPrompts.filter((savedPrompt) =>
-      savedPrompt.title.toLowerCase().includes(value.slice(1).toLowerCase()),
-    )
-  : savedPrompts;
-
+    ? savedPrompts.filter((savedPrompt) =>
+        savedPrompt.title.toLowerCase().includes(value.slice(1).toLowerCase()),
+      )
+    : savedPrompts;
 
   function handlePromptMenuClick(subtitle: string) {
     onChange(subtitle);
@@ -253,7 +261,7 @@ export function ConversationInput({
           {onChat && (
             <SavedPromptsMenu
               input={value}
-              isFetchingSavedPrompts={onChat? isFetchingSavedPrompts: false}
+              isFetchingSavedPrompts={onChat ? isFetchingSavedPrompts : false}
               savedPrompts={savedPrompts}
               filteredPrompts={filteredPrompts}
               onPromptClick={handlePromptMenuClick}
@@ -289,8 +297,7 @@ export function ConversationInput({
           />
 
           <div className="flex items-center justify-between border-t px-4 py-2">
-            
-            <div className='flex flex-row items-center justify-between w-full'>
+            <div className="flex w-full flex-row items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 Type / to search for saved prompts (e.g. /Solana Price...)
               </span>

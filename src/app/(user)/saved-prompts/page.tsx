@@ -355,10 +355,12 @@ export default function SavedPromptsPage() {
                 transition: { duration: 0.2 },
               }}
               whileTap={{ scale: 0.99 }}
-              className="group flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 md:p-3.5 text-left transition-colors duration-200 hover:bg-primary/5"
+              className="group flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 text-left transition-colors duration-200 hover:bg-primary/5 md:p-3.5"
             >
               <div className="flex w-full flex-row items-center justify-between text-base font-medium">
-                <p className="text-sm md:text-base font-medium">{prompt.title}</p>
+                <p className="text-sm font-medium md:text-base">
+                  {prompt.title}
+                </p>
                 <div className="flex flex-row items-center">
                   <button
                     className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
@@ -398,7 +400,7 @@ export default function SavedPromptsPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground/80">
-                {prompt.content.trim().slice(0, 150)+"..."}
+                {prompt.content.trim().slice(0, 150) + '...'}
               </div>
             </motion.div>
           ))}

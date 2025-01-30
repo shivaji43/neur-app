@@ -165,9 +165,9 @@ export function filterTools(
       if (disabledTools.includes(toolName)) {
         return false;
       }
-      if(toolConfig.requiredEnvVars){
+      if (toolConfig.requiredEnvVars) {
         for (const envVar of toolConfig.requiredEnvVars) {
-          if(!process.env[envVar] || process.env[envVar] == ''){
+          if (!process.env[envVar] || process.env[envVar] == '') {
             return false;
           }
         }

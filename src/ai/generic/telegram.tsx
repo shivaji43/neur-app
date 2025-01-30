@@ -151,10 +151,7 @@ export const telegramTools = {
       username: z.string().optional(),
       message: z.string(),
     }),
-    requiredEnvVars: [
-      'TELEGRAM_BOT_TOKEN',
-      'TELEGRAM_BOT_USERNAME',
-    ],
+    requiredEnvVars: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_USERNAME'],
     execute: async function ({
       username,
       message,

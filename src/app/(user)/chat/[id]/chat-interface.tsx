@@ -33,12 +33,14 @@ import { Confirmation } from '@/components/confimation';
 import { FloatingWallet } from '@/components/floating-wallet';
 import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
+import { EVENTS } from '@/lib/events';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import {
@@ -48,10 +50,7 @@ import {
 } from '@/server/actions/saved-prompt';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
-import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
-import { EVENTS } from '@/lib/events';
 import { ConversationInput } from '../../home/conversation-input';
-
 
 // Types
 interface UploadingImage extends Attachment {
@@ -353,7 +352,7 @@ function ChatMessage({
 
     toast.promise(
       createSavedPrompt({
-        title: message.content.trim().slice(0, 30)+"...",
+        title: message.content.trim().slice(0, 30) + '...',
         content: message.content.trim(),
       }).then((res) => {
         if (!res?.data?.data) {
