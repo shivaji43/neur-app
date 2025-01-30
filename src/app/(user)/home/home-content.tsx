@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 import { SavedPrompt } from '@prisma/client';
 import { RiTwitterXFill } from '@remixicon/react';
-import { JSONValue } from 'ai';
+import { Attachment, JSONValue } from 'ai';
 import { useChat } from 'ai/react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -154,17 +154,25 @@ export function HomeContent() {
     return () => clearTimeout(timer);
   }, [verifyingTx, verificationAttempts]);
 
-  const handleSend = async (value: string) => {
-    if (!value.trim()) return;
-
+  const handleSend = async (value: string, attachments: Attachment[]) => {
+    // Early returns for validation
     if (!user?.earlyAccess) {
       return;
     }
-
-    const fakeEvent = new Event('submit') as any;
-    fakeEvent.preventDefault = () => {};
-
-    await handleSubmit(fakeEvent, { data: { content: value } });
+    if (!value.trim() && (!attachments || attachments.length === 0)) {
+      return;
+    }
+  
+    // Create a synthetic event for handleSubmit
+    const fakeEvent = {
+      preventDefault: () => {},
+      type: 'submit'
+    } as React.FormEvent;
+  
+    // Submit the message
+    await handleSubmit(fakeEvent, { data: value, experimental_attachments: attachments });
+    
+    // Update UI state and URL
     setShowChat(true);
     window.history.replaceState(null, '', `/chat/${chatId}`);
   };
@@ -313,6 +321,8 @@ export function HomeContent() {
             value={input}
             onChange={setInput}
             onSubmit={handleSend}
+            savedPrompts={savedPrompts}
+            setSavedPrompts={setSavedPrompts}
           />
           <SavedPromptsMenu
             input={input}
