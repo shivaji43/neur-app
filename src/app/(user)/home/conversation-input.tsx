@@ -21,8 +21,8 @@ interface ConversationInputProps {
   onChange: (value: string) => void;
   onSubmit: (value: string, attachments: Attachment[]) => Promise<void>;
   onChat?: boolean;
-  savedPrompts?: SavedPrompt[];
-  setSavedPrompts?: (savedPrompts: SavedPrompt[]) => void;
+  savedPrompts: SavedPrompt[];
+  setSavedPrompts: (savedPrompts: SavedPrompt[]) => void;
 }
 
 const MAX_CHARS = 2000;
@@ -80,9 +80,9 @@ export function ConversationInput({
     async function fetchSavedPrompts() {
       try {
         const res = await getSavedPrompts();
-        const savedPrompts = res?.data?.data || [];
+        const Prompts = res?.data?.data || [];
 
-        setSavedPrompts(savedPrompts);
+        setSavedPrompts(Prompts);
       } catch (err) {
         console.error(err);
       }
