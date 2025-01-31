@@ -219,7 +219,7 @@ export function TokenTransferDialog({
                 const usdValue = calculateUsdValue(
                   token.token_info.balance,
                   token.token_info.decimals,
-                  token.token_info.price_info?.price_per_token ?? 0,
+                  token.token_info.price_info.price_per_token,
                 );
 
                 return (
@@ -261,9 +261,9 @@ export function TokenTransferDialog({
                         </p>
                         <p className="text-xs text-muted-foreground">
                           $
-                          {(
-                            token.token_info.price_info?.price_per_token ?? 0
-                          ).toFixed(2)}
+                          {token.token_info.price_info.price_per_token.toFixed(
+                            2,
+                          )}
                         </p>
                       </div>
                     </Label>
