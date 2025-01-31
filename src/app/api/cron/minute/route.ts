@@ -1,3 +1,4 @@
+import { IS_TRIAL_ENABLED } from '@/lib/utils';
 import { processAction } from '@/server/actions/action';
 import { dbGetActions } from '@/server/db/queries';
 
@@ -26,6 +27,16 @@ export async function GET(request: Request) {
   // Filter the actions to only include those that are ready to be processed based on their lastExecutedAt and frequency
   const now = new Date();
   const actionsToProcess = actions.filter((action) => {
+    // Filter out actions where user is not EAP or does not have an active subscription (allow all during trial mode)
+    if (
+      !action.user ||
+      (!action.user.earlyAccess &&
+        !action.user.subscription?.active &&
+        !IS_TRIAL_ENABLED)
+    ) {
+      return false;
+    }
+
     // Filter out actions without a frequency
     if (!action.frequency) {
       return false;

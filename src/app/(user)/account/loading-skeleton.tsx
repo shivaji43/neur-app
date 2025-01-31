@@ -94,6 +94,24 @@ export function LoadingStateSkeleton() {
             </Card>
           </section>
 
+          {/* Subscription Section */}
+          <section className="space-y-4">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Subscription Management
+            </h2>
+            <Card className="bg-sidebar">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div>
+                    <div className="mt-1">
+                      <Skeleton className="h-6 w-full" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
           {/* Embedded Wallet Section */}
           <section className="space-y-4">
             <h2 className="text-sm font-medium text-muted-foreground">

@@ -22,9 +22,16 @@ import { Card } from '@/components/ui/card';
 import TypingAnimation from '@/components/ui/typing-animation';
 import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
+import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { EVENTS } from '@/lib/events';
 import { SolanaUtils } from '@/lib/solana';
-import { cn } from '@/lib/utils';
+import {
+  IS_SUBSCRIPTION_ENABLED,
+  IS_TRIAL_ENABLED,
+  cn,
+  getSubPriceFloat,
+  getTrialTokensFloat,
+} from '@/lib/utils';
 import { checkEAPTransaction } from '@/server/actions/eap';
 import {
   getSavedPrompts,
@@ -68,7 +75,7 @@ export function HomeContent() {
   const [showChat, setShowChat] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [chatId, setChatId] = useState(() => uuidv4());
-  const { user, isLoading } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const MAX_VERIFICATION_ATTEMPTS = 20;
@@ -156,11 +163,22 @@ export function HomeContent() {
     return () => clearTimeout(timer);
   }, [verifyingTx, verificationAttempts]);
 
-  const handleSend = async (value: string, attachments: Attachment[]) => {
-    // Early returns for validation
-    if (!user?.earlyAccess) {
+const handleSend = async (value: string, attachments: Attachment[]) => {
+    const NON_TRIAL_PERMISSION =
+      !user?.earlyAccess && !user?.subscription?.active;
+    const TRIAL_PERMISSION =
+      !user?.earlyAccess && !user?.subscription?.active && !meetsTokenBalance;
+
+    // If user is not in EAP or no active subscription, don't allow sending messages
+    if (!IS_TRIAL_ENABLED && NON_TRIAL_PERMISSION) {
       return;
     }
+
+    // If user is in trial mode, check if they meet the minimum token balance
+    if (IS_TRIAL_ENABLED && TRIAL_PERMISSION) {
+      return;
+    }
+
     if (!value.trim() && (!attachments || attachments.length === 0)) {
       return;
     }
@@ -291,8 +309,33 @@ export function HomeContent() {
       console.error('Failed to update -lastUsedAt- for prompt:', { error });
     }
   }
+  const hasEAP = user?.earlyAccess === true;
 
-  if (isLoading) {
+  const shouldCheckPortfolio =
+    IS_TRIAL_ENABLED && !hasEAP && !user?.subscription?.active;
+
+  const { data: portfolio, isLoading: isPortfolioLoading } =
+    useWalletPortfolio();
+
+  // Check if user meets the minimum token balance
+  const meetsTokenBalance = useMemo(() => {
+    if (!portfolio || !portfolio.tokens) return false;
+
+    // Find the NEUR token
+    const neurToken = portfolio.tokens.find(
+      (token) => token.mint === process.env.NEXT_PUBLIC_NEUR_MINT,
+    );
+
+    // Check the balance
+    const balance = neurToken?.balance || 0;
+
+    const trialMinBalance = getTrialTokensFloat();
+
+    return trialMinBalance && balance >= trialMinBalance;
+  }, [portfolio]);
+
+  // Handle loading states
+  if (isUserLoading || (shouldCheckPortfolio && isPortfolioLoading)) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -300,13 +343,34 @@ export function HomeContent() {
     );
   }
 
-  const hasEAP = user?.earlyAccess === true;
+  const RENDER_TRIAL_BANNER =
+    IS_TRIAL_ENABLED &&
+    !hasEAP &&
+    !user?.subscription?.active &&
+    !meetsTokenBalance;
+  const USER_HAS_TRIAL =
+    IS_TRIAL_ENABLED &&
+    !hasEAP &&
+    !user?.subscription?.active &&
+    meetsTokenBalance;
+  const RENDER_SUB_BANNER =
+    !hasEAP &&
+    !user?.subscription?.active &&
+    !RENDER_TRIAL_BANNER &&
+    !USER_HAS_TRIAL;
+  const RENDER_EAP_BANNER =
+    !IS_SUBSCRIPTION_ENABLED &&
+    !hasEAP &&
+    !RENDER_TRIAL_BANNER &&
+    !USER_HAS_TRIAL;
+
+  const USER_HAS_ACCESS = hasEAP || user?.subscription?.active || USER_HAS_TRIAL;
 
   const mainContent = (
     <div
       className={cn(
         'mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6',
-        !hasEAP ? 'h-screen py-0' : 'py-12',
+        !USER_HAS_ACCESS ? 'h-screen py-0' : 'py-12',
       )}
     >
       <BlurFade delay={0.2}>
@@ -337,7 +401,7 @@ export function HomeContent() {
           />
         </BlurFade>
 
-        {hasEAP && (
+        {USER_HAS_ACCESS && (
           <div className="space-y-8">
             <BlurFade delay={0.2}>
               <div className="space-y-2">
@@ -396,7 +460,7 @@ export function HomeContent() {
     </div>
   );
 
-  if (!hasEAP) {
+  if (RENDER_EAP_BANNER) {
     return (
       <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
@@ -470,6 +534,118 @@ export function HomeContent() {
                       `Join EAP (${EAP_PRICE} SOL)`
                     )}
                   </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (RENDER_SUB_BANNER) {
+    return (
+      <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
+        <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
+        {mainContent}
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
+            <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-white/[0.02] dark:from-white/[0.02] dark:to-white/[0.01]" />
+              <div className="relative space-y-6">
+                <div className="space-y-2 text-center">
+                  <h2 className="text-lg font-semibold sm:text-2xl">
+                    Subscription Required
+                  </h2>
+                  <div className="text-muted-foreground">
+                    Subscribe to Neur for <Badge>BETA</Badge> access.
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white/[0.01] p-4 backdrop-blur-sm dark:bg-black/[0.01]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text:xs font-medium sm:text-sm">
+                      Monthly Subscription
+                    </span>
+                    <span className="text-base font-semibold sm:text-lg">
+                      {getSubPriceFloat()} SOL
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <Link
+                    href="https://x.com/neur_sh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    <RiTwitterXFill className="mr-2 h-4 w-4" />
+                    Follow Updates
+                  </Link>
+                  <Link
+                    href="/account"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    Manage Account
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (RENDER_TRIAL_BANNER) {
+    return (
+      <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
+        <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
+        {mainContent}
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
+            <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-white/[0.02] dark:from-white/[0.02] dark:to-white/[0.01]" />
+              <div className="relative space-y-6">
+                <div className="space-y-2 text-center">
+                  <h2 className="text-lg font-semibold sm:text-2xl">
+                    Neur Holder Trial
+                  </h2>
+                  <div className="text-muted-foreground">
+                    Hold $NEUR tokens in your embedded wallet for{' '}
+                    <Badge>BETA</Badge> access. Deposit NEUR tokens to your
+                    active embedded wallet to continue.
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-white/[0.01] p-4 backdrop-blur-sm dark:bg-black/[0.01]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text:xs font-medium sm:text-sm">
+                      Neur Tokens Required
+                    </span>
+                    <span className="text-base font-semibold sm:text-lg">
+                      {getTrialTokensFloat()} NEUR
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <Link
+                    href="https://x.com/neur_sh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    <RiTwitterXFill className="mr-2 h-4 w-4" />
+                    Follow Updates
+                  </Link>
+                  <Link
+                    href="/account"
+                    className="flex items-center text-xs text-muted-foreground transition-colors hover:text-foreground sm:text-sm"
+                  >
+                    Manage Account
+                  </Link>
                 </div>
               </div>
             </Card>

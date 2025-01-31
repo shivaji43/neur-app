@@ -290,7 +290,7 @@ export async function dbGetActions({
         OR: [{ startTime: { lte: new Date() } }, { startTime: null }],
       },
       orderBy: { createdAt: 'desc' },
-      include: { user: { include: { wallets: true } } },
+      include: { user: { include: { wallets: true, subscription: true } } },
     });
   } catch (error) {
     console.error('[DB Error] Failed to get actions:', {
