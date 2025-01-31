@@ -219,12 +219,12 @@ export function TokenTransferDialog({
                 const usdValue = calculateUsdValue(
                   token.token_info.balance,
                   token.token_info.decimals,
-                  token.token_info.price_info.price_per_token,
+                  token.token_info.price_info?.price_per_token ?? 0,
                 );
 
                 return (
                   <div
-                    key={token.content.metadata.symbol}
+                    key={token.id}
                     className="flex items-center space-x-4 space-y-4 first:mt-0"
                   >
                     <RadioGroupItem
@@ -261,9 +261,9 @@ export function TokenTransferDialog({
                         </p>
                         <p className="text-xs text-muted-foreground">
                           $
-                          {token.token_info.price_info.price_per_token.toFixed(
-                            2,
-                          )}
+                          {(
+                            token.token_info.price_info?.price_per_token ?? 0
+                          ).toFixed(2)}
                         </p>
                       </div>
                     </Label>
