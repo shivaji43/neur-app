@@ -145,6 +145,19 @@ export const searchWalletAssets: (walletAddress: string) => Promise<{
           },
         };
       }
+      if (item.token_info.price_info === undefined) {
+        return {
+          ...item,
+          token_info: {
+            ...item.token_info,
+            price_info: {
+              price_per_token: 0,
+              total_price: 0,
+              currency: '$',
+            },
+          },
+        };
+      }
       return item;
     });
     const nonFungibleTokens: NonFungibleToken[] = items.filter(
