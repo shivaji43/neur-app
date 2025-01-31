@@ -163,7 +163,7 @@ export function HomeContent() {
     return () => clearTimeout(timer);
   }, [verifyingTx, verificationAttempts]);
 
-const handleSend = async (value: string, attachments: Attachment[]) => {
+  const handleSend = async (value: string, attachments: Attachment[]) => {
     const NON_TRIAL_PERMISSION =
       !user?.earlyAccess && !user?.subscription?.active;
     const TRIAL_PERMISSION =
@@ -364,7 +364,8 @@ const handleSend = async (value: string, attachments: Attachment[]) => {
     !RENDER_TRIAL_BANNER &&
     !USER_HAS_TRIAL;
 
-  const USER_HAS_ACCESS = hasEAP || user?.subscription?.active || USER_HAS_TRIAL;
+  const USER_HAS_ACCESS =
+    hasEAP || user?.subscription?.active || USER_HAS_TRIAL;
 
   const mainContent = (
     <div
