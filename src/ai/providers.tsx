@@ -28,7 +28,9 @@ const openai = createOpenAI({
   compatibility: 'strict',
   ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai') && {
     fetch: async (url, options) => {
-      const body = JSON.parse(options.body);
+      if (!options?.body) return fetch(url, options);
+ 
+      const body = JSON.parse(options.body as string);
 
       const modifiedBody = {
         ...body,
