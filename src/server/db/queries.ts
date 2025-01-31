@@ -1,11 +1,11 @@
 import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
 import { JsonValue } from '@prisma/client/runtime/library';
+import { tool } from 'ai';
 import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
 import { convertToUIMessages } from '@/lib/utils';
 import { NewAction } from '@/types/db';
-import { tool } from 'ai';
 
 /**
  * Retrieves a conversation by its ID
@@ -176,8 +176,13 @@ export async function dbGetConversationMessages({
     const uiMessages = convertToUIMessages(messages);
 
     // If our final message is not a user message, add a fake empty user message
-    if (limit && uiMessages.length && uiMessages[uiMessages.length - 1].role !== 'user') {
-      const lastMessageAt = uiMessages[uiMessages.length - 1].createdAt || new Date(1);
+    if (
+      limit &&
+      uiMessages.length &&
+      uiMessages[uiMessages.length - 1].role !== 'user'
+    ) {
+      const lastMessageAt =
+        uiMessages[uiMessages.length - 1].createdAt || new Date(1);
       uiMessages.push({
         id: 'fake',
         createdAt: new Date(lastMessageAt.getTime() - 1),
@@ -282,13 +287,10 @@ export async function dbGetActions({
         triggered,
         paused,
         completed,
-        OR: [
-          { startTime: { lte: new Date() } },
-          { startTime: null }
-        ]
+        OR: [{ startTime: { lte: new Date() } }, { startTime: null }],
       },
       orderBy: { createdAt: 'desc' },
-      include: { user: { include: { wallets: true } } },
+      include: { user: { include: { wallets: true, subscription: true } } },
     });
   } catch (error) {
     console.error('[DB Error] Failed to get actions:', {
@@ -480,6 +482,7 @@ export async function dbGetSavedPrompts({ userId }: { userId: string }) {
     const prompts = await prisma.savedPrompt.findMany({
       where: { userId },
       orderBy: [
+        { isFavorite: 'desc' },
         {
           lastUsedAt: {
             sort: 'desc',

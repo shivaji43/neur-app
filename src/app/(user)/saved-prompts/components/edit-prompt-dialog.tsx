@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+import { MAX_CHARS } from '../../home/conversation-input';
 import { PromptAction } from '../types/prompt';
 
 interface EditPromptDialogProps {
@@ -59,7 +60,7 @@ export const EditPromptDialog = ({
         Add Prompt <Plus className="h-4 w-4" />
       </Button>
     </DialogTrigger>
-    <DialogContent className="sm:max-w-[425px]">
+    <DialogContent className="sm:max-w-[650px]">
       <DialogHeader>
         <DialogTitle>
           {promptAction.action === 'update' ? 'Edit' : 'Add'} Prompt
@@ -79,9 +80,15 @@ export const EditPromptDialog = ({
           value={content}
           rows={4}
           placeholder="Prompt"
+          maxLength={MAX_CHARS}
           onChange={(e) => setContent(e.target.value)}
-          className="col-span-3"
+          className={`col-span-3 resize-none 
+            ${content.length > 500 ? 'min-h-[300px] md:min-h-[400px]' : 'min-h-[100px] md:min-h-[200px]'}
+          `}
         />
+        <div className="text-sm text-gray-500">
+          {content.length}/{MAX_CHARS} chars
+        </div>
       </div>
       <DialogFooter>
         <Button

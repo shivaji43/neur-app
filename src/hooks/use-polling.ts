@@ -6,11 +6,7 @@ type UsePollingOptions = {
   interval?: number;
 };
 
-const usePolling = ({
-  url,
-  onUpdate,
-  interval = 60000,
-}: UsePollingOptions) => {
+const usePolling = ({ url, onUpdate, interval = 60000 }: UsePollingOptions) => {
   useEffect(() => {
     const poll = async () => {
       // Allow for use of just the callback without a URL for just a timer

@@ -33,12 +33,14 @@ import { Confirmation } from '@/components/confimation';
 import { FloatingWallet } from '@/components/floating-wallet';
 import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
+import { SavedPromptsMenu } from '@/components/saved-prompts-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import usePolling from '@/hooks/use-polling';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
+import { EVENTS } from '@/lib/events';
 import { uploadImage } from '@/lib/upload';
 import { cn } from '@/lib/utils';
 import {
@@ -48,8 +50,7 @@ import {
 } from '@/server/actions/saved-prompt';
 import { type ToolActionResult, ToolUpdate } from '@/types/util';
 
-import { SavedPromptsMenu } from './components/saved-prompts-menu';
-import { EVENTS } from '@/lib/events';
+import { ConversationInput } from '../../home/conversation-input';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -351,7 +352,7 @@ function ChatMessage({
 
     toast.promise(
       createSavedPrompt({
-        title: message.content.trim().slice(0, 30),
+        title: message.content.trim().slice(0, 30) + '...',
         content: message.content.trim(),
       }).then((res) => {
         if (!res?.data?.data) {
@@ -397,7 +398,7 @@ function ChatMessage({
         {isUser && (
           <button
             onClick={handleSavePrompt}
-            className="mr-1 hidden group-hover:block hover:text-favorite pl-4 pt-4 pb-4 pr-2"
+            className="mr-1 hidden pb-4 pl-4 pr-2 pt-4 group-hover:block hover:text-favorite"
           >
             <Bookmark className="h-4 w-4" />
           </button>
@@ -503,31 +504,6 @@ function ChatMessage({
   );
 }
 
-function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
-  return (
-    <div className="group relative h-16 w-16 shrink-0">
-      <Image
-        src={attachment.localUrl}
-        alt={attachment.name ?? 'Attached image'}
-        fill
-        className="rounded-lg border object-cover"
-      />
-      {attachment.uploading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/60 backdrop-blur-sm">
-          <Loader2 className="h-4 w-4 animate-spin" />
-        </div>
-      )}
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute right-1 top-1 rounded-full bg-background/80 p-1 opacity-0 shadow-sm backdrop-blur-sm transition-all group-hover:opacity-100 hover:bg-background"
-      >
-        <X className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
-
 function ImagePreviewDialog({
   previewImage,
   onClose,
@@ -621,66 +597,6 @@ function LoadingMessage() {
   );
 }
 
-function useImageUpload() {
-  const [attachments, setAttachments] = useState<UploadingImage[]>([]);
-
-  const handleImageUpload = useCallback(async (file: File) => {
-    const localUrl = URL.createObjectURL(file);
-    const newAttachment: UploadingImage = {
-      url: localUrl,
-      name: file.name,
-      contentType: file.type,
-      localUrl,
-      uploading: true,
-    };
-
-    setAttachments((prev) => [...prev, newAttachment]);
-
-    try {
-      const url = await uploadImage(file);
-      if (!url) throw new Error('Failed to upload image');
-
-      setAttachments((prev) =>
-        prev.map((att) =>
-          att.localUrl === localUrl ? { ...att, url, uploading: false } : att,
-        ),
-      );
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      setAttachments((prev) => prev.filter((att) => att.localUrl !== localUrl));
-    } finally {
-      URL.revokeObjectURL(localUrl);
-    }
-  }, []);
-
-  const removeAttachment = useCallback((localUrl: string) => {
-    setAttachments((prev) => {
-      const attachment = prev.find((att) => att.localUrl === localUrl);
-      if (attachment) {
-        URL.revokeObjectURL(attachment.localUrl);
-      }
-      return prev.filter((att) => att.localUrl !== localUrl);
-    });
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      attachments.forEach((att) => {
-        if (att.uploading) {
-          URL.revokeObjectURL(att.localUrl);
-        }
-      });
-    };
-  }, [attachments]);
-
-  return {
-    attachments,
-    setAttachments,
-    handleImageUpload,
-    removeAttachment,
-  };
-}
-
 export default function ChatInterface({
   id,
   initialMessages = [],
@@ -749,36 +665,14 @@ export default function ChatInterface({
     },
   });
 
-  const [isFetchingSavedPrompts, setIsFetchingSavedPrompts] = useState(true);
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [previewImage, setPreviewImage] = useState<ImagePreview | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { attachments, setAttachments, handleImageUpload, removeAttachment } =
-    useImageUpload();
   const {
     data: portfolio,
     isLoading: isPortfolioLoading,
     refresh,
   } = useWalletPortfolio();
-
-  useEffect(() => {
-    async function fetchSavedPrompts() {
-      try {
-        const res = await getSavedPrompts();
-        const savedPrompts = res?.data?.data || [];
-
-        setSavedPrompts(savedPrompts);
-      } catch (err) {
-        console.error(err);
-      }
-
-      setIsFetchingSavedPrompts(false);
-    }
-
-    fetchSavedPrompts();
-  }, []);
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -788,38 +682,18 @@ export default function ChatInterface({
 
   scrollToBottom();
 
-  const handleFileSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      if (files.length === 0) return;
+  const handleSend = async (value: string, attachments: Attachment[]) => {
+    if (!value.trim() && (!attachments || attachments.length === 0)) {
+      return;
+    }
 
-      await Promise.all(files.map(handleImageUpload));
+    // Create a synthetic event for handleSubmit
+    const fakeEvent = {
+      preventDefault: () => {},
+      type: 'submit',
+    } as React.FormEvent;
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    },
-    [handleImageUpload],
-  );
-
-  const handlePaste = useCallback(
-    async (e: React.ClipboardEvent) => {
-      const items = Array.from(e.clipboardData.items);
-      const imageFiles = items
-        .filter((item) => item.type.startsWith('image/'))
-        .map((item) => item.getAsFile())
-        .filter((file): file is File => file !== null);
-
-      await Promise.all(imageFiles.map(handleImageUpload));
-    },
-    [handleImageUpload],
-  );
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() && attachments.length === 0) return;
-    if (attachments.some((att) => att.uploading)) return;
-
+    // Prepare message data with attachments if present
     const currentAttachments = attachments.map(
       ({ url, name, contentType }) => ({
         url,
@@ -827,40 +701,16 @@ export default function ChatInterface({
         contentType,
       }),
     );
-    setAttachments([]);
-    await handleSubmit(e, { experimental_attachments: currentAttachments });
+
+    // Submit the message
+    await handleSubmit(fakeEvent, {
+      data: value,
+      experimental_attachments: currentAttachments,
+    });
     scrollToBottom();
   };
 
-  async function updatePromptLastUsedAt(id: string) {
-    try {
-      const res = await setSavedPromptLastUsedAt({ id });
-      if (!res?.data?.data) {
-        throw new Error();
-      }
-
-      const { lastUsedAt } = res.data.data;
-
-      setSavedPrompts((old) =>
-        old.map((prompt) =>
-          prompt.id !== id ? prompt : { ...prompt, lastUsedAt },
-        ),
-      );
-    } catch (error) {
-      console.error('Failed to update -lastUsedAt- for prompt:', { error });
-    }
-  }
-
-  function handlePromptMenuClick(subtitle: string) {
-    setInput(subtitle);
-  }
-
   useAnimationEffect();
-  const filteredPrompts = input.startsWith('/')
-    ? savedPrompts.filter((savedPrompt) =>
-        savedPrompt.title.toLowerCase().includes(input.slice(1).toLowerCase()),
-      )
-    : savedPrompts;
 
   return (
     <div className="flex h-full flex-col">
@@ -895,98 +745,14 @@ export default function ChatInterface({
             <FloatingWallet data={portfolio} isLoading={isPortfolioLoading} />
           )}
 
-          <form onSubmit={handleFormSubmit} className="relative space-y-4">
-            <SavedPromptsMenu
-              input={input}
-              isFetchingSavedPrompts={isFetchingSavedPrompts}
-              savedPrompts={savedPrompts}
-              filteredPrompts={filteredPrompts}
-              onPromptClick={handlePromptMenuClick}
-              updatePromptLastUsedAt={updatePromptLastUsedAt}
-            />
-
-            <div className="relative overflow-hidden rounded-2xl bg-muted">
-              {attachments.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto rounded-t-2xl bg-muted/50 p-3">
-                  {attachments.map((attachment) => (
-                    <AttachmentPreview
-                      key={attachment.localUrl}
-                      attachment={attachment}
-                      onRemove={() => removeAttachment(attachment.localUrl)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => {
-                  if (e.target.value.length <= MAX_CHARS) {
-                    handleInputChange(e);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === 'Enter' &&
-                    !e.shiftKey &&
-                    !e.nativeEvent.isComposing
-                  ) {
-                    e.preventDefault();
-                    handleFormSubmit(e);
-                  }
-                }}
-                onPaste={handlePaste}
-                placeholder="Send a message..."
-                className={cn(
-                  'min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-[1.3rem] text-base focus-visible:ring-0',
-                  attachments.length > 0 ? 'rounded-t-none' : 'rounded-t-2xl',
-                )}
-                maxLength={MAX_CHARS}
-              />
-
-              <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleFileSelect}
-                  disabled={isLoading}
-                />
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-muted"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading}
-                >
-                  <ImageIcon className="h-5 w-5" />
-                </Button>
-
-                <Button
-                  type="submit"
-                  size="icon"
-                  variant="ghost"
-                  disabled={
-                    (!input.trim() && attachments.length === 0) ||
-                    isLoading ||
-                    attachments.some((att) => att.uploading)
-                  }
-                  className="h-8 w-8 hover:bg-muted"
-                >
-                  <SendHorizontal className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-xs text-muted-foreground">
-              {input.length}/{MAX_CHARS}
-            </div>
-          </form>
+          <ConversationInput
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSend}
+            onChat={true}
+            savedPrompts={savedPrompts}
+            setSavedPrompts={setSavedPrompts}
+          />
         </div>
       </div>
 

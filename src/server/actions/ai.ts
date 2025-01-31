@@ -78,18 +78,25 @@ export const retrieveAgentKit = actionClient
   )
   .action(async ({ parsedInput }) => {
     const authResult = await verifyUser();
+
     const userId = authResult?.data?.data?.id;
 
     if (!userId) {
       return { success: false, error: 'UNAUTHORIZED', data: null };
     }
 
-    const result = await getAgentKit({ userId, walletId: parsedInput?.walletId });
+    const result = await getAgentKit({
+      userId,
+      walletId: parsedInput?.walletId,
+    });
 
     return result;
   });
 
-export const getAgentKit = async ({ userId, walletId }: {
+export const getAgentKit = async ({
+  userId,
+  walletId,
+}: {
   userId: string;
   walletId?: string;
 }) => {
@@ -145,12 +152,13 @@ export const transferToken = actionClient
     const { walletId, receiverAddress, tokenAddress, amount, tokenSymbol } =
       parsedInput;
 
-    const agentResposne = await retrieveAgentKit({ walletId });
-    if (!agentResposne?.data?.success || !agentResposne?.data?.data) {
+    const agentResponse = await retrieveAgentKit({ walletId });
+
+    if (!agentResponse?.data?.success || !agentResponse?.data?.data) {
       return { success: false, error: 'AGENT_NOT_FOUND' };
     }
 
-    const agent = agentResposne.data.data.agent;
+    const agent = agentResponse.data.data.agent;
 
     const signature = await agent.transfer(
       new PublicKey(receiverAddress),

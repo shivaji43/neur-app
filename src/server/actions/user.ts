@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 
 import { PrivyClient } from '@privy-io/server-auth';
 import { WalletWithMetadata } from '@privy-io/server-auth';
+import { customAlphabet } from 'nanoid';
 import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
@@ -21,14 +22,41 @@ if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
 }
 
 const PRIVY_SERVER_CLIENT = new PrivyClient(PRIVY_APP_ID, PRIVY_APP_SECRET, {
-  walletApi: {
-    authorizationPrivateKey: PRIVY_SIGNING_KEY,
-  },
+  ...(!!PRIVY_SIGNING_KEY && {
+    walletApi: {
+      authorizationPrivateKey: PRIVY_SIGNING_KEY,
+    },
+  }),
 });
 
 const getOrCreateUser = actionClient
   .schema(z.object({ userId: z.string() }))
   .action<ActionResponse<PrismaUser>>(async ({ parsedInput: { userId } }) => {
+    const generateReferralCode = async (): Promise<string> => {
+      const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', 8); // 8-character alphanumeric
+
+      const MAX_ATTEMPTS = 10; // Limit to prevent infinite loops
+      let attempts = 0;
+
+      while (attempts < MAX_ATTEMPTS) {
+        const referralCode = nanoid();
+        const existingCode = await prisma.user.findUnique({
+          where: { referralCode },
+        });
+
+        if (!existingCode) {
+          return referralCode; // Return the unique code
+        }
+
+        attempts++;
+      }
+
+      // Failsafe: throw an error if a unique code couldn't be generated
+      throw new Error(
+        'Unable to generate a unique referral code after 10 attempts',
+      );
+    };
+
     const existingUser = await prisma.user.findUnique({
       where: { privyId: userId },
       include: {
@@ -47,21 +75,54 @@ const getOrCreateUser = actionClient
             active: true,
           },
         },
+        subscription: {
+          include: {
+            payments: true,
+          },
+        },
       },
     });
 
     if (existingUser) {
+      // If the user exists but doesn't have a referralCode, generate one
+      if (!existingUser.referralCode) {
+        const referralCode = await generateReferralCode();
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { referralCode },
+        });
+        existingUser.referralCode = referralCode;
+      }
       return { success: true, data: existingUser };
     }
 
+    // Look up referralCode from cookie
+    const cookieReferralCode = (await cookies()).get('referralCode')?.value;
+    let referringUserId: string | null = null;
+
+    if (cookieReferralCode) {
+      const referringUser = await prisma.user.findUnique({
+        where: { referralCode: cookieReferralCode },
+        select: { id: true },
+      });
+
+      if (referringUser) {
+        referringUserId = referringUser.id;
+      }
+    }
+
+    // Create a new user if none exists
+    const referralCode = await generateReferralCode();
     const createdUser = await prisma.user.create({
       data: {
         privyId: userId,
+        referralCode,
+        referringUserId,
       },
     });
 
     const { publicKey, encryptedPrivateKey } = await generateEncryptedKeyPair();
-    const initalWallet = await prisma.wallet.create({
+    const initialWallet = await prisma.wallet.create({
       data: {
         ownerId: createdUser.id,
         name: 'Default',
@@ -76,16 +137,17 @@ const getOrCreateUser = actionClient
         ...createdUser,
         wallets: [
           {
-            id: initalWallet.id,
-            ownerId: initalWallet.ownerId,
-            name: initalWallet.name,
-            publicKey: initalWallet.publicKey,
-            walletSource: initalWallet.walletSource,
-            delegated: initalWallet.delegated,
-            active: initalWallet.active,
-            chain: initalWallet.chain,
+            id: initialWallet.id,
+            ownerId: initialWallet.ownerId,
+            name: initialWallet.name,
+            publicKey: initialWallet.publicKey,
+            walletSource: initialWallet.walletSource,
+            delegated: initialWallet.delegated,
+            active: initialWallet.active,
+            chain: initialWallet.chain,
           },
         ],
+        subscription: null,
       },
     };
   });
@@ -251,6 +313,7 @@ export const getPrivyClient = actionClient.action(
 
 export type UserUpdateData = {
   degenMode?: boolean;
+  referralCode?: string; // Add referralCode as an optional field
 };
 export async function updateUser(data: UserUpdateData) {
   try {
@@ -261,13 +324,56 @@ export async function updateUser(data: UserUpdateData) {
     if (!userId) {
       return { success: false, error: 'UNAUTHORIZED' };
     }
-    await prisma.user.update({
-      where: { id: userId },
-      data,
-    });
+
+    // Extract referralCode from the input data
+    const { referralCode, ...updateFields } = data;
+
+    // If referralCode is provided, validate and update referringUserId
+    if (referralCode) {
+      const referringUser = await prisma.user.findUnique({
+        where: { referralCode },
+      });
+
+      if (!referringUser) {
+        return { success: false, error: 'Invalid referral code' };
+      }
+
+      if (referringUser.id === userId) {
+        return {
+          success: false,
+          error: 'You cannot use your own referral code',
+        };
+      }
+
+      // Prevent getting referred by a user who has already been referred by you
+      if (referringUser.referringUserId === userId) {
+        return {
+          success: false,
+          error: 'You cannot use a referral code from someone you referred',
+        };
+      }
+
+      // Update referringUserId along with other fields
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...updateFields,
+          referringUserId: referringUser.id,
+        },
+      });
+    } else {
+      // Update user without referral logic if no referralCode is provided
+      await prisma.user.update({
+        where: { id: userId },
+        data: updateFields,
+      });
+    }
+
+    // Revalidate user cache
     revalidateTag(`user-${privyId}`);
     return { success: true };
   } catch (error) {
+    console.error('Error updating user:', error);
     return { success: false, error: 'Failed to update user' };
   }
 }

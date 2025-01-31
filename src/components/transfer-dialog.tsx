@@ -224,7 +224,7 @@ export function TokenTransferDialog({
 
                 return (
                   <div
-                    key={token.content.metadata.symbol}
+                    key={token.id}
                     className="flex items-center space-x-4 space-y-4 first:mt-0"
                   >
                     <RadioGroupItem

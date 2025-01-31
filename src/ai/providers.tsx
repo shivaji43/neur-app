@@ -8,6 +8,7 @@ import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
 import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
+import { birdeyeTools } from './solana/birdeye';
 import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
@@ -15,7 +16,6 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
-import { birdeyeTools } from './solana/birdeye';
 
 const usingAnthropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -26,24 +26,25 @@ const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
   compatibility: 'strict',
-  fetch: async (url, options) => {
-    const body = JSON.parse(options!.body! as string);
+  ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai') && {
+    fetch: async (url, options) => {
+      if (!options?.body) return fetch(url, options);
+ 
+      const body = JSON.parse(options.body as string);
 
-    // attach openrouter provider order to body
-    const modifiedBody = {
-      ...body,
-      provider: {
-        order: ['Anthropic', 'OpenAI'],
-        allow_fallbacks: false,
-      },
-    }
-    
-    options!.body = JSON.stringify(modifiedBody);
+      const modifiedBody = {
+        ...body,
+        provider: {
+          order: ['Anthropic', 'OpenAI'],
+          allow_fallbacks: false,
+        },
+      };
 
-    // console.log(options!.body);
+      options.body = JSON.stringify(modifiedBody);
 
-    return await fetch(url, options);
-  },
+      return fetch(url, options);
+    },
+  }),
 });
 
 export const orchestratorModel = openai('gpt-4o-mini');
@@ -117,6 +118,7 @@ export interface ToolConfig {
   agentKit?: any;
   userId?: any;
   requiresConfirmation?: boolean;
+  requiredEnvVars?: string[];
 }
 
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {
@@ -152,6 +154,30 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...birdeyeTools,
 };
 
+export function filterTools(
+  tools: Record<string, ToolConfig>,
+): Record<string, ToolConfig> {
+  const disabledTools = process.env.NEXT_PUBLIC_DISABLED_TOOLS
+    ? JSON.parse(process.env.NEXT_PUBLIC_DISABLED_TOOLS)
+    : [];
+
+  return Object.fromEntries(
+    Object.entries(tools).filter(([toolName, toolConfig]) => {
+      if (disabledTools.includes(toolName)) {
+        return false;
+      }
+      if (toolConfig.requiredEnvVars) {
+        for (const envVar of toolConfig.requiredEnvVars) {
+          if (!process.env[envVar] || process.env[envVar] == '') {
+            return false;
+          }
+        }
+      }
+      return true;
+    }),
+  );
+}
+
 export const coreTools: Record<string, ToolConfig> = {
   ...actionTools,
   ...utilTools,
@@ -179,7 +205,8 @@ export const toolsets: Record<
   },
   traderTools: {
     tools: ['birdeyeTools'],
-    description: 'Tools for analyzing and tracking traders and trades on Solana DEXes.',
+    description:
+      'Tools for analyzing and tracking traders and trades on Solana DEXes.',
   },
   financeTools: {
     tools: ['definedTools'],
@@ -233,8 +260,9 @@ export function getToolConfig(toolName: string): ToolConfig | undefined {
 export function getToolsFromRequiredTools(
   toolNames: string[],
 ): Record<string, ToolConfig> {
+  const enabledTools = filterTools(defaultTools);
   return toolNames.reduce((acc: Record<string, ToolConfig>, toolName) => {
-    const tool = defaultTools[toolName];
+    const tool = enabledTools[toolName];
     if (tool) {
       acc[toolName] = tool;
     }

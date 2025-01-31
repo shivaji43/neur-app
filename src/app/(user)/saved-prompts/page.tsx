@@ -297,7 +297,7 @@ export default function SavedPromptsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 py-12">
+    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 px-4 py-6 md:py-12">
       <div className="relative w-full">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4" />
         <Input
@@ -343,7 +343,7 @@ export default function SavedPromptsPage() {
           No match found
         </div>
       ) : (
-        <div className="grid w-full grid-cols-2 gap-4">
+        <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
           {secondaryFilteredPrompts.map((prompt) => (
             <motion.div
               key={prompt.id}
@@ -355,11 +355,12 @@ export default function SavedPromptsPage() {
                 transition: { duration: 0.2 },
               }}
               whileTap={{ scale: 0.99 }}
-              className="group flex flex-col gap-1.5 rounded-xl bg-muted/50 
-              p-3.5 text-left transition-colors duration-200 hover:bg-primary/5"
+              className="group flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 text-left transition-colors duration-200 hover:bg-primary/5 md:p-3.5"
             >
               <div className="flex w-full flex-row items-center justify-between text-base font-medium">
-                <p>{prompt.title}</p>
+                <p className="text-sm font-medium md:text-base">
+                  {prompt.title}
+                </p>
                 <div className="flex flex-row items-center">
                   <button
                     className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
@@ -399,7 +400,7 @@ export default function SavedPromptsPage() {
                 </div>
               </div>
               <div className="text-xs text-muted-foreground/80">
-                {prompt.content}
+                {prompt.content.trim().slice(0, 150) + '...'}
               </div>
             </motion.div>
           ))}
