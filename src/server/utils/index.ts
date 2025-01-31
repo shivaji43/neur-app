@@ -48,11 +48,17 @@ export const transferTokenServer = async ({
 
   const agent = agentResponse.data.agent;
 
-  const signature = await agent.transfer(
-    new PublicKey(receiverAddress),
-    amount,
-    tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
-  );
-
-  return { success: true, data: { signature } };
+  try {
+    const signature = await agent.transfer(
+      new PublicKey(receiverAddress),
+      amount,
+      tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
+    );
+    return { success: true, data: { signature } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Transfer failed',
+    };
+  }
 };

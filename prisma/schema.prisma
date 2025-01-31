@@ -214,13 +214,13 @@ model SubscriptionPayment {
   id              String         @id @default(cuid())
   subscriptionId  String
   paymentDate     DateTime       // When the payment was processed
-  amount          Float          // Payment amount
+  amount          Decimal        // Payment amount, changed from Float to Decimal
   status          PaymentStatus  // Status of the payment (e.g., success, failed, pending)
   failureReason   String?        // Reason for payment failure
-  failureCode     Int?            // Payment failure code
+  failureCode     Int?           // Payment failure code
   createdAt       DateTime       @default(now())
   transactionHash String?        // Transaction hash for the payment
-  
+
   subscription    Subscription   @relation(fields: [subscriptionId], references: [id])
 
   @@map("subscription_payments")

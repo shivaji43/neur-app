@@ -56,11 +56,15 @@ export function ReferralSection({
   };
 
   const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-
-    setTimeout(() => setCopied(false), 2000);
-    toast.success('Copied to clipboard');
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success('Copied to clipboard');
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+    } finally {
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
