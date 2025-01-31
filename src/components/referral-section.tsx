@@ -73,10 +73,6 @@ export function ReferralSection({
         <CardContent className="space-y-6 pt-6">
           {referralCode && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Refer users to join you on Neur and receive a portion of their
-                transaction fees
-              </p>
               <div className="flex items-center gap-2">
                 <Input
                   readOnly

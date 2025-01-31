@@ -165,7 +165,7 @@ export function HomeContent() {
     const NON_TRIAL_PERMISSION =
       !user?.earlyAccess && !user?.subscription?.active;
     const TRIAL_PERMISSION =
-      !hasEAP && !user?.subscription?.active && !meetsTokenBalance;
+      !user?.earlyAccess && !user?.subscription?.active && !meetsTokenBalance;
 
     // If user is not in EAP or no active subscription, don't allow sending messages
     if (!IS_TRIAL_ENABLED && NON_TRIAL_PERMISSION) {
@@ -300,11 +300,34 @@ export function HomeContent() {
     );
   }
 
+  const RENDER_TRIAL_BANNER =
+    IS_TRIAL_ENABLED &&
+    !hasEAP &&
+    !user?.subscription?.active &&
+    !meetsTokenBalance;
+  const USER_HAS_TRIAL =
+    IS_TRIAL_ENABLED &&
+    !hasEAP &&
+    !user?.subscription?.active &&
+    meetsTokenBalance;
+  const RENDER_SUB_BANNER =
+    !hasEAP &&
+    !user?.subscription?.active &&
+    !RENDER_TRIAL_BANNER &&
+    !USER_HAS_TRIAL;
+  const RENDER_EAP_BANNER =
+    !IS_SUBSCRIPTION_ENABLED &&
+    !hasEAP &&
+    !RENDER_TRIAL_BANNER &&
+    !USER_HAS_TRIAL;
+
+  const USER_HAS_ACCESS = hasEAP || user?.subscription?.active || USER_HAS_TRIAL;
+
   const mainContent = (
     <div
       className={cn(
         'mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6',
-        !hasEAP && !user?.subscription?.active ? 'h-screen py-0' : 'py-12',
+        !USER_HAS_ACCESS ? 'h-screen py-0' : 'py-12',
       )}
     >
       <BlurFade delay={0.2}>
@@ -324,7 +347,7 @@ export function HomeContent() {
           />
         </BlurFade>
 
-        {hasEAP && (
+        {USER_HAS_ACCESS && (
           <div className="space-y-8">
             <BlurFade delay={0.2}>
               <div className="space-y-2">
@@ -382,27 +405,6 @@ export function HomeContent() {
       </div>
     </div>
   );
-
-  const RENDER_TRIAL_BANNER =
-    IS_TRIAL_ENABLED &&
-    !hasEAP &&
-    !user?.subscription?.active &&
-    !meetsTokenBalance;
-  const USER_HAS_TRIAL =
-    IS_TRIAL_ENABLED &&
-    !hasEAP &&
-    !user?.subscription?.active &&
-    meetsTokenBalance;
-  const RENDER_SUB_BANNER =
-    !hasEAP &&
-    !user?.subscription?.active &&
-    !RENDER_TRIAL_BANNER &&
-    !USER_HAS_TRIAL;
-  const RENDER_EAP_BANNER =
-    !IS_SUBSCRIPTION_ENABLED &&
-    !hasEAP &&
-    !RENDER_TRIAL_BANNER &&
-    !USER_HAS_TRIAL;
 
   if (RENDER_EAP_BANNER) {
     return (
