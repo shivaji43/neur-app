@@ -278,9 +278,43 @@ function MessageToolInvocations({
             typeof result === 'object' &&
             result !== null &&
             'error' in result;
-          const config = getToolConfig(toolName)!;
-          // TODO: fix intermitent issue where config is undefined
-          const finalDisplayName = displayName || config.displayName;
+
+          const config = getToolConfig(toolName);
+
+          // Handle unknown tool with no config
+          if (!config) {
+            const header = (
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full bg-destructive ring-2 ring-destructive/20',
+                  )}
+                />
+                <span className="truncate text-xs font-medium text-foreground/90">
+                  Tool Error
+                </span>
+                <span className="ml-auto font-mono text-[10px] text-muted-foreground/70">
+                  {toolCallId.slice(0, 9)}
+                </span>
+              </div>
+            );
+
+            return (
+              <div key={toolCallId} className="group">
+                <ToolResult
+                  toolName="Tool Error"
+                  result={{
+                    result: 'Tool Error',
+                    error:
+                      'An error occurred while processing your request, please try again or adjust your phrasing.',
+                  }}
+                  header={header}
+                />
+              </div>
+            );
+          }
+
+          const finalDisplayName = displayName || config?.displayName;
 
           const header = (
             <div className="flex min-w-0 flex-1 items-center gap-2">

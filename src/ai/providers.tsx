@@ -4,6 +4,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
+import { Card } from '@/components/ui/card';
+
 import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
 import { telegramTools } from './generic/telegram';
@@ -29,7 +31,7 @@ const openai = createOpenAI({
   ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai') && {
     fetch: async (url, options) => {
       if (!options?.body) return fetch(url, options);
- 
+
       const body = JSON.parse(options.body as string);
 
       const modifiedBody = {
@@ -62,6 +64,7 @@ Critical Rules:
   Respond only with something like:
      - "Take a look at the results above"
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
+- Do not attempt to call a tool that you have not been provided, let the user know that the requested action is not supported.
 
 Confirmation Handling:
 - Before executing any tool where the parameter "requiresConfirmation" is true or the description contains the term "requiresConfirmation":
@@ -124,9 +127,11 @@ export interface ToolConfig {
 export function DefaultToolResultRenderer({ result }: { result: unknown }) {
   if (result && typeof result === 'object' && 'error' in result) {
     return (
-      <div className="mt-2 pl-3.5 text-sm text-destructive">
-        {String((result as { error: unknown }).error)}
-      </div>
+      <Card className="bg-card p-4">
+        <div className="pl-3.5 text-sm">
+          {String((result as { error: unknown }).error)}
+        </div>
+      </Card>
     );
   }
 
