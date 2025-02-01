@@ -1,5 +1,9 @@
 # Changelogs
 
+## v0.3.1
+
+- Fix client-side error when an unknown tool is invoked
+
 ## v0.3.0
 
 - Improvements to saved prompts
