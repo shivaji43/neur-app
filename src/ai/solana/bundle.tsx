@@ -83,50 +83,76 @@ export const bundleTools = {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Total Bundles</p>
-                <p className="font-medium">{analysis.totalBundles}</p>
+                <p className="font-medium">{analysis?.totalBundles || 0}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Est. Total SOL Spent</p>
+                <p className="text-muted-foreground">Total SOL Volume</p>
                 <p className="font-medium">
-                  {analysis.totalSolSpent.toFixed(2)} SOL
+                  {((analysis?.totalSolSpent || 0) + Math.abs(analysis?.totalProfitLoss || 0)).toFixed(2)} SOL
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground">Unique Wallets</p>
-                <p className="font-medium">{analysis.totalUniqueWallets}</p>
+                <p className="font-medium">{analysis?.totalUniqueWallets || 0}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Total Supply</p>
+                <p className="font-medium">
+                  {(analysis?.totalSupply || 0).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Total Bought</p>
+                <p className="font-medium text-green-500">
+                  {(analysis.totalBought || 0).toLocaleString()} tokens
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Total Sold</p>
+                <p className="font-medium text-red-500">
+                  {(analysis.totalSold || 0).toLocaleString()} tokens
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Net P/L</p>
+                <p className={`font-medium ${(analysis.totalProfitLoss || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {(analysis.totalProfitLoss || 0).toFixed(2)} SOL
+                </p>
               </div>
             </div>
           </div>
 
+          <br />
+
           <div className="rounded-lg bg-destructive/10 p-4">
             <h3 className="mb-2 text-sm font-medium">⚠️ Suspicious Activity</h3>
             <div className="space-y-3">
-              {analysis.suspiciousPatterns.snipers.length > 0 && (
+              {analysis?.suspiciousPatterns?.snipers?.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-destructive">
                     🎯 Potential Snipers (
-                    {analysis.suspiciousPatterns.snipers.length})
+                    {analysis?.suspiciousPatterns?.snipers?.length})
                   </p>
                   <div className="grid gap-2">
-                    {analysis.suspiciousPatterns.snipers.map((sniper) => (
+                    {analysis?.suspiciousPatterns?.snipers?.map((sniper) => (
                       <div
-                        key={sniper.bundleAddress}
+                        key={sniper?.bundleAddress}
                         className="rounded-lg bg-destructive/5 p-3"
                       >
                         <p className="text-xs font-medium">
-                          <code>{sniper.bundleAddress.slice(0, 8)}...</code>
+                          <code>{sniper?.bundleAddress?.slice(0, 8)}...</code>
                         </p>
                         <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                          <p>Supply: {sniper.supplyPercentage.toFixed(2)}%</p>
+                          <p>Supply: {sniper?.supplyPercentage?.toFixed(2)}%</p>
                           <p>
-                            Velocity: {sniper.purchaseVelocity.toFixed(0)}{' '}
+                            Velocity: {sniper?.purchaseVelocity?.toFixed(0)}{' '}
                             tokens/hour
                           </p>
                           <p>
                             Time Window:{' '}
                             {(
-                              (sniper.lastPurchaseTime -
-                                sniper.firstPurchaseTime) /
+                              (sniper?.lastPurchaseTime -
+                                sniper?.firstPurchaseTime) /
                               1000
                             ).toFixed(1)}
                             s
@@ -138,29 +164,29 @@ export const bundleTools = {
                 </div>
               )}
 
-              {analysis.suspiciousPatterns.rapidAccumulation.length > 0 && (
+              {analysis?.suspiciousPatterns?.rapidAccumulation?.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-orange-500">
                     ⚡ Rapid Accumulation (
-                    {analysis.suspiciousPatterns.rapidAccumulation.length})
+                    {analysis?.suspiciousPatterns?.rapidAccumulation?.length})
                   </p>
                   <div className="grid gap-2">
-                    {analysis.suspiciousPatterns.rapidAccumulation.map(
+                    {analysis?.suspiciousPatterns?.rapidAccumulation?.map(
                       (bundle) => (
                         <div
-                          key={bundle.bundleAddress}
+                          key={bundle?.bundleAddress}
                           className="rounded-lg bg-orange-500/5 p-3"
                         >
                           <p className="text-xs font-medium">
-                            <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                            <code>{bundle?.bundleAddress?.slice(0, 8)}...</code>
                           </p>
                           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                            <p>Supply: {bundle?.supplyPercentage?.toFixed(2)}%</p>
                             <p>
                               Time:{' '}
                               {(
-                                (bundle.lastPurchaseTime -
-                                  bundle.firstPurchaseTime) /
+                                (bundle?.lastPurchaseTime -
+                                  bundle?.firstPurchaseTime) /
                                 1000
                               ).toFixed(1)}
                               s
@@ -173,30 +199,30 @@ export const bundleTools = {
                 </div>
               )}
 
-              {analysis.suspiciousPatterns.coordinatedBuying.length > 0 && (
+              {analysis?.suspiciousPatterns?.coordinatedBuying?.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-blue-500">
                     🤝 Coordinated Buying (
-                    {analysis.suspiciousPatterns.coordinatedBuying.length})
+                    {analysis?.suspiciousPatterns?.coordinatedBuying?.length})
                   </p>
                   <div className="grid gap-2">
-                    {analysis.suspiciousPatterns.coordinatedBuying.map(
+                    {analysis?.suspiciousPatterns?.coordinatedBuying?.map(
                       (bundle) => (
                         <div
-                          key={bundle.bundleAddress}
+                          key={bundle?.bundleAddress}
                           className="rounded-lg bg-blue-500/5 p-3"
                         >
                           <p className="text-xs font-medium">
-                            <code>{bundle.bundleAddress.slice(0, 8)}...</code>
+                            <code>{bundle?.bundleAddress?.slice(0, 8)}...</code>
                           </p>
                           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            <p>Transactions: {bundle.transactions.length}</p>
-                            <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
+                            <p>Transactions: {bundle?.transactions?.length}</p>
+                            <p>Supply: {bundle?.supplyPercentage?.toFixed(2)}%</p>
                             <p>
                               Time Window:{' '}
                               {(
-                                (bundle.lastPurchaseTime -
-                                  bundle.firstPurchaseTime) /
+                                (bundle?.lastPurchaseTime -
+                                  bundle?.firstPurchaseTime) /
                                 1000
                               ).toFixed(1)}
                               s
@@ -211,7 +237,7 @@ export const bundleTools = {
             </div>
           </div>
 
-          {analysis.largestBundle && (
+          {analysis?.largestBundle && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Largest Bundle</h3>
               <div className="rounded-lg bg-primary/10 p-4">
@@ -219,26 +245,19 @@ export const bundleTools = {
                   <p className="text-sm font-medium">
                     🏆 Bundle{' '}
                     <code className="text-xs">
-                      {analysis.largestBundle.bundleAddress.slice(0, 8)}...
+                      {analysis?.largestBundle?.bundleAddress?.slice(0, 8)}...
                     </code>
                   </p>
                   <div className="space-y-0.5 text-xs text-muted-foreground">
-                    <p>
-                      Supply:{' '}
-                      {analysis.largestBundle.supplyPercentage.toFixed(2)}%
+                    <p>Supply: {analysis?.largestBundle?.supplyPercentage?.toFixed(2)}%</p>
+                    <p>Bought: {analysis?.largestBundle?.totalBought?.toLocaleString()} tokens</p>
+                    <p>Sold: {analysis?.largestBundle?.totalSold?.toLocaleString()} tokens</p>
+                    <p>Current Holdings: {analysis?.largestBundle?.currentHoldings?.toLocaleString()}</p>
+                    <p>SOL Spent: {analysis?.largestBundle?.solSpent?.toFixed(2)} SOL</p>
+                    <p>SOL from Sales: {analysis?.largestBundle?.sellAmount?.toFixed(2)} SOL</p>
+                    <p className={analysis?.largestBundle?.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}>
+                      P/L: {analysis?.largestBundle?.profitLoss?.toFixed(2)} SOL
                     </p>
-                    <p>
-                      Est. Spent: {analysis.largestBundle.solSpent.toFixed(2)}{' '}
-                      SOL
-                    </p>
-                    <p>
-                      Current Holdings: {analysis.largestBundle.currentHoldings}
-                    </p>
-                    {analysis.largestBundle.isPumpfunBundle && (
-                      <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
-                        Pumpfun Bundle
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -248,7 +267,7 @@ export const bundleTools = {
           <div className="space-y-2">
             <h3 className="text-sm font-medium">All Potential Bundles</h3>
             <div className="grid gap-2">
-              {analysis.bundles.map((bundle) => (
+              {analysis?.bundles?.map((bundle) => (
                 <div
                   key={bundle.bundleAddress}
                   className="rounded-lg bg-muted p-4"
@@ -261,9 +280,19 @@ export const bundleTools = {
                       </code>
                     </p>
                     <div className="space-y-0.5 text-xs text-muted-foreground">
-                      <p>Supply: {bundle.supplyPercentage.toFixed(2)}%</p>
-                      <p>Est. Spent: {bundle.solSpent.toFixed(2)} SOL</p>
-                      <p>Current Holdings: {bundle.currentHoldings}</p>
+                      <p>Supply: {(bundle.supplyPercentage || 0).toFixed(2)}%</p>
+                      <div className="flex justify-between">
+                        <span>Bought: {(bundle.totalBought || 0).toLocaleString()}</span>
+                        <span>Sold: {(bundle.totalSold || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>SOL Spent: {(bundle.solSpent || 0).toFixed(2)}</span>
+                        <span>SOL from Sales: {(bundle.sellAmount || 0).toFixed(2)}</span>
+                      </div>
+                      <p>Current Holdings: {(bundle.currentHoldings || 0).toLocaleString()}</p>
+                      <p className={`${(bundle.profitLoss || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        P/L: {(bundle.profitLoss || 0).toFixed(2)} SOL
+                      </p>
                       {bundle.isPumpfunBundle && (
                         <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-500">
                           Pumpfun Bundle

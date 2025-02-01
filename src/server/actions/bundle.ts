@@ -6,7 +6,7 @@ import { cache } from 'react';
 
 import { actionClient } from '@/lib/safe-action';
 import { getMintAccountInfo, getTransactionHistory } from '@/lib/solana/helius';
-import { Bundle, BundleDetectionSchema, BundleTransaction, MintBundleAnalysis } from '@/types/bundle';
+import { Bundle, BundleDetectionSchema, BundleMetrics, BundleTransaction, MintBundleAnalysis } from '@/types/bundle';
 
 
 // Group transactions by slot to identify bundles
@@ -18,91 +18,145 @@ async function identifyBundlesBySlot(
     // Get mint information
     const mintInfo = await getMintAccountInfo(mintAddress);
     const totalSupply = Number(mintInfo.supply) / 10 ** mintInfo.decimals;
+    const tokenDecimals = mintInfo.decimals;
 
-    // Get transaction history
-    const transactions = await getTransactionHistory(mintAddress);
+    // Limit transaction history to last 1000 transactions
+    const transactions = await getTransactionHistory(mintAddress, 1000);
 
-    // Group transactions by slot
+    // Track buys and sells by slot
     const slotGroups = new Map<number, BundleTransaction[]>();
+    const buyerMetrics = new Map<string, BundleMetrics>();
     const buyersBySlot = new Map<number, Set<string>>();
 
     for (const tx of transactions) {
-      // Only consider positive price transactions (purchases)
-      if (tx.price <= 0) continue;
-
       const slot = tx.slot;
+      const buyer = tx.buyer;
+
       if (!slotGroups.has(slot)) {
         slotGroups.set(slot, []);
         buyersBySlot.set(slot, new Set());
       }
 
-      slotGroups.get(slot)?.push({
-        signature: tx.signature,
-        slot: tx.slot,
-        timestamp: tx.timestamp,
-        price: Math.abs(tx.price), // Ensure positive price
-        quantity: Math.abs(tx.quantity), // Ensure positive quantity
-      });
-
-      // Track unique buyers per slot
-      const buyer = tx.buyer;
       if (buyer) {
+        // Same buyer making multiple transactions in the same slot
+        if (!buyerMetrics.has(buyer)) {
+          buyerMetrics.set(buyer, {
+            buyQuantity: 0,
+            sellQuantity: 0,
+            buyAmount: 0,
+            sellAmount: 0,
+            currentHoldings: 0,
+            profitLoss: 0,
+          });
+        }
+
+        const metrics = buyerMetrics.get(buyer)!;
+        // Accumulate metrics for this buyer
+        if (tx.price > 0) {
+          // Buy transaction
+          metrics.buyQuantity += Math.abs(tx.quantity);
+          metrics.buyAmount += Math.abs(tx.price);
+          metrics.currentHoldings += Math.abs(tx.quantity);
+        } else {
+          metrics.sellQuantity += Math.abs(tx.quantity);
+          metrics.sellAmount += Math.abs(tx.price);
+          metrics.currentHoldings -= Math.abs(tx.quantity);
+        }
+
+        metrics.profitLoss = metrics.sellAmount - metrics.buyAmount;
         buyersBySlot.get(slot)?.add(buyer);
       }
+
+      slotGroups.get(slot)?.push(tx);
     }
 
-    // Convert slot groups to bundles
+    // Convert slot groups to bundles with buy/sell metrics
     const bundles: Bundle[] = [];
+    const MAX_BUNDLES = 10; // Limit number of bundles
 
     for (const [slot, txs] of slotGroups.entries()) {
-      // Only consider slots with minimum required transactions
       if (txs.length < minSlotTransactions) continue;
 
-      // Calculate bundle metrics
-      const totalQuantity = txs.reduce((sum, tx) => sum + tx.quantity, 0);
-      const supplyPercentage = (totalQuantity / totalSupply) * 100;
-      const solSpent = txs.reduce((sum, tx) => sum + tx.price, 0);
-      const uniqueBuyers = buyersBySlot.get(slot)?.size || 0;
+      const buyers = Array.from(buyersBySlot.get(slot) || []);
+      const bundleMetrics = buyers.reduce(
+        (acc, buyer) => {
+          const metrics = buyerMetrics.get(buyer)!;
+          return {
+            buyQuantity: acc.buyQuantity + metrics.buyQuantity,
+            sellQuantity: acc.sellQuantity + metrics.sellQuantity,
+            buyAmount: acc.buyAmount + metrics.buyAmount,
+            sellAmount: acc.sellAmount + metrics.sellAmount,
+            currentHoldings: acc.currentHoldings + metrics.currentHoldings,
+            profitLoss: acc.profitLoss + metrics.profitLoss,
+          };
+        },
+        {
+          buyQuantity: 0,
+          sellQuantity: 0,
+          buyAmount: 0,
+          sellAmount: 0,
+          currentHoldings: 0,
+          profitLoss: 0,
+        },
+      );
 
       const bundle: Bundle = {
         slot,
         bundleAddress: txs[0].signature,
         transactions: txs,
-        supplyPercentage,
-        solSpent,
-        currentHoldings: totalQuantity, // This should be updated with current holdings
+        supplyPercentage:
+          (bundleMetrics.currentHoldings / 10 ** tokenDecimals / totalSupply) *
+          100,
+        solSpent: bundleMetrics.buyAmount,
+        currentHoldings: bundleMetrics.currentHoldings / 10 ** tokenDecimals,
         isPumpfunBundle: false,
-        avgPricePerToken: solSpent / totalQuantity,
+        avgPricePerToken:
+          bundleMetrics.buyQuantity > 0
+            ? (bundleMetrics.buyAmount * 1e9) / bundleMetrics.buyQuantity
+            : 0,
         firstPurchaseTime: Math.min(...txs.map((tx) => tx.timestamp)),
         lastPurchaseTime: Math.max(...txs.map((tx) => tx.timestamp)),
         purchaseVelocity:
-          totalQuantity /
+          bundleMetrics.buyQuantity /
           ((Math.max(...txs.map((tx) => tx.timestamp)) -
             Math.min(...txs.map((tx) => tx.timestamp))) /
             3600000),
-        uniqueBuyers,
+        uniqueBuyers: buyers.length,
+        // New metrics
+        totalBought: bundleMetrics.buyQuantity,
+        totalSold: bundleMetrics.sellQuantity,
+        profitLoss: bundleMetrics.profitLoss,
+        sellAmount: bundleMetrics.sellAmount,
       };
 
       bundles.push(bundle);
     }
 
-    // Sort bundles by supply percentage
-    bundles.sort((a, b) => b.supplyPercentage - a.supplyPercentage);
+    // Sort bundles by significance (current holdings) and take top MAX_BUNDLES
+    bundles.sort((a, b) => b.currentHoldings - a.currentHoldings);
+    const significantBundles = bundles.slice(0, MAX_BUNDLES);
 
-    return {
+    const analysis = {
       mintAddress,
-      totalBundles: bundles.length,
-      totalSolSpent: bundles.reduce((sum, bundle) => sum + bundle.solSpent, 0),
-      totalUniqueWallets: new Set(
-        Array.from(buyersBySlot.values()).flatMap((buyers) =>
-          Array.from(buyers),
-        ),
-      ).size,
+      totalBundles: bundles.length, // Total found
+      totalSolSpent: significantBundles.reduce((sum, b) => sum + b.solSpent, 0),
+      totalUniqueWallets: new Set(Array.from(buyerMetrics.keys())).size,
       totalSupply,
-      largestBundle: bundles[0] || null,
-      bundles,
-      suspiciousPatterns: analyzeSuspiciousPatterns(bundles),
+      largestBundle: significantBundles[0] || null,
+      bundles: significantBundles, // Only return significant bundles
+      suspiciousPatterns: analyzeSuspiciousPatterns(significantBundles),
+      totalBought: significantBundles.reduce(
+        (sum, b) => sum + b.totalBought,
+        0,
+      ),
+      totalSold: significantBundles.reduce((sum, b) => sum + b.totalSold, 0),
+      totalProfitLoss: significantBundles.reduce(
+        (sum, b) => sum + b.profitLoss,
+        0,
+      ),
     };
+
+    return analysis;
   } catch (error) {
     console.error('Error identifying bundles:', error);
     return null;

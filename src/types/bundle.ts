@@ -23,6 +23,19 @@ export interface Bundle {
   lastPurchaseTime: number;
   purchaseVelocity: number; // tokens per hour during active period
   uniqueBuyers: number;
+  totalBought: number;
+  totalSold: number;
+  profitLoss: number;
+  sellAmount: number;
+}
+
+export interface BundleMetrics {
+  buyQuantity: number;
+  sellQuantity: number;
+  buyAmount: number; // SOL spent
+  sellAmount: number; // SOL received
+  currentHoldings: number;
+  profitLoss: number;
 }
 
 export interface MintBundleAnalysis {
@@ -39,6 +52,9 @@ export interface MintBundleAnalysis {
     coordinatedBuying: Bundle[];
     snipers: Bundle[];
   };
+  totalBought: number;
+  totalSold: number;
+  totalProfitLoss: number;
 }
 
 export const BundleAnalysisSchema = z.object({

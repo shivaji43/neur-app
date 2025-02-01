@@ -8,7 +8,10 @@ import { BundleTransaction } from '@/types/bundle';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
+
+
 import { RPC_URL } from '../constants';
+
 
 export interface Holder {
   owner: string;
@@ -430,89 +433,111 @@ export async function getHoldersClassification(
  */
 export async function getTransactionHistory(
   mintAddress: string,
-  limit: number = 100,
+  limit: number = 1000,
 ) {
   const transactions: BundleTransaction[] = [];
 
   try {
-    const signaturesData = await fetchHelius('getSignaturesForAddress', [
-      mintAddress,
-      { limit },
-    ]);
+    // Getting all Signatures
+    let signaturesData: any[] = [];
+    let before: string | null = null;
+    let hasMoreSignatures = true;
 
-    if (!signaturesData.result?.length) {
+    while (hasMoreSignatures) {
+      const signatures = await fetchHelius('getSignaturesForAddress', [
+        mintAddress,
+        { limit, before },
+      ]);
+
+      if (signatures.result?.length === 0) {
+        hasMoreSignatures = false;
+        break;
+      }
+
+      signaturesData.push(...signatures.result);
+      before = signatures.result[signatures.result.length - 1].signature;
+    }
+
+    if (signaturesData.length === 0) {
       return transactions;
     }
 
-    const signatures = signaturesData.result;
-    const batchSize = 25;
+    // Wait for 1 second before fetching transactions to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    for (let i = 0; i < signatures.length; i += batchSize) {
+    // Getting all Transactions
+    const signatures = signaturesData;
+    const batchSize = 100;
+
+    for (let i = 0; i < signatures.length; ) {
       try {
-        const batch = signatures.slice(i, i + batchSize);
+        const batch = signatures.slice(i, i + batchSize).map((sig) => ({
+          jsonrpc: '2.0',
+          id: 'request-id',
+          method: 'getTransaction',
+          params: [sig.signature, { maxSupportedTransactionVersion: 0 }],
+        }));
 
         // Fetch batch of transactions
-        const batchTxs = await Promise.all(
-          batch.map(async (sig: any) => {
-            try {
-              const txData = await fetchHelius('getTransaction', [
-                sig.signature,
-                { maxSupportedTransactionVersion: 0 },
-              ]);
-              const tx = txData.result;
+        const response = await fetch(RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(batch),
+        });
 
-              if (!tx) return null;
-
-              if (tx?.status === 429) {
-                console.log('[getTransactionHistory] tx.status', tx.status);
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                return null;
-              }
-
-              const preBalance = tx.meta?.preBalances?.[0];
-              const postBalance = tx.meta?.postBalances?.[0];
-              const price =
-                preBalance !== postBalance
-                  ? (preBalance - postBalance) / Math.pow(10, 9) // Adjust for token decimals
-                  : 0;
-
-              // Calculate quantity from postTokenBalances
-              const quantity =
-                preBalance !== postBalance ? preBalance - postBalance : 0;
-
-              return {
-                signature: sig.signature,
-                slot: tx.slot,
-                timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
-                quantity,
-                price,
-                buyer: tx.meta?.postTokenBalances?.[0]?.owner,
-              };
-            } catch (error) {
-              console.error(
-                `Failed to fetch transaction ${sig.signature}:`,
-                error,
-              );
-              return null;
-            }
-          }),
-        );
-
-        transactions.push(
-          ...batchTxs.filter((tx): tx is NonNullable<typeof tx> => tx !== null),
-        );
-
-        // Add delay between batches
-        if (i + batchSize < signatures.length) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+        if (response.status === 429) {
+          console.log('[getTransactionHistory] tx.status', response.status);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
         }
+
+        if (!response.ok) {
+          console.error('Failed to fetch transaction data', response);
+          continue;
+        }
+
+        const txData = await response.json();
+
+        if (!txData || !Array.isArray(txData)) {
+          console.error('Failed to fetch transaction data');
+          continue;
+        }
+
+        if (txData[0]?.result?.status === 429) {
+          console.log('[getTransactionHistory] tx.status', txData[0].status);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+
+        for (const txResult of txData) {
+          const tx = txResult.result;
+
+          if (!tx) continue;
+
+          const preBalance = tx.meta?.preBalances?.[0];
+          const postBalance = tx.meta?.postBalances?.[0];
+          const price =
+            preBalance !== postBalance
+              ? (postBalance - preBalance) / Math.pow(10, 9) // Adjust for token decimals
+              : 0;
+
+          // Calculate quantity from postTokenBalances
+          const quantity =
+            preBalance !== postBalance ? postBalance - preBalance : 0;
+
+          transactions.push({
+            signature: tx.transaction.signatures[0],
+            slot: tx.slot,
+            timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now(),
+            quantity,
+            price,
+            buyer: tx.meta?.postTokenBalances?.[0]?.owner,
+          });
+        }
+
+        i += batchSize;
       } catch (error) {
-        console.warn(
-          'Rate limit hit or error, returning partial results:',
-          error,
-        );
-        // Return partial results instead of failing completely
-        return transactions;
+        console.error('Error processing batch:', error);
       }
     }
 
