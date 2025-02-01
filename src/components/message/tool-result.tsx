@@ -15,14 +15,14 @@ interface ToolResultProps {
 }
 
 export function ToolResult({ toolName, result, header }: ToolResultProps) {
-  const config = getToolConfig(toolName)!;
-  const isCollapsible = config.isCollapsible === true;
+  const config = getToolConfig(toolName);
+  const isCollapsible = config?.isCollapsible === true;
   const [isOpen, setIsOpen] = useState(
-    config.isExpandedByDefault ?? !isCollapsible,
+    config?.isExpandedByDefault ?? !isCollapsible,
   );
 
-  const content = config.render
-    ? config.render(result)
+  const content = config?.render
+    ? config?.render(result)
     : DefaultToolResultRenderer({ result });
   if (!content) return null;
 
