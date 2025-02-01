@@ -311,7 +311,9 @@ export function SubscriptionSection({
                                 <TableCell>
                                   {formatDate(payment.paymentDate)}
                                 </TableCell>
-                                <TableCell>{payment.amount.toString()} SOL</TableCell>
+                                <TableCell>
+                                  {payment.amount.toString()} SOL
+                                </TableCell>
                                 <TableCell>
                                   <span
                                     className={cn(
