@@ -1,5 +1,10 @@
 # Changelogs
 
+## v0.3.2
+
+- Handle missing stats when using the NFT collectionStats tool on new collections
+- Allow users to toggle Trial/EPA banners
+
 ## v0.3.1
 
 - Fix client-side error when an unknown tool is invoked
