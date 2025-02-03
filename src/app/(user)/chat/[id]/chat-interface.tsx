@@ -680,7 +680,9 @@ export default function ChatInterface({
     }
   }, []);
 
-  scrollToBottom();
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
 
   const handleSend = async (value: string, attachments: Attachment[]) => {
     if (!value.trim() && (!attachments || attachments.length === 0)) {
