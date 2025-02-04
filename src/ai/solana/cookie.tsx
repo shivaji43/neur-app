@@ -214,11 +214,11 @@ export const cookietools = {
       );
     },
   },
-  getAgentTweets: {
-    displayName: '🤖 Agent X Activity',
+  searchTweets: {
+    displayName: '🤖 X Search',
     isCollapsible: true,
     isExpandedByDefault: true,
-    description: 'Get recent tweets about a Solana AI agent using keywords',
+    description: 'Searches for recent tweets about a given topic',
     parameters: z.object({
       searchQuery: z
         .string()
