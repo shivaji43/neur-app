@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { AgentData } from '@/server/actions/cookie';
+import { formatNumber } from '@/lib/utils';
 
 interface CookieAgentProps {
   agentData: AgentData;
@@ -23,16 +24,6 @@ function DeltaIndicator({ value }: { value: number }) {
       {Math.abs(value).toFixed(2)}%
     </span>
   );
-}
-
-function formatLargeNumber(num: number): string {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(2)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(2)}K`;
-  }
-  return num.toFixed(2);
 }
 
 export default function CookieAgent({ agentData }: CookieAgentProps) {
@@ -78,7 +69,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
             <p className="text-sm text-muted-foreground">Market Cap</p>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                ${formatLargeNumber(marketCap)}
+                ${formatNumber(marketCap)}
               </span>
               <DeltaIndicator value={marketCapDeltaPercent} />
             </div>
@@ -87,7 +78,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
             <p className="text-sm text-muted-foreground">24h Volume</p>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                ${formatLargeNumber(volume24Hours)}
+                ${formatNumber(volume24Hours)}
               </span>
               <DeltaIndicator value={volume24HoursDeltaPercent} />
             </div>
@@ -128,7 +119,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Followers</span>
                 <span className="font-medium">
-                  {formatLargeNumber(followersCount)}
+                  {formatNumber(followersCount)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -136,7 +127,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
                   Smart Followers
                 </span>
                 <span className="font-medium">
-                  {formatLargeNumber(smartFollowersCount)}
+                  {formatNumber(smartFollowersCount)}
                 </span>
               </div>
             </div>
@@ -151,7 +142,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
-                    {formatLargeNumber(averageImpressionsCount)}
+                    {formatNumber(averageImpressionsCount)}
                   </span>
                   <DeltaIndicator value={averageImpressionsCountDeltaPercent} />
                 </div>
@@ -162,7 +153,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
-                    {formatLargeNumber(averageEngagementsCount)}
+                    {formatNumber(averageEngagementsCount)}
                   </span>
                   <DeltaIndicator value={averageEngagementsCountDeltaPercent} />
                 </div>
@@ -206,7 +197,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
                     {topTweets[0].tweetAuthorDisplayName}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatLargeNumber(topTweets[0].impressionsCount)}{' '}
+                    {formatNumber(topTweets[0].impressionsCount)}{' '}
                     impressions
                   </p>
                   <a

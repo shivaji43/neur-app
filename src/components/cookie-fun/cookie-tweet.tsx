@@ -21,19 +21,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { TweetData } from '@/server/actions/cookie';
+import { formatNumber } from '@/lib/utils';
 
 interface CookieTweetProps {
   tweetData: TweetData;
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`;
-  }
-  return num.toString();
 }
 
 export default function CookieTweet({ tweetData }: CookieTweetProps) {
