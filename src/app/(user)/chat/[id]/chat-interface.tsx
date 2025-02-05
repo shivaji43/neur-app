@@ -272,6 +272,7 @@ function MessageToolInvocations({
               </div>
             );
           }
+
           const isCompleted = result !== undefined;
           const isError =
             isCompleted &&
