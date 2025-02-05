@@ -6,8 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { AgentData } from '@/server/actions/cookie';
 import { formatNumber } from '@/lib/utils';
+import { AgentData } from '@/server/actions/cookie';
 
 interface CookieAgentProps {
   agentData: AgentData;
@@ -197,8 +197,7 @@ export default function CookieAgent({ agentData }: CookieAgentProps) {
                     {topTweets[0].tweetAuthorDisplayName}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatNumber(topTweets[0].impressionsCount)}{' '}
-                    impressions
+                    {formatNumber(topTweets[0].impressionsCount)} impressions
                   </p>
                   <a
                     href={topTweets[0].tweetUrl}

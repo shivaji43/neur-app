@@ -20,8 +20,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { TweetData } from '@/server/actions/cookie';
 import { formatNumber } from '@/lib/utils';
+import { TweetData } from '@/server/actions/cookie';
 
 interface CookieTweetProps {
   tweetData: TweetData;
