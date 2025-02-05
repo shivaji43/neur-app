@@ -84,24 +84,26 @@ export function BundleList({ bundles }: BundleListProps) {
                 <div className="space-y-2">
                   {Object.entries(bundle.wallet_info).map(([wallet, info]) => (
                     <div key={wallet} className="rounded bg-background/50 p-2">
-                      <div className="flex items-center justify-between">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className="max-w-8 truncate text-xs">
-                                {wallet}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{wallet}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        {bundle.wallet_categories?.[wallet] === 'sniper' ? (
-                          <LocateFixed className="size-4" />
-                        ) : (
-                          <CircleUserRound className="size-4" />
-                        )}
+                      <div className="flex items-center gap-2">
+                        <div className="w-48 overflow-hidden">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="w-full">
+                                <div className="truncate text-xs">{wallet}</div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">{wallet}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="ml-auto">
+                          {bundle.wallet_categories?.[wallet] === 'sniper' ? (
+                            <LocateFixed className="size-4" />
+                          ) : (
+                            <CircleUserRound className="size-4" />
+                          )}
+                        </div>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         <p>
