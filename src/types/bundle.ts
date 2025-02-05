@@ -1,71 +1,74 @@
 import { z } from 'zod';
 
-
-export interface BundleTransaction {
-  signature: string;
-  slot: number;
-  timestamp: number;
-  price: number;
-  quantity: number;
-  buyer?: string;
+export interface BundleAnalysisResponse {
+  bonded: boolean;
+  bundles: Record<string, BundleDetails>;
+  creator_analysis: CreatorAnalysis;
+  distributed_amount: number;
+  distributed_percentage: number;
+  distributed_wallets: number;
+  ticker: string;
+  total_bundles: number;
+  total_holding_amount: number;
+  total_holding_percentage: number;
+  total_percentage_bundled: number;
+  total_sol_spent: number;
+  total_tokens_bundled: number;
 }
 
-export interface Bundle {
-  slot: number;
-  bundleAddress: string;
-  transactions: BundleTransaction[];
-  supplyPercentage: number;
-  solSpent: number;
-  currentHoldings: number;
-  isPumpfunBundle: boolean;
-  avgPricePerToken: number;
-  firstPurchaseTime: number;
-  lastPurchaseTime: number;
-  purchaseVelocity: number; // tokens per hour during active period
-  uniqueBuyers: number;
-  totalBought: number;
-  totalSold: number;
-  profitLoss: number;
-  sellAmount: number;
+export interface BundleDetails {
+  bundle_analysis: BundleAnalysis;
+  holding_amount: number;
+  holding_percentage: number;
+  token_percentage: number;
+  total_sol: number;
+  total_tokens: number;
+  unique_wallets: number;
+  wallet_categories: Record<string, string>;
+  wallet_info: Record<string, WalletInfo>;
 }
 
-export interface BundleMetrics {
-  buyQuantity: number;
-  sellQuantity: number;
-  buyAmount: number; // SOL spent
-  sellAmount: number; // SOL received
-  currentHoldings: number;
-  profitLoss: number;
+export interface BundleAnalysis {
+  category_breakdown: Record<string, number>;
+  copytrading_groups: Record<string, string>;
+  is_likely_bundle: boolean;
+  primary_category: string;
 }
 
-export interface MintBundleAnalysis {
-  mintAddress: string;
-  totalBundles: number;
-  totalSolSpent: number;
-  totalUniqueWallets: number;
-  totalSupply: number;
-  largestBundle: Bundle | null;
-  bundles: Bundle[];
-  suspiciousPatterns: {
-    rapidAccumulation: Bundle[];
-    priceManipulation: Bundle[];
-    coordinatedBuying: Bundle[];
-    snipers: Bundle[];
-  };
-  totalBought: number;
-  totalSold: number;
-  totalProfitLoss: number;
+export interface WalletInfo {
+  sol: number;
+  sol_percentage: number;
+  token_percentage: number;
+  tokens: number;
 }
 
-export const BundleAnalysisSchema = z.object({
-  mintAddress: z.string(),
-  timeframe: z.enum(['1h', '24h', '7d', '30d', 'all']).optional(),
-  minSupplyPercentage: z.number().min(0).max(100).optional(),
-});
+export interface CreatorAnalysis {
+  address: string;
+  current_holdings: number;
+  history: CreatorHistory;
+  holding_percentage: number;
+  risk_level: string;
+  warning_flags: (string | null)[];
+}
+
+export interface CreatorHistory {
+  average_market_cap: number;
+  high_risk: boolean;
+  previous_coins: PreviousCoin[];
+  recent_rugs: number;
+  rug_count: number;
+  rug_percentage: number;
+  total_coins_created: number;
+}
+
+export interface PreviousCoin {
+  created_at: number;
+  is_rug: boolean;
+  market_cap: number;
+  mint: string;
+  symbol: string;
+}
 
 export const BundleDetectionSchema = z.object({
   mintAddress: z.string(),
-  timeframe: z.enum(['1h', '24h', '7d', '30d', 'all']).optional(),
-  minSlotTransactions: z.number().min(2).default(2).optional(),
-  minSupplyPercentage: z.number().min(0).max(100).optional(),
 });
