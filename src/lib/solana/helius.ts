@@ -1,11 +1,16 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
+
+
 import { chunkArray } from '@/lib/utils';
 import rawKnownAddresses from '@/lib/utils/known-addresses.json';
 import { FungibleToken } from '@/types/helius/fungibleToken';
 import { NonFungibleToken } from '@/types/helius/nonFungibleToken';
 
+
+
 import { RPC_URL } from '../constants';
+
 
 export interface Holder {
   owner: string;
@@ -27,7 +32,9 @@ type HeliusMethod =
   | 'getBalance'
   | 'getTokenAccounts'
   | 'getAccountInfo'
-  | 'getMultipleAccounts';
+  | 'getMultipleAccounts'
+  | 'getSignaturesForAddress'
+  | 'getTransaction';
 
 const KNOWN_ADDRESSES: Record<string, string> = rawKnownAddresses as Record<
   string,
@@ -48,6 +55,11 @@ const fetchHelius = async (method: HeliusMethod, params: any) => {
       }),
     });
 
+    // Check for rate limiting response
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+
     if (!response.ok) {
       throw new Error(
         `Helius API error: ${response.status} ${response.statusText}`,
@@ -63,6 +75,12 @@ const fetchHelius = async (method: HeliusMethod, params: any) => {
 
     return data;
   } catch (error) {
+    if (error instanceof Error && error.message === 'RATE_LIMIT_EXCEEDED') {
+      return {
+        status: 429,
+        error: 'Helius API request failed: Too many requests',
+      };
+    }
     if (error instanceof Error) {
       throw new Error(`Helius API request failed: ${error.message}`);
     }
