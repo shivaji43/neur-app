@@ -57,47 +57,50 @@ export const bundleTools = {
 
       const analysis = typedResult.data.data;
 
+      const initalSummary = analysis
+        ? [
+            {
+              name: 'Ticker',
+              value: analysis.ticker.toUpperCase(),
+            },
+            {
+              name: 'Total Bundles',
+              value: analysis.total_bundles,
+            },
+            {
+              name: 'Total SOL Spent',
+              value: `${analysis.total_sol_spent.toFixed(2)} SOL`,
+            },
+            {
+              name: 'Bundled Total',
+              value: `${analysis.total_percentage_bundled.toFixed(2)}%`,
+            },
+            {
+              name: 'Held Percentage',
+              value: `${analysis.total_holding_percentage.toFixed(2)}%`,
+            },
+            {
+              name: 'Held Tokens',
+              value: analysis.total_holding_amount.toLocaleString(),
+            },
+            {
+              name: 'Bonded',
+              value: analysis.bonded ? 'Yes' : 'No',
+            },
+          ]
+        : [];
+
       return (
         <div className="space-y-4">
           {/* Initial Summary */}
           <div className="rounded-lg bg-muted p-4">
             <div className="mx-auto grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Ticker</p>
-                <p className="font-medium uppercase">{analysis.ticker}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Total Bundles</p>
-                <p className="font-medium">{analysis.total_bundles}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">SOL Spent</p>
-                <p className="font-medium">
-                  {analysis.total_sol_spent.toFixed(2)} SOL
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Bundled Total</p>
-                <p className="font-medium">
-                  {analysis.total_percentage_bundled.toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Held Percentage</p>
-                <p className="font-medium">
-                  {analysis.total_holding_percentage.toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Held Tokens</p>
-                <p className="font-medium">
-                  {analysis.total_holding_amount.toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Bonded</p>
-                <p className="font-medium">{analysis.bonded ? 'Yes' : 'No'}</p>
-              </div>
+              {initalSummary.map(({ name, value }, index) => (
+                <div key={index}>
+                  <p className="text-muted-foreground">{name}</p>
+                  <p className="font-medium">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
 
