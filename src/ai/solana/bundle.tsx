@@ -1,3 +1,6 @@
+import Link from 'next/link';
+
+import { ExternalLink } from 'lucide-react';
 import { z } from 'zod';
 
 import { getMintAccountInfo } from '@/lib/solana/helius';
@@ -68,7 +71,14 @@ export const bundleTools = {
           mapTokenDecimals(analysis.data.data, accountInfo.decimals);
         }
 
-        return { success: true, data: analysis.data, suppressFollowUp: true };
+        return {
+          success: true,
+          data: {
+            mintAddress,
+            analysis: analysis.data.data,
+          },
+          suppressFollowUp: true,
+        };
       } catch (error) {
         return {
           success: false,
@@ -82,11 +92,14 @@ export const bundleTools = {
     render: (result: unknown) => {
       const typedResult = result as {
         success: boolean;
-        data?: { data: BundleAnalysisResponse };
+        data?: {
+          analysis: BundleAnalysisResponse;
+          mintAddress: string;
+        };
         error?: string;
       };
 
-      if (!typedResult.success || !typedResult.data?.data) {
+      if (!typedResult.success || !typedResult.data) {
         return (
           <div className="relative overflow-hidden rounded-2xl bg-destructive/5 p-4">
             <div className="flex items-center gap-3">
@@ -98,7 +111,7 @@ export const bundleTools = {
         );
       }
 
-      const analysis = typedResult.data.data;
+      const { analysis, mintAddress } = typedResult.data;
 
       const initalSummary = analysis
         ? [
@@ -144,6 +157,17 @@ export const bundleTools = {
                   <p className="font-medium">{value}</p>
                 </div>
               ))}
+              <div key={`${mintAddress}-source`}>
+                <p className="text-muted-foreground">Source</p>
+                <Link
+                  href={`https://trench.bot/bundles/${mintAddress}?all=true`}
+                  target="_blank"
+                  className="inline-flex items-center"
+                >
+                  TrenchRadar
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </div>
             </div>
           </div>
 
