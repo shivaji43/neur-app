@@ -7,10 +7,10 @@ This describes steps to spin up Neur.sh locally:
 You will need to sign up for [Privy](https://www.privy.io/) and create a development app.
 
 Choice of model provider:
-- [PPQ](https://www.ppq.ai/) API key
+
+- [OpenRouter](https://openrouter.ai/) API key (Accepts payments via crypto)
 - [Anthropic](https://www.anthropic.com/) API key
 - [OpenAI](https://platform.openai.com/) API key
-
 
 You also need to have
 
@@ -20,13 +20,30 @@ You also need to have
 Create a `.env` file:
 
 ```
-# Secrets
-OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
-OPENAI_BASE_URL=<YOUR_OPENAI_BASE_URL> # Recommended: https://api.ppq.ai
-OPENAI_MODEL_NAME=<YOUR_OPENAI_MODEL_NAME> # Recommended: claude-3.5-sonnet
+# Required Model Secrets (Either OpenAI compatible or Anthropic directly)
+
+OPENAI_API_KEY=<YOUR_OPENAI_API_KEY> # Recommended from https://openrouter.ai/
+OPENAI_BASE_URL=<YOUR_OPENAI_BASE_URL> # Recommended: https://openrouter.ai/
+OPENAI_MODEL_NAME=<YOUR_OPENAI_MODEL_NAME> # Recommended: anthropic/claude-3.5-sonnet
+# OR
+ANTHROPIC_API_KEY=<YOUR_ANTHROPIC_API_KEY>
+
+
+# Required Secrets
 PRIVY_APP_SECRET=<YOUR_PRIVY_APP_SECRET>
 WALLET_ENCRYPTION_KEY=<YOUR_WALLET_ENCRYPTION_KEY>
-JINA_API_KEY=<YOUR_JINA_API_KEY>
+HELIUS_API_KEY=<YOUR_HELIUS_API_KEY> # Helius SDK is used on the backend for smart transactions for swaps
+
+# Optional Secrets (tools might not work)
+JINA_API_KEY=<YOUR_JINA_API_KEY> # web scraping
+CG_API_KEY=<YOUR_COIN_GECKO_API_KEY> # charts
+CG_BASE_URL=<BASE_URL_FOR_COIN_GECKO> # there are different urls for demo vs pro
+TELEGRAM_BOT_TOKEN=<YOUR_TG_BOT_TOKEN> # sending notifications through telegram
+TELEGRAM_BOT_USERNAME=<YOUR_TG_BOT_USERNAME> # optional, but saves an API call
+DISCORD_BOT_TOKEN=<YOUR_DISCORD_BOT_TOKEN> # used for discord integrations
+DISCORD_GUILD_ID=<YOUR_DISCORD_GUILD_ID> # used for a specific discord server
+DISCORD_ROLE_ID=<YOUR_DISCORD_ROLE_ID> # used for a specific discord role
+
 
 # Public
 NEXT_PUBLIC_MAINTENANCE_MODE=false
@@ -39,6 +56,9 @@ NEXT_PUBLIC_HELIUS_RPC_URL=<YOUR_HELIUS_RPC_URL>
 # DB
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=admin
+
+# Privy Embedded Wallet Delegated Actions
+PRIVY_SIGNING_KEY=<YOUR_PRIVY_SIGNING_KEY>
 ```
 
 Optionall you can provide a [Helius](https://www.helius.dev/) private RPC URL.

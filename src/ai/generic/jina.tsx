@@ -65,12 +65,14 @@ export const jinaTools = {
         .describe('The URL of the web page to read and convert to text'),
     }),
     isCollapsible: true,
+    requiredEnvVars: ['JINA_API_KEY'],
     execute: async ({ url }: { url: string }) => {
       try {
         const response = await fetch(`https://r.jina.ai/${url}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${process.env.JINA_API_KEY}`,
+            'X-Retain-Images': 'none',
           },
         });
 

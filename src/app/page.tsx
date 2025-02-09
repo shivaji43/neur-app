@@ -376,7 +376,7 @@ export default function Home() {
   const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
   const router = useRouter();
   let { login } = useLogin({
-    onComplete: (
+    onComplete: async (
       user,
       isNewUser,
       wasAlreadyAuthenticated,

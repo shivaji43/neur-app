@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { analyzeMintBundles } from '@/server/actions/bundle';
 import { type BundleAnalysisResponse } from '@/types/bundle';
 
-import { BundleList } from './bundle-list';
+import { BundleList } from '../../components/bundle-list';
 
 export const bundleTools = {
   analyzeBundles: {
