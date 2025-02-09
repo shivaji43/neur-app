@@ -1,14 +1,49 @@
 import { z } from 'zod';
 
+import { getMintAccountInfo } from '@/lib/solana/helius';
+import { formatNumber } from '@/lib/utils';
 import { analyzeMintBundles } from '@/server/actions/bundle';
 import { type BundleAnalysisResponse } from '@/types/bundle';
 
 import { BundleList } from '../../components/bundle-list';
 
+function mapTokenDecimals(
+  data: BundleAnalysisResponse,
+  decimals: number,
+): void {
+  const tokenKeys = [
+    'total_tokens',
+    'tokens',
+    'total_tokens_bundled',
+    'distributed_amount',
+    'holding_amount',
+    'total_holding_amount',
+  ];
+
+  function adjustValue(value: any): any {
+    return typeof value === 'number' ? value / Math.pow(10, decimals) : value;
+  }
+
+  function traverse(obj: any): void {
+    if (typeof obj !== 'object' || obj === null) return;
+
+    for (const key of Object.keys(obj)) {
+      if (tokenKeys.includes(key) && typeof obj[key] === 'number') {
+        obj[key] = adjustValue(obj[key]);
+      } else if (typeof obj[key] === 'object') {
+        traverse(obj[key]);
+      }
+    }
+  }
+
+  traverse(data);
+}
+
 export const bundleTools = {
   analyzeBundles: {
     displayName: '🔍 Analyze Mint Bundles',
     isCollapsible: true,
+    isExpandedByDefault: true,
     description:
       'Analyze potential bundles and snipers for a given mint address.',
     parameters: z.object({
@@ -25,7 +60,15 @@ export const bundleTools = {
           };
         }
 
-        return { success: true, data: analysis.data };
+        // Get mint info for calculating decimals
+        const accountInfo = await getMintAccountInfo(mintAddress);
+
+        // Recalculate token fields using decimals from mint info
+        if (analysis.data.data) {
+          mapTokenDecimals(analysis.data.data, accountInfo.decimals);
+        }
+
+        return { success: true, data: analysis.data, suppressFollowUp: true };
       } catch (error) {
         return {
           success: false,
@@ -69,7 +112,7 @@ export const bundleTools = {
             },
             {
               name: 'Total SOL Spent',
-              value: `${analysis.total_sol_spent.toFixed(2)} SOL`,
+              value: `${formatNumber(analysis.total_sol_spent)} SOL`,
             },
             {
               name: 'Bundled Total',
@@ -81,7 +124,7 @@ export const bundleTools = {
             },
             {
               name: 'Held Tokens',
-              value: analysis.total_holding_amount.toLocaleString(),
+              value: formatNumber(analysis.total_holding_amount),
             },
             {
               name: 'Bonded',
