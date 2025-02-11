@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 
+
+
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -10,6 +12,7 @@ import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
 import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
+import { bundleTools } from './solana/bundle';
 import { birdeyeTools } from './solana/birdeye';
 import { chartTools } from './solana/chart';
 import { cookietools } from './solana/cookie';
@@ -160,6 +163,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...utilTools,
   ...chartTools,
   ...telegramTools,
+  ...bundleTools,
   ...birdeyeTools,
   ...cookietools,
 };
@@ -246,6 +250,11 @@ export const toolsets: Record<
     tools: ['cookieTools'],
     description:
       'Tools for retrieving information about Solana AI Agents, and Tweets related to Agents.',
+  },
+  bundleTools: {
+    tools: ['bundleTools'],
+    description:
+      'Tools to analyze potential bundles and snipers for a contracts.',
   },
 };
 
