@@ -13,14 +13,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { formatNumber } from '@/lib/utils';
 import type { BundleAnalysisResponse, BundleDetails } from '@/types/bundle';
+import { CopyableText } from './ui/copyable-text';
 
 interface BundleListProps {
   bundles: BundleAnalysisResponse['bundles'];
@@ -78,18 +73,9 @@ function BundleCard({
                 <Card key={wallet} className="overflow-hidden">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="flex-1">
-                            <div className="truncate text-left text-sm font-medium">
-                              {wallet}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="font-mono text-xs">{wallet}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="truncate text-left text-sm font-medium">
+                        <CopyableText text={wallet} showSolscan={true} />
+                      </div>
                       <div className="shrink-0">
                         {bundle.wallet_categories?.[wallet] === 'sniper' ? (
                           <div className="rounded-full bg-yellow-500/10 p-1.5 text-yellow-500">
@@ -139,11 +125,13 @@ export function BundleList({ bundles }: BundleListProps) {
   const totalPages = bundleEntries.length;
   const progress = ((currentPage + 1) / totalPages) * 100;
 
+  // Sort bundles by total tokens
+  const sortedBundleEntries = bundleEntries.sort((a, b) => b[1].total_tokens - a[1].total_tokens);
+
   return (
     <div className="space-y-6">
       {totalPages > 1 && (
         <div className="space-y-4">
-          <Progress value={progress} className="h-1" />
           <div className="flex justify-center gap-4">
             <Button
               variant="outline"
@@ -171,11 +159,12 @@ export function BundleList({ bundles }: BundleListProps) {
               <ChevronRight className="ml-2 size-4" />
             </Button>
           </div>
+          <Progress value={progress} className="h-1" />
         </div>
       )}
 
       <AnimatePresence mode="wait">
-        {bundleEntries.map(([address, bundle], index) => {
+        {sortedBundleEntries.map(([address, bundle], index) => {
           if (index !== currentPage) return null;
           return (
             <motion.div
