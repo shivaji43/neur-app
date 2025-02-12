@@ -272,6 +272,7 @@ function MessageToolInvocations({
               </div>
             );
           }
+
           const isCompleted = result !== undefined;
           const isError =
             isCompleted &&
@@ -714,7 +715,9 @@ export default function ChatInterface({
     }
   }, []);
 
-  scrollToBottom();
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
 
   const handleSend = async (value: string, attachments: Attachment[]) => {
     if (!value.trim() && (!attachments || attachments.length === 0)) {
