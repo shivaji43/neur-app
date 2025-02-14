@@ -1,5 +1,10 @@
 # Changelogs
 
+## v0.3.4
+
+- Fix bug with missing relevant messages
+- Handle error when unable to fetch bundle data
+
 ## v0.3.3
 
 - Cookie.fun integration
