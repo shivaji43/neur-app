@@ -1,6 +1,11 @@
 FROM node:20 AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+
+# Update Corepack to prevent outdated signature issues 
+# See https://pnpm.io/installation#using-corepack
+RUN npm install --global corepack@latest
+
 RUN corepack enable
 
 FROM base AS dev
