@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "neur.sh: debug server-side",
+        "port": 9230,
+        "request": "attach",
+        "skipFiles": [
+          "<node_internals>/**"
+        ],
+        "type": "node",
+        "sourceMapPathOverrides": {
+           "/turbopack/*": "${webRoot}/*"
+        }
+      },
+      {
+        "type": "chrome",
+        "request": "launch",
+        "name": "neur.sh: debug client-side",
+        "url": "http://localhost:3001",
+        "webRoot": "${workspaceFolder}",
+        "sourceMapPathOverrides": {
+           "/turbopack/*": "${webRoot}/*"
+        }
+      }
+    ],
+    "compounds": [
+      {
+        "name": "neur.sh: debug full stack",
+        "configurations": ["neur.sh: debug client-side", "neur.sh: debug server-side"],
+        "stopAll": true
+      }
+    ]
+  }
