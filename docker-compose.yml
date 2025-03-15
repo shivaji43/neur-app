@@ -60,7 +60,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432" # Map container port to a different host port to prevent conflicts with local postgres instance 
     volumes:
       - "neur-db-data:/var/lib/postgresql/data"
 
