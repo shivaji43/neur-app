@@ -5,7 +5,7 @@
   "scripts": {
     "vercel-build": "NODE_OPTIONS=--max_old_space_size=2048 pnpm npx prisma generate && next build",
     "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
-    "dev:local": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--inspect' DATABASE_URL=postgres://admin:admin@localhost:5433/neurdb DIRECT_URL=postgres://admin:admin@localhost:5433/neurdb next dev --turbopack -p 3001",
+    "dev:local": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--inspect' next dev --turbopack -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
