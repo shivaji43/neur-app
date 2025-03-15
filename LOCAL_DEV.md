@@ -89,6 +89,24 @@ If you're starting from an existing image run
 pnpm run dev:up
 ```
 
+To debug the Neur App Next.js server-side code:
+
+Make the script executable (only needed once):
+
+```
+chmod u+x local_app_dev.sh
+```
+
+Start the neur-app with debugging enabled: 
+
+```
+./local_app_dev.sh
+```
+
+This starts the application locally and attaches a debugger to the Node.js process.
+
+You can then set breakpoints in server-side files like api/actions/route.ts and debug them using Chrome DevTools Inspector
+
 ### Docker troubleshooting
 
 Sometimes if you add a dependecy you'll have to rebuild the image and clear existing volumes. If you run into issues with dependencies not adding clear your image, volumes, and build cache:
