@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useOptimistic } from 'react';
+import { startTransition, useEffect, useOptimistic } from 'react';
 import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
@@ -36,7 +36,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
-import { useEmbeddedWallets } from '@/hooks/use-wallets';
+import { getTotalWalletBalance, useEmbeddedWallets } from '@/hooks/use-wallets';
 import { IS_SUBSCRIPTION_ENABLED, cn } from '@/lib/utils';
 import {
   formatPrivyId,
@@ -53,12 +53,15 @@ import {
 import { type UserUpdateData, updateUser } from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
+import { DeleteAccountDialog } from './delete-account-dialog';
 import { LoadingStateSkeleton } from './loading-skeleton';
 
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
   const [isUpdatingReferralCode, setIsUpdatingReferralCode] = useState(false);
+  const [isEmptyAccount, setIsEmptyAccount] = useState(false);
+  const [displayPrompt, setDisplayPrompt] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
   const {
@@ -219,6 +222,14 @@ export function AccountContent() {
 
   const activeWallet = embeddedWallets.find((w) => w.active);
 
+  getTotalWalletBalance(embeddedWallets).then((balance) => {
+    if (balance > 0) {
+      setIsEmptyAccount(false);
+    } else {
+      setIsEmptyAccount(true);
+    }
+  });
+
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(
     (acct): acct is WalletWithMetadata =>
@@ -268,31 +279,51 @@ export function AccountContent() {
             <h2 className="text-sm font-medium text-muted-foreground">
               Profile Information
             </h2>
+            <DeleteAccountDialog
+              title="Delete Account"
+              content="Delete"
+              displayPrompt={displayPrompt}
+            />
 
             <Card className="bg-sidebar">
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   {/* User basic information */}
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-10 w-10 rounded-lg">
-                      <AvatarImage
-                        src={userData.twitter?.profilePictureUrl || undefined}
-                        className="rounded-lg object-cover"
-                      />
-                      <AvatarFallback className="rounded-lg bg-sidebar-accent">
-                        {avatarLabel}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {userData.twitter
-                          ? `@${userData.twitter.username}`
-                          : formatWalletAddress(userData.walletAddress)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Member since {userData.createdAt}
-                      </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <div className="flex flex-1 items-center space-x-4">
+                      <Avatar className="h-10 w-10 rounded-lg">
+                        <AvatarImage
+                          src={userData.twitter?.profilePictureUrl || undefined}
+                          className="rounded-lg object-cover"
+                        />
+                        <AvatarFallback className="rounded-lg bg-sidebar-accent">
+                          {avatarLabel}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {userData.twitter
+                            ? `@${userData.twitter.username}`
+                            : formatWalletAddress(userData.walletAddress)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Member since {userData.createdAt}
+                        </p>
+                      </div>
                     </div>
+                    {isEmptyAccount && (
+                      <div>
+                        <div className="mt-4 sm:ml-auto sm:mt-0">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setDisplayPrompt(true)}
+                          >
+                            Delete Account
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Separator className="bg-sidebar-accent/50" />
