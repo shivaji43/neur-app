@@ -11,17 +11,16 @@ async function getEmbeddedWalletBalance(embeddedWallet: EmbeddedWallet): Promise
   try {
     const walletPortfolio = await searchWalletAssets(embeddedWallet.publicKey);
 
-    // const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
-    //   (t) => t.id === SOL_MINT,
-    // );
+    const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
+      (t) => t.id === SOL_MINT,
+    );
 
-    // const balance = solBalanceInfo
-    //   ? solBalanceInfo.token_info.balance /
-    //     10 ** solBalanceInfo.token_info.decimals
-    //   : 0;
+    const balance = solBalanceInfo
+      ? solBalanceInfo.token_info.balance /
+        10 ** solBalanceInfo.token_info.decimals
+      : 0;
 
-    // return balance; // return a number
-    return 0;
+    return balance; 
   } catch (error) {
     return 0;
   }
