@@ -280,9 +280,12 @@ export function AccountContent() {
               Profile Information
             </h2>
             <DeleteAccountDialog
-              title="Delete Account"
-              content="Delete"
               displayPrompt={displayPrompt}
+              onCancel={() => setDisplayPrompt(false)}
+              onConfirm={() => {
+                // Delete account
+                console.log("delete account");
+              }}
             />
 
             <Card className="bg-sidebar">
