@@ -15,6 +15,7 @@ import {
   usePrivy,
 } from '@privy-io/react-auth';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { set } from 'lodash';
 import { HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { mutate } from 'swr';
@@ -50,7 +51,11 @@ import {
   subscribeUser,
   unsubscribeUser,
 } from '@/server/actions/subscription';
-import { type UserUpdateData, updateUser } from '@/server/actions/user';
+import {
+  type UserUpdateData,
+  deleteUser,
+  updateUser,
+} from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
 import { DeleteAccountDialog } from './delete-account-dialog';
@@ -63,6 +68,7 @@ export function AccountContent() {
   const [isEmptyAccount, setIsEmptyAccount] = useState(false);
   const [displayPrompt, setDisplayPrompt] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     isLoading: isUserLoading,
@@ -75,6 +81,7 @@ export function AccountContent() {
     unlinkDiscord,
     linkWallet,
     unlinkWallet,
+    logout
   } = useUser();
 
   const [optimisticUser, updateOptimisticUser] = useOptimistic(
@@ -191,7 +198,7 @@ export function AccountContent() {
     }
   };
 
-  if (isUserLoading || isWalletsLoading || !user) {
+  if (isUserLoading || isWalletsLoading || !user || isDeleting) {
     return <LoadingStateSkeleton />;
   }
   if (walletsError) {
@@ -223,7 +230,7 @@ export function AccountContent() {
   const activeWallet = embeddedWallets.find((w) => w.active);
 
   getTotalWalletBalance(embeddedWallets).then((balance) => {
-    if (balance > 0) {
+    if (balance > 0 || user.earlyAccess) {
       setIsEmptyAccount(false);
     } else {
       setIsEmptyAccount(true);
@@ -280,11 +287,25 @@ export function AccountContent() {
               Profile Information
             </h2>
             <DeleteAccountDialog
+              eligibililty={isEmptyAccount}
               displayPrompt={displayPrompt}
               onCancel={() => setDisplayPrompt(false)}
-              onConfirm={() => {
-                // Delete account
-                console.log("delete account");
+              onConfirm={async () => {
+                setDisplayPrompt(false);
+                setIsDeleting(true);
+                const loadingToast = toast.info('Deleting account...');
+                const response = await deleteUser();
+                setIsDeleting(false);
+                toast.dismiss(loadingToast);
+                const { success, error } = response;
+                if (success) {
+                  toast.success('Account deleted successfully');
+                  await logout();
+                } else {
+                  toast.error('Failed to delete account', {
+                    description: error,
+                  });
+                }
               }}
             />
 
@@ -314,19 +335,17 @@ export function AccountContent() {
                         </p>
                       </div>
                     </div>
-                    {isEmptyAccount && (
-                      <div>
-                        <div className="mt-4 sm:ml-auto sm:mt-0">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setDisplayPrompt(true)}
-                          >
-                            Delete Account
-                          </Button>
-                        </div>
+                    <div>
+                      <div className="mt-4 sm:ml-auto sm:mt-0">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDisplayPrompt(true)}
+                        >
+                          Delete Account
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   <Separator className="bg-sidebar-accent/50" />
