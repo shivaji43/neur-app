@@ -315,6 +315,53 @@ export type UserUpdateData = {
   degenMode?: boolean;
   referralCode?: string; // Add referralCode as an optional field
 };
+
+export async function deleteUser() {
+  try {
+    const authResult = await verifyUser();
+    const userId = authResult?.data?.data?.id;
+    const privyId = authResult?.data?.data?.privyId;
+
+    if (!userId) {
+      return { success: false, error: 'UNAUTHORIZED' };
+    }
+
+    // check eap status is active
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const { earlyAccess } = user;
+    if (earlyAccess) {
+      return {
+        success: false,
+        error:
+          'Cannot delete user with active early access. Please reach out to support at our official discord channel.',
+      };
+    }
+
+    const deleteUser = prisma.user.delete({ where: { id: userId } });
+    const deleteWallets = prisma.wallet.deleteMany({
+      where: { ownerId: userId },
+    });
+
+    await prisma.$transaction([deleteWallets, deleteUser]);
+    if (privyId) {
+      await PRIVY_SERVER_CLIENT.deleteUser(privyId);
+    }
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return { success: false, error: 'Failed to delete user' };
+  }
+}
+
 export async function updateUser(data: UserUpdateData) {
   try {
     const authResult = await verifyUser();

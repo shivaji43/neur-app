@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useOptimistic } from 'react';
+import { startTransition, useEffect, useOptimistic } from 'react';
 import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ import {
   usePrivy,
 } from '@privy-io/react-auth';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { set } from 'lodash';
 import { HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { mutate } from 'swr';
@@ -36,7 +37,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
-import { useEmbeddedWallets } from '@/hooks/use-wallets';
+import { getTotalWalletBalance, useEmbeddedWallets } from '@/hooks/use-wallets';
 import { IS_SUBSCRIPTION_ENABLED, cn } from '@/lib/utils';
 import {
   formatPrivyId,
@@ -50,16 +51,24 @@ import {
   subscribeUser,
   unsubscribeUser,
 } from '@/server/actions/subscription';
-import { type UserUpdateData, updateUser } from '@/server/actions/user';
+import {
+  type UserUpdateData,
+  deleteUser,
+  updateUser,
+} from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 
+import { DeleteAccountDialog } from './delete-account-dialog';
 import { LoadingStateSkeleton } from './loading-skeleton';
 
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
   const [isUpdatingReferralCode, setIsUpdatingReferralCode] = useState(false);
+  const [isEmptyAccount, setIsEmptyAccount] = useState(false);
+  const [displayPrompt, setDisplayPrompt] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     isLoading: isUserLoading,
@@ -72,6 +81,7 @@ export function AccountContent() {
     unlinkDiscord,
     linkWallet,
     unlinkWallet,
+    logout
   } = useUser();
 
   const [optimisticUser, updateOptimisticUser] = useOptimistic(
@@ -188,7 +198,7 @@ export function AccountContent() {
     }
   };
 
-  if (isUserLoading || isWalletsLoading || !user) {
+  if (isUserLoading || isWalletsLoading || !user || isDeleting) {
     return <LoadingStateSkeleton />;
   }
   if (walletsError) {
@@ -218,6 +228,14 @@ export function AccountContent() {
   );
 
   const activeWallet = embeddedWallets.find((w) => w.active);
+
+  getTotalWalletBalance(embeddedWallets).then((balance) => {
+    if (balance > 0 || user.earlyAccess) {
+      setIsEmptyAccount(false);
+    } else {
+      setIsEmptyAccount(true);
+    }
+  });
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(
@@ -268,30 +286,65 @@ export function AccountContent() {
             <h2 className="text-sm font-medium text-muted-foreground">
               Profile Information
             </h2>
+            <DeleteAccountDialog
+              eligibililty={isEmptyAccount}
+              displayPrompt={displayPrompt}
+              onCancel={() => setDisplayPrompt(false)}
+              onConfirm={async () => {
+                setDisplayPrompt(false);
+                setIsDeleting(true);
+                const loadingToast = toast.info('Deleting account...');
+                const response = await deleteUser();
+                setIsDeleting(false);
+                toast.dismiss(loadingToast);
+                const { success, error } = response;
+                if (success) {
+                  toast.success('Account deleted successfully');
+                  await logout();
+                } else {
+                  toast.error('Failed to delete account', {
+                    description: error,
+                  });
+                }
+              }}
+            />
 
             <Card className="bg-sidebar">
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   {/* User basic information */}
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-10 w-10 rounded-lg">
-                      <AvatarImage
-                        src={userData.twitter?.profilePictureUrl || undefined}
-                        className="rounded-lg object-cover"
-                      />
-                      <AvatarFallback className="rounded-lg bg-sidebar-accent">
-                        {avatarLabel}
-                      </AvatarFallback>
-                    </Avatar>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <div className="flex flex-1 items-center space-x-4">
+                      <Avatar className="h-10 w-10 rounded-lg">
+                        <AvatarImage
+                          src={userData.twitter?.profilePictureUrl || undefined}
+                          className="rounded-lg object-cover"
+                        />
+                        <AvatarFallback className="rounded-lg bg-sidebar-accent">
+                          {avatarLabel}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {userData.twitter
+                            ? `@${userData.twitter.username}`
+                            : formatWalletAddress(userData.walletAddress)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Member since {userData.createdAt}
+                        </p>
+                      </div>
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">
-                        {userData.twitter
-                          ? `@${userData.twitter.username}`
-                          : formatWalletAddress(userData.walletAddress)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Member since {userData.createdAt}
-                      </p>
+                      <div className="mt-4 sm:ml-auto sm:mt-0">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDisplayPrompt(true)}
+                        >
+                          Delete Account
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
