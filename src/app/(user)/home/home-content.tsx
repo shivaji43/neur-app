@@ -40,11 +40,12 @@ import {
 } from '@/server/actions/saved-prompt';
 
 import { IntegrationsGrid } from './components/integrations-grid';
+import { SelectFundingWalletDialog } from './components/select-funding-wallet';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
+import { EAP_PRICE  } from '@/lib/constants';
 
-const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
   process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!;
 
@@ -80,6 +81,7 @@ export function HomeContent() {
   const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const [showTrialBanner, setShowTrialBanner] = useState(true);
+  const [displayPrompt, setDisplayPrompt] = useState(false);
   const MAX_VERIFICATION_ATTEMPTS = 20;
 
   const { conversations, refreshConversations } = useConversations(user?.id);
@@ -201,6 +203,10 @@ export function HomeContent() {
     // Update UI state and URL
     setShowChat(true);
     window.history.replaceState(null, '', `/chat/${chatId}`);
+  };
+
+  const handlePurchaseOptions = async () => {
+    setDisplayPrompt(true);
   };
 
   const handlePurchase = async () => {
@@ -477,6 +483,18 @@ export function HomeContent() {
       <div className="relative h-screen w-full overflow-hidden text-xs sm:text-base">
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
         {mainContent}
+        <SelectFundingWalletDialog
+        embeddedWallets={[]}
+        onSelectWallet={(wallet) => {
+          if (wallet === 'phantom') {
+            // Handle Phantom wallet selection
+          } else {
+            // Handle embedded wallet selection
+          }
+        }}
+        displayPrompt={displayPrompt}
+        onCancel={() => setDisplayPrompt(false)}
+      />
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
             <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">
@@ -536,7 +554,7 @@ export function HomeContent() {
                     <Button onClick={toggleTrialBanner}>View Trial</Button>
                   )}
                   <Button
-                    onClick={handlePurchase}
+                    onClick={handlePurchaseOptions}
                     disabled={isProcessing}
                     className="bg-teal-500/70 text-xs ring-offset-0 hover:bg-teal-500/90 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-teal-500/60 dark:hover:bg-teal-500/80 sm:text-sm"
                   >

@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import Link from 'next/link';
 
-import { useDelegatedActions } from '@privy-io/react-auth';
+import { SolanaCluster, useDelegatedActions } from '@privy-io/react-auth';
 import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
 import {
   ArrowRightFromLine,
@@ -29,6 +29,11 @@ import { cn } from '@/lib/utils';
 import { setActiveWallet } from '@/server/actions/wallet';
 import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
+
+const isDev = process.env.DEV === 'true';
+const solanaCluster: SolanaCluster = isDev
+  ? { name: 'devnet' }
+  : { name: 'mainnet-beta' };
 
 interface WalletCardProps {
   wallet: EmbeddedWallet;
@@ -108,7 +113,7 @@ export function WalletCard({
   async function handleFundWallet() {
     try {
       setIsLoading(true);
-      await fundWallet(wallet.publicKey, { cluster: { name: 'mainnet-beta' } });
+      await fundWallet(wallet.publicKey, { cluster: solanaCluster });
       toast.success('Wallet funded');
       await refreshWalletData();
     } catch (err) {

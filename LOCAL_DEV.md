@@ -58,6 +58,7 @@ POSTGRES_USER=admin
 POSTGRES_PASSWORD=admin
 
 # Privy Embedded Wallet Delegated Actions
+# Configure this via Privy (Authentication -> Advanced (tab) -> Enable Server-side access (offline access))
 PRIVY_SIGNING_KEY=<YOUR_PRIVY_SIGNING_KEY>
 ```
 
