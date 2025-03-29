@@ -1,10 +1,17 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
+import  { SolanaCluster } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import { useTheme } from 'next-themes';
 
 import { RPC_URL } from '@/lib/constants';
+
+const isDev = process.env.DEV === 'true';
+
+const solanaCluster: SolanaCluster = isDev
+  ? { name: 'devnet', rpcUrl: process.env.NEXT_PUBLIC_HELIUS_RPC_URL! }
+  : { name: 'mainnet-beta', rpcUrl: RPC_URL };
 
 const solanaConnectors = toSolanaWalletConnectors({
   shouldAutoConnect: false,
@@ -30,7 +37,7 @@ export default function AuthProviders({
             connectors: solanaConnectors as any,
           },
         },
-        solanaClusters: [{ name: 'mainnet-beta', rpcUrl: RPC_URL }],
+        solanaClusters: [solanaCluster],
       }}
     >
       {children}
