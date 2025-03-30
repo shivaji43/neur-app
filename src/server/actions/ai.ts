@@ -133,6 +133,9 @@ export const getAgentKit = async ({
   const agent = new SolanaAgentKit(walletAdapter, RPC_URL, {
     OPENAI_API_KEY: openaiKey,
     HELIUS_API_KEY: process.env.HELIUS_API_KEY!,
+    ...(process.env.HELIUS_RPC_URL && {
+      HELIUS_RPC_URL: process.env.HELIUS_RPC_URL,
+    }),
   });
 
   return { success: true, data: { agent } };
@@ -160,11 +163,11 @@ export const transferToken = actionClient
 
     const agent = agentResponse.data.data.agent;
 
-    const signature = await agent.transfer(
-      new PublicKey(receiverAddress),
-      amount,
-      tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
-    );
+      const signature = await agent.transfer(
+        new PublicKey(receiverAddress),
+        amount,
+        tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
+      );
 
-    return { success: true, data: { signature } };
+      return { success: true, data: { signature } };
   });

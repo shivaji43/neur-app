@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 
 import { RPC_URL } from '@/lib/constants';
 
-const isDev = process.env.DEV === 'true';
+const isDev = process.env.NEXT_PUBLIC_DEV === 'true';
 
 const solanaCluster: SolanaCluster = isDev
   ? { name: 'devnet', rpcUrl: process.env.NEXT_PUBLIC_HELIUS_RPC_URL! }

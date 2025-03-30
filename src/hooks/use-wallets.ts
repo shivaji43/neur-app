@@ -7,7 +7,7 @@ import { syncEmbeddedWallets } from '@/server/actions/user';
 import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 
-async function getEmbeddedWalletBalance(embeddedWallet: EmbeddedWallet): Promise<number> {
+async function getEmbeddedWalletBalance(embeddedWallet: EmbeddedWallet): Promise<number | undefined> {
   try {
     const walletPortfolio = await searchWalletAssets(embeddedWallet.publicKey);
 
@@ -22,7 +22,7 @@ async function getEmbeddedWalletBalance(embeddedWallet: EmbeddedWallet): Promise
 
     return balance; 
   } catch (error) {
-    return 0;
+    return undefined;
   }
 } 
 
@@ -38,10 +38,9 @@ export function useEmbeddedWallets() {
   });
 }
 
-export async function getTotalWalletBalance(embeddedWallets: EmbeddedWallet[]): Promise<number> {
-  const balances: Promise<number>[] = []
-  embeddedWallets.forEach(wallet => balances.push(getEmbeddedWalletBalance(wallet)))
-  const results = await Promise.all(balances)
-  const total = results.reduce((sum, cur) => sum + cur, 0);
-  return total;
+export async function hasWalletWithBalance(embeddedWallets: EmbeddedWallet[]): Promise<boolean> {
+  const results = await Promise.all(
+    embeddedWallets.map(getEmbeddedWalletBalance)
+  );
+  return results.some((balance) => balance === undefined || balance > 0);
 }

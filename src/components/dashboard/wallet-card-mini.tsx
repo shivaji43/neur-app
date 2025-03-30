@@ -1,9 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+import { Banknote, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CopyableText } from '@/components/ui/copyable-text';
+import { Label } from '@/components/ui/label';
 import { EAP_PRICE } from '@/lib/constants';
 import { searchWalletAssets } from '@/lib/solana/helius';
 import { EmbeddedWallet } from '@/types/db';
@@ -12,20 +17,31 @@ import { SOL_MINT } from '@/types/helius/portfolio';
 interface WalletCardMiniProps {
   wallet: EmbeddedWallet;
   allWalletAddresses: string[];
-  onUseWallet?: (wallet: EmbeddedWallet) => void;
-  onFundWallet?: (wallet: EmbeddedWallet) => void;
+  mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
+  useWallet: (wallet: EmbeddedWallet) => void;
+  onFundWallet: (wallet: EmbeddedWallet) => Promise<void>;
 }
 
 export function WalletCardMini({
   wallet,
-  onUseWallet,
+  mutateWallets,
+  useWallet,
   onFundWallet,
 }: WalletCardMiniProps) {
-  const { data: walletPortfolio, isLoading: isWalletPortfolioLoading } = useSWR(
+  const {
+    data: walletPortfolio,
+    isLoading: isWalletPortfolioLoading,
+    mutate: mutateWalletPortfolio,
+  } = useSWR(
     ['wallet-portfolio', wallet.publicKey],
     () => searchWalletAssets(wallet.publicKey),
     { refreshInterval: 30000 },
   );
+  const [isLoading, setIsLoading] = useState(false);
+  async function refreshWalletData() {
+    await mutateWallets();
+    await mutateWalletPortfolio();
+  }
 
   const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
     (t) => t.id === SOL_MINT,
@@ -36,17 +52,36 @@ export function WalletCardMini({
       10 ** solBalanceInfo.token_info.decimals
     : undefined;
 
+  async function handleFundWallet() {
+    try {
+      setIsLoading(true);
+      // await fundWallet(wallet.publicKey, { cluster: solanaCluster });
+      await onFundWallet(wallet);
+      toast.success('Wallet funded');
+      await refreshWalletData();
+    } catch (err) {
+      toast.error('Failed to fund wallet');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div
       key={wallet.id}
       className="rounded-xl border border-border p-4 shadow-sm transition-colors duration-200 hover:bg-muted"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1 flex-1 min-w-0">
+        <div className="min-w-0 flex-1 space-y-1">
           <p className="text-base font-medium">{wallet.name}</p>
-          <p className="truncate text-sm text-muted-foreground max-w-xs">
-            {wallet.publicKey}
-          </p>
+          <div className="max-w-xs truncate text-sm text-muted-foreground">
+            <Label className="text-xs font-normal text-muted-foreground">
+              Public Key
+            </Label>
+            <div className="rounded-lg bg-muted/50 px-3 py-2">
+              <CopyableText text={wallet?.publicKey || ''} showSolscan />
+            </div>
+          </div>
         </div>
         <div className="text-right">
           {isWalletPortfolioLoading ? (
@@ -76,13 +111,12 @@ export function WalletCardMini({
         {(balance ?? 0) < EAP_PRICE && (
           <Button
             variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFundWallet?.(wallet);
-            }}
+            className="w-full sm:w-auto"
+            onClick={handleFundWallet}
+            disabled={isLoading}
           >
-            Fund Wallet
+            <Banknote className="h-4 w-4" />
+            Fund
           </Button>
         )}
         <div
@@ -93,14 +127,15 @@ export function WalletCardMini({
           }
         >
           <Button
-            size="sm"
-            disabled={(balance ?? 0) < EAP_PRICE}
+            className="w-full sm:w-auto"
+            disabled={(balance ?? 0) < EAP_PRICE || isLoading}
             onClick={(e) => {
               e.stopPropagation();
-              onUseWallet?.(wallet);
+              useWallet(wallet);
             }}
           >
-            Use Wallet
+            <DollarSign className="h-4 w-4" />
+            Pay
           </Button>
         </div>
       </div>

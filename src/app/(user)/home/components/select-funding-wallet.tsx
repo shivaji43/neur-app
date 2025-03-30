@@ -2,6 +2,9 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 
+import { WalletWithMetadata } from '@privy-io/react-auth';
+import { useFundWallet } from '@privy-io/react-auth/solana';
+import { solanaCluster } from '@/lib/constants';
 import { WalletCardMini } from '@/components/dashboard/wallet-card-mini';
 import {
   Dialog,
@@ -10,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useUser } from '@/hooks/use-user';
 import { useEmbeddedWallets } from '@/hooks/use-wallets';
 import { EmbeddedWallet } from '@/types/db';
 
@@ -39,17 +43,41 @@ export function SelectFundingWalletDialog({
     mutate: mutateWallets,
   } = useEmbeddedWallets();
 
-  const privyWallets = embeddedWallets.filter(
-    (w: EmbeddedWallet) => w.walletSource === 'PRIVY' && w.chain === 'SOLANA',
+  // const privyWallets = embeddedWallets.filter(
+  //   (w: EmbeddedWallet) => w.walletSource === 'PRIVY' && w.chain === 'SOLANA',
+  // );
+  const { user } = useUser();
+  const privyUser = user?.privyUser;
+  const allUserLinkedAccounts = privyUser ? privyUser.linkedAccounts : [];
+  const linkedSolanaWallet = allUserLinkedAccounts.find(
+    (acct): acct is WalletWithMetadata =>
+      acct.type === 'wallet' &&
+      acct.walletClientType !== 'privy' &&
+      acct.chainType === 'solana',
   );
+
+  const linkedSolanaWalletEmbeddedWallet: EmbeddedWallet | undefined = linkedSolanaWallet ? {
+    id: linkedSolanaWallet.address,
+    name: 'Privy Linked Wallet',
+    publicKey: linkedSolanaWallet.address || '',
+    walletSource: 'PRIVY',
+    chain: 'SOLANA',
+    delegated: linkedSolanaWallet.delegated,
+    ownerId: user ? user.id : '',
+    active: false,
+  }: undefined;
+
   const legacyWallets = embeddedWallets.filter(
     (w: EmbeddedWallet) => w.walletSource === 'CUSTOM' && w.chain === 'SOLANA',
   );
 
   const allWalletAddresses = [
-    ...privyWallets.map((w) => w.publicKey),
+    ...(linkedSolanaWallet ? [linkedSolanaWallet.address] : []),
     ...legacyWallets.map((w) => w.publicKey),
   ];
+
+  const [isLoading, setIsLoading] = useState(false);
+  const { fundWallet } = useFundWallet();
 
   return (
     <Dialog onOpenChange={onCancel} open={displayPrompt}>
@@ -90,20 +118,20 @@ export function SelectFundingWalletDialog({
             </div>
           </div>
 
-          {/* Embedded Wallets Section */}
-          {privyWallets.length > 0 && (
+          {linkedSolanaWalletEmbeddedWallet && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                Privy Embedded Wallets
+                Linked Solana Wallets
               </h3>
               <div className="space-y-2">
-                {privyWallets.map((wallet) => (
-                  <WalletCardMini
-                    key={wallet.id}
-                    wallet={wallet}
-                    allWalletAddresses={allWalletAddresses}
-                  />
-                ))}
+                <WalletCardMini
+                  key={linkedSolanaWalletEmbeddedWallet.id}
+                  wallet={linkedSolanaWalletEmbeddedWallet}
+                  mutateWallets={mutateWallets}
+                  allWalletAddresses={allWalletAddresses}
+                  useWallet={() => {}}
+                  onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
+                />
               </div>
             </div>
           )}
@@ -118,7 +146,10 @@ export function SelectFundingWalletDialog({
                   <WalletCardMini
                     key={wallet.id}
                     wallet={wallet}
+                    mutateWallets={mutateWallets}
                     allWalletAddresses={allWalletAddresses}
+                    useWallet={() => {}}
+                    onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
                   />
                 ))}
               </div>

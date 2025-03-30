@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import Link from 'next/link';
 
-import { SolanaCluster, useDelegatedActions } from '@privy-io/react-auth';
+import { useDelegatedActions } from '@privy-io/react-auth';
 import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
 import {
   ArrowRightFromLine,
@@ -24,19 +24,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CopyableText } from '@/components/ui/copyable-text';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { solanaCluster } from '@/lib/constants';
 import { searchWalletAssets } from '@/lib/solana/helius';
 import { cn } from '@/lib/utils';
 import { setActiveWallet } from '@/server/actions/wallet';
 import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 
-const isDev = process.env.DEV === 'true';
-const solanaCluster: SolanaCluster = isDev
-  ? { name: 'devnet' }
-  : { name: 'mainnet-beta' };
-
 interface WalletCardProps {
   wallet: EmbeddedWallet;
+  disableFund: boolean;
   // from the parent SWR, re-fetches the entire wallet list
   mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
   allWalletAddresses: string[];
@@ -44,6 +41,7 @@ interface WalletCardProps {
 
 export function WalletCard({
   wallet,
+  disableFund,
   mutateWallets,
   allWalletAddresses,
 }: WalletCardProps) {
@@ -199,14 +197,22 @@ export function WalletCard({
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            <Button
-              className="w-full sm:w-auto"
-              onClick={handleFundWallet}
-              disabled={isLoading}
+            <div
+              title={
+                disableFund
+                  ? `Funding is disabled for Privy wallets until access to server wallets is granted.`
+                  : ''
+              }
             >
-              <Banknote className="mr-2 h-4 w-4" />
-              Fund
-            </Button>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={handleFundWallet}
+                disabled={isLoading || disableFund}
+              >
+                <Banknote className="mr-2 h-4 w-4" />
+                Fund
+              </Button>
+            </div>
 
             <Button
               variant="outline"

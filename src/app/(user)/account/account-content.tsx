@@ -37,7 +37,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
-import { getTotalWalletBalance, useEmbeddedWallets } from '@/hooks/use-wallets';
+import { hasWalletWithBalance, useEmbeddedWallets } from '@/hooks/use-wallets';
 import { IS_SUBSCRIPTION_ENABLED, cn } from '@/lib/utils';
 import {
   formatPrivyId,
@@ -69,7 +69,12 @@ export function AccountContent() {
   const [displayPrompt, setDisplayPrompt] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const {
+    data: embeddedWallets = [],
+    error: walletsError,
+    isLoading: isWalletsLoading,
+    mutate: mutateWallets,
+  } = useEmbeddedWallets();
   const {
     isLoading: isUserLoading,
     user,
@@ -81,8 +86,18 @@ export function AccountContent() {
     unlinkDiscord,
     linkWallet,
     unlinkWallet,
-    logout
+    logout,
   } = useUser();
+
+  useEffect(() => {
+    if (embeddedWallets.length > 0 && user?.earlyAccess === false) {
+      hasWalletWithBalance(embeddedWallets).then((hasBalance) => {
+        if (!hasBalance) {
+          setIsEmptyAccount(true);
+        }
+      });
+    }
+  }, [embeddedWallets, user]);
 
   const [optimisticUser, updateOptimisticUser] = useOptimistic(
     {
@@ -93,13 +108,6 @@ export function AccountContent() {
       ...update,
     }),
   );
-
-  const {
-    data: embeddedWallets = [],
-    error: walletsError,
-    isLoading: isWalletsLoading,
-    mutate: mutateWallets,
-  } = useEmbeddedWallets();
 
   const { createWallet: createSolanaWallet } = useSolanaWallets();
 
@@ -228,14 +236,6 @@ export function AccountContent() {
   );
 
   const activeWallet = embeddedWallets.find((w) => w.active);
-
-  getTotalWalletBalance(embeddedWallets).then((balance) => {
-    if (balance > 0 || user.earlyAccess) {
-      setIsEmptyAccount(false);
-    } else {
-      setIsEmptyAccount(true);
-    }
-  });
 
   const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
   const linkedSolanaWallet = allUserLinkedAccounts.find(
@@ -678,6 +678,9 @@ export function AccountContent() {
               ? privyWallets.map((wallet) => (
                   <WalletCard
                     key={wallet.id}
+                    // Server wallets are not enabled for neur at this stage. It's stuck at access requested.  
+                    // Let's remove this to avoid the situation where users fund this wallet but cannot withdraw their amount
+                    disableFund={true} 
                     wallet={wallet}
                     mutateWallets={mutateWallets}
                     allWalletAddresses={allWalletAddresses}
@@ -722,6 +725,7 @@ export function AccountContent() {
               <WalletCard
                 key={wallet.id}
                 wallet={wallet}
+                disableFund={false}
                 mutateWallets={mutateWallets}
                 allWalletAddresses={allWalletAddresses}
               />

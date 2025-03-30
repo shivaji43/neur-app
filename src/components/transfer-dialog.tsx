@@ -65,7 +65,7 @@ export function TokenTransferDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transactionResult, setTransactionResult] =
     useState<TransactionResult | null>(null);
-
+  
   const selectedTokenData = tokens.find(
     (token) => token.content.metadata.symbol === selectedToken,
   );
