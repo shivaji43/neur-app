@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 
 import { WalletWithMetadata } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth/solana';
-import { solanaCluster } from '@/lib/constants';
+
 import { WalletCardEap } from '@/components/dashboard/wallet-card-eap';
 import {
   Dialog,
@@ -15,27 +15,32 @@ import {
 } from '@/components/ui/dialog';
 import { useUser } from '@/hooks/use-user';
 import { useEmbeddedWallets } from '@/hooks/use-wallets';
+import { solanaCluster } from '@/lib/constants';
+import { PHANTOM_WALLET_SELECT } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 import { EmbeddedWallet } from '@/types/db';
-
-interface WalletOption {
-  id: string;
-  name: string;
-  balance: number;
-  address: string;
-}
 
 interface SelectFundingWalletProps {
   displayPrompt: boolean;
-  embeddedWallets: WalletOption[];
-  onSelectWallet: (wallet: WalletOption | 'phantom') => void;
+  isProcessing: boolean;
+  embeddedWallets: EmbeddedWallet[];
+  onSelectWallet: (wallet: EmbeddedWallet | 'phantom') => void;
   onCancel: () => void;
 }
 
 export function SelectFundingWalletDialog({
   displayPrompt,
+  isProcessing,
   onCancel,
   onSelectWallet,
 }: SelectFundingWalletProps) {
+  const [isPhantomProcessing, setIsPhantomProcessing] = useState(false);
+  useEffect(() => {
+    if (isPhantomProcessing && !isProcessing) {
+      setIsPhantomProcessing(false);
+    }
+  }, [setIsPhantomProcessing, isProcessing]);
+
   const {
     data: embeddedWallets = [],
     error: walletsError,
@@ -56,16 +61,20 @@ export function SelectFundingWalletDialog({
       acct.chainType === 'solana',
   );
 
-  const linkedSolanaWalletEmbeddedWallet: EmbeddedWallet | undefined = linkedSolanaWallet ? {
-    id: linkedSolanaWallet.address,
-    name: 'Privy Linked Wallet',
-    publicKey: linkedSolanaWallet.address || '',
-    walletSource: 'PRIVY',
-    chain: 'SOLANA',
-    delegated: linkedSolanaWallet.delegated,
-    ownerId: user ? user.id : '',
-    active: false,
-  }: undefined;
+  const linkedSolanaWalletEmbeddedWallet: EmbeddedWallet | undefined =
+    linkedSolanaWallet
+      ? {
+          id: linkedSolanaWallet.address,
+          name: 'Privy Linked Wallet',
+          publicKey: linkedSolanaWallet.address || '',
+          walletSource: 'PRIVY',
+          chain: 'SOLANA',
+          delegated: linkedSolanaWallet.delegated,
+          ownerId: user ? user.id : '',
+          active: false,
+          encryptedPrivateKey: null,
+        }
+      : undefined;
 
   const legacyWallets = embeddedWallets.filter(
     (w: EmbeddedWallet) => w.walletSource === 'CUSTOM' && w.chain === 'SOLANA',
@@ -76,7 +85,6 @@ export function SelectFundingWalletDialog({
     ...legacyWallets.map((w) => w.publicKey),
   ];
 
-  const [isLoading, setIsLoading] = useState(false);
   const { fundWallet } = useFundWallet();
 
   return (
@@ -94,9 +102,17 @@ export function SelectFundingWalletDialog({
         <div className="mt-4 space-y-6">
           {/* Phantom Wallet Option */}
           <div
-            className="cursor-pointer rounded-lg border border-border p-4 shadow-sm transition-colors hover:bg-muted sm:rounded-xl"
+            className={cn(
+              'relative cursor-pointer rounded-lg border border-border p-4 shadow-sm transition-colors sm:rounded-xl',
+              isProcessing
+                ? 'pointer-events-none opacity-50'
+                : 'hover:bg-muted',
+            )}
             onClick={() => {
-              onSelectWallet('phantom');
+              if (!isProcessing) {
+                setIsPhantomProcessing(true);
+                onSelectWallet(PHANTOM_WALLET_SELECT);
+              }
             }}
           >
             <div className="flex items-center gap-4">
@@ -109,10 +125,14 @@ export function SelectFundingWalletDialog({
               />
               <div className="space-y-0.5">
                 <h3 className="text-sm font-medium sm:text-base">
-                  Pay with Phantom
+                  {isPhantomProcessing
+                    ? 'Processing Payment'
+                    : 'Pay with Phantom'}
                 </h3>
                 <p className="text-xs text-muted-foreground sm:text-sm">
-                  Connect and pay using your Phantom wallet
+                  {isPhantomProcessing
+                    ? 'Hold on while we confirm your payment...'
+                    : 'Connect and pay using your Phantom wallet'}
                 </p>
               </div>
             </div>
@@ -128,9 +148,16 @@ export function SelectFundingWalletDialog({
                   key={linkedSolanaWalletEmbeddedWallet.id}
                   wallet={linkedSolanaWalletEmbeddedWallet}
                   mutateWallets={mutateWallets}
+                  isProcessing={isProcessing}
                   allWalletAddresses={allWalletAddresses}
-                  onPayEap={() => {}}
-                  onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
+                  onPayEap={() =>
+                    onSelectWallet(linkedSolanaWalletEmbeddedWallet)
+                  }
+                  onFundWallet={async (wallet: EmbeddedWallet) =>
+                    await fundWallet(wallet.publicKey, {
+                      cluster: solanaCluster,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -147,9 +174,14 @@ export function SelectFundingWalletDialog({
                     key={wallet.id}
                     wallet={wallet}
                     mutateWallets={mutateWallets}
+                    isProcessing={isProcessing}
                     allWalletAddresses={allWalletAddresses}
-                    onPayEap={() => {}}
-                    onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
+                    onPayEap={() => onSelectWallet(wallet)}
+                    onFundWallet={async (wallet: EmbeddedWallet) =>
+                      await fundWallet(wallet.publicKey, {
+                        cluster: solanaCluster,
+                      })
+                    }
                   />
                 ))}
               </div>

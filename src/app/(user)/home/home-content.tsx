@@ -24,6 +24,8 @@ import TypingAnimation from '@/components/ui/typing-animation';
 import { useConversations } from '@/hooks/use-conversations';
 import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
+import { EAP_PRICE } from '@/lib/constants';
+import { PHANTOM_WALLET_SELECT } from '@/lib/constants';
 import { EVENTS } from '@/lib/events';
 import { SolanaUtils } from '@/lib/solana';
 import {
@@ -38,13 +40,13 @@ import {
   getSavedPrompts,
   setSavedPromptLastUsedAt,
 } from '@/server/actions/saved-prompt';
+import { EmbeddedWallet } from '@/types/db';
 
 import { IntegrationsGrid } from './components/integrations-grid';
 import { SelectFundingWalletDialog } from './components/select-funding-wallet';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
-import { EAP_PRICE  } from '@/lib/constants';
 
 const RECEIVE_WALLET_ADDRESS =
   process.env.NEXT_PUBLIC_EAP_RECEIVE_WALLET_ADDRESS!;
@@ -85,7 +87,6 @@ export function HomeContent() {
   const MAX_VERIFICATION_ATTEMPTS = 20;
 
   const { conversations, refreshConversations } = useConversations(user?.id);
-  const { wallets, ready } = useSolanaWallets();
 
   const resetChat = useCallback(() => {
     setShowChat(false);
@@ -209,14 +210,12 @@ export function HomeContent() {
     setDisplayPrompt(true);
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (wallet?: EmbeddedWallet) => {
     if (!user) return;
     setIsProcessing(true);
     setVerificationAttempts(0);
-
     try {
       const tx = await SolanaUtils.sendTransferWithMemo(
-        { ready, wallets },
         {
           to: RECEIVE_WALLET_ADDRESS,
           amount: EAP_PRICE,
@@ -225,6 +224,8 @@ export function HomeContent() {
                     "user_id": "${user.id}"
                 }`,
         },
+        user,
+        wallet,
       );
 
       if (tx) {
@@ -269,6 +270,7 @@ export function HomeContent() {
       });
     } finally {
       setIsProcessing(false);
+      setDisplayPrompt(false);
     }
   };
 
@@ -484,17 +486,12 @@ export function HomeContent() {
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
         {mainContent}
         <SelectFundingWalletDialog
-        embeddedWallets={[]}
-        onSelectWallet={(wallet) => {
-          if (wallet === 'phantom') {
-            // Handle Phantom wallet selection
-          } else {
-            // Handle embedded wallet selection
-          }
-        }}
-        displayPrompt={displayPrompt}
-        onCancel={() => setDisplayPrompt(false)}
-      />
+          embeddedWallets={[]}
+          isProcessing={isProcessing}
+          onSelectWallet={async (wallet) => wallet === PHANTOM_WALLET_SELECT ? await handlePurchase() : await handlePurchase(wallet)}
+          displayPrompt={displayPrompt}
+          onCancel={() => setDisplayPrompt(false)}
+        />
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           <div className="mx-auto max-h-screen max-w-xl overflow-y-auto p-6">
             <Card className="relative max-h-full border-white/[0.1] bg-white/[0.02] p-4 backdrop-blur-sm backdrop-saturate-150 dark:bg-black/[0.02] sm:p-8">

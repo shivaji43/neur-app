@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import { set } from 'lodash';
 import { Banknote, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { CopyableText } from '@/components/ui/copyable-text';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { EAP_PRICE } from '@/lib/constants';
 import { searchWalletAssets } from '@/lib/solana/helius';
 import { EmbeddedWallet } from '@/types/db';
@@ -17,6 +19,7 @@ import { SOL_MINT } from '@/types/helius/portfolio';
 interface WalletCardEapProps {
   wallet: EmbeddedWallet;
   allWalletAddresses: string[];
+  isProcessing: boolean;
   mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
   onPayEap: (wallet: EmbeddedWallet) => void;
   onFundWallet: (wallet: EmbeddedWallet) => Promise<void>;
@@ -24,6 +27,7 @@ interface WalletCardEapProps {
 
 export function WalletCardEap({
   wallet,
+  isProcessing,
   mutateWallets,
   onPayEap,
   onFundWallet,
@@ -38,10 +42,17 @@ export function WalletCardEap({
     { refreshInterval: 30000 },
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isSelectedProcessing, setIsSelectedProcessing] = useState(false);
   async function refreshWalletData() {
     await mutateWallets();
     await mutateWalletPortfolio();
   }
+
+  useEffect(() => {
+    if (isSelectedProcessing && !isProcessing) {
+      setIsSelectedProcessing(false);
+    }
+  }, [isSelectedProcessing, isProcessing]);
 
   const solBalanceInfo = walletPortfolio?.fungibleTokens?.find(
     (t) => t.id === SOL_MINT,
@@ -113,10 +124,10 @@ export function WalletCardEap({
             variant="outline"
             className="w-full sm:w-auto"
             onClick={handleFundWallet}
-            disabled={isLoading}
+            disabled={isLoading || isProcessing}
           >
             <Banknote className="h-4 w-4" />
-            Fund
+            {isSelectedProcessing ? 'Processing...' : 'Fund'}
           </Button>
         )}
         <div
@@ -128,14 +139,15 @@ export function WalletCardEap({
         >
           <Button
             className="w-full sm:w-auto"
-            disabled={(balance ?? 0) < EAP_PRICE || isLoading}
+            disabled={(balance ?? 0) < EAP_PRICE || isLoading || isProcessing}
             onClick={(e) => {
               e.stopPropagation();
+              setIsSelectedProcessing(true);
               onPayEap(wallet);
             }}
           >
             <DollarSign className="h-4 w-4" />
-            Pay
+            {isSelectedProcessing ? 'Processing...' : 'Pay EAP'}
           </Button>
         </div>
       </div>

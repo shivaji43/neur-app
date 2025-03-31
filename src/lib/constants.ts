@@ -15,8 +15,9 @@ export const NO_CONFIRMATION_MESSAGE = ' (Does not require confirmation)';
 export const EAP_PRICE = 1.0;
 
 const isDev = process.env.NEXT_PUBLIC_DEV === 'true';
-console.log('process.env.DEV', isDev);
 
 export const solanaCluster: SolanaCluster = isDev
   ? { name: 'devnet' }
   : { name: 'mainnet-beta' };
+
+export const PHANTOM_WALLET_SELECT = 'phantom';

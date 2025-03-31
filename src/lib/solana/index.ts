@@ -1,3 +1,5 @@
+import { SP } from 'next/dist/shared/lib/utils';
+
 import { resolve } from '@bonfida/spl-name-service';
 import { ConnectedSolanaWallet } from '@privy-io/react-auth/solana';
 import {
@@ -8,65 +10,34 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
+import { WalletAdapter } from 'solana-agent-kit';
+
+import { getAgentKit } from '@/server/actions/ai';
+import { EmbeddedWallet, NeurUser } from '@/types/db';
 
 import { RPC_URL } from '../constants';
 
-interface SolanaWalletProvider {
-  publicKey: PublicKey | null;
-  connect: () => Promise<{ publicKey: PublicKey }>;
-  disconnect: () => Promise<void>;
-  signTransaction: (transaction: Transaction) => Promise<Transaction>;
-}
 export const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
 export const createConnection = () => new Connection(RPC_URL);
 
-class BrowserWalletProvider implements SolanaWalletProvider {
-  private provider: any;
-
-  constructor(provider: any) {
-    this.provider = provider;
-  }
-
-  get publicKey() {
-    return this.provider.publicKey || null;
-  }
-
-  async connect() {
-    return await this.provider.connect();
-  }
-
-  async disconnect() {
-    return await this.provider.disconnect();
-  }
-
-  async signTransaction(transaction: Transaction) {
-    return await this.provider.signTransaction(transaction);
-  }
+interface SolanaWalletProvider {
+  publicKey: PublicKey | null;
+  signTransaction: (transaction: Transaction) => Promise<Transaction>;
 }
 
-// Wrapper for Privy Solana Wallets
-class PrivyWalletProvider implements SolanaWalletProvider {
-  private wallet: ConnectedSolanaWallet;
-
-  constructor(wallet: ConnectedSolanaWallet) {
-    this.wallet = wallet;
+class WalletAdapterProvider implements SolanaWalletProvider {
+  private walletAdapter: WalletAdapter;
+  constructor(walletAdapter: WalletAdapter) {
+    this.walletAdapter = walletAdapter;
   }
 
-  get publicKey() {
-    return this.wallet?.address ? new PublicKey(this.wallet.address) : null;
-  }
-
-  async connect() {
-    return { publicKey: this.publicKey! };
-  }
-
-  async disconnect() {
-    return await this.wallet.disconnect();
+  get publicKey(): PublicKey | null {
+    return this.walletAdapter.publicKey || null;
   }
 
   async signTransaction(transaction: Transaction) {
-    return await this.wallet.signTransaction(transaction);
+    return this.walletAdapter.signTransaction(transaction);
   }
 }
 
@@ -123,19 +94,6 @@ export class SolanaUtils {
     }
   }
 
-  // Phantom or Privy Connected Solana Wallets
-  static async getSolanaProvider(
-    privyConnectedSolanaWallets: PrivyConnectedWalletsParams,
-  ): Promise<SolanaWalletProvider | null> {
-    const provider = await this.getPhantomProvider();
-    if (provider) {
-      return new BrowserWalletProvider(provider);
-    }
-    const { wallets, ready } = privyConnectedSolanaWallets;
-    if (ready && wallets.length > 0) return new PrivyWalletProvider(wallets[0]);
-    return null;
-  }
-
   static async getPhantomProvider(): Promise<PhantomProvider | null> {
     if ('phantom' in window) {
       const provider = window.phantom?.solana;
@@ -172,10 +130,27 @@ export class SolanaUtils {
    * Send SOL transfer transaction with memo
    */
   static async sendTransferWithMemo(
-    privyConnectedSolanaWallets: PrivyConnectedWalletsParams,
     params: TransferWithMemoParams,
+    user: NeurUser,
+    wallet?: EmbeddedWallet,
   ): Promise<string | null> {
-    const provider = await this.getSolanaProvider(privyConnectedSolanaWallets);
+    let provider: PhantomProvider | WalletAdapterProvider | null = null;
+    if (!wallet) {
+      provider = await this.getPhantomProvider();
+    }
+
+    if (wallet) {
+      const solAgentKit = await getAgentKit({
+        userId: user.id,
+        embeddedWallet: wallet,
+      });
+      if (solAgentKit) {
+        if (solAgentKit.data?.agent?.wallet) {
+          provider = new WalletAdapterProvider(solAgentKit.data.agent.wallet);
+        }
+      }
+    }
+
     if (!provider) {
       throw new Error(
         'Phantom / Privy connected wallets not found or connection rejected',
@@ -189,6 +164,10 @@ export class SolanaUtils {
     const { to, amount, memo } = params;
     const fromPubkey = provider.publicKey;
     const toPubkey = new PublicKey(to);
+
+    if (!fromPubkey) {
+      throw new Error('Invalid sender address.');
+    }
 
     // Check balance first
     const balance = await this.connection.getBalance(fromPubkey);

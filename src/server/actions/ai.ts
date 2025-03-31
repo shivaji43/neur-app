@@ -1,5 +1,6 @@
 'use server';
 
+import { WalletWithMetadata } from '@privy-io/server-auth';
 import { PublicKey } from '@solana/web3.js';
 import { type CoreMessage, type CoreUserMessage, generateText } from 'ai';
 import { BaseWallet, SolanaAgentKit, WalletAdapter } from 'solana-agent-kit';
@@ -11,6 +12,7 @@ import prisma from '@/lib/prisma';
 import { ActionEmptyResponse, actionClient } from '@/lib/safe-action';
 import { PrivyEmbeddedWallet } from '@/lib/solana/PrivyEmbeddedWallet';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
+import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 import { publicKeySchema } from '@/types/util';
 
@@ -93,7 +95,7 @@ export const retrieveAgentKit = actionClient
     return result;
   });
 
-export const getAgentKit = async ({
+const getDBWallet = async ({
   userId,
   walletId,
 }: {
@@ -104,10 +106,29 @@ export const getAgentKit = async ({
     ? { ownerId: userId, id: walletId }
     : { ownerId: userId, active: true };
 
-  const wallet = await prisma.wallet.findFirst({
+  const dbWallet = await prisma.wallet.findFirst({
     where: whereClause,
   });
 
+  return dbWallet;
+};
+
+export const getAgentKit = async ({
+  userId,
+  walletId,
+  embeddedWallet,
+}: {
+  userId: string;
+  walletId?: string;
+  embeddedWallet?: EmbeddedWallet;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    agent: SolanaAgentKit;
+  };
+}> => {
+  const wallet = embeddedWallet ?? (await getDBWallet({ userId, walletId }));
   if (!wallet) {
     return { success: false, error: 'WALLET_NOT_FOUND' };
   }
@@ -163,11 +184,11 @@ export const transferToken = actionClient
 
     const agent = agentResponse.data.data.agent;
 
-      const signature = await agent.transfer(
-        new PublicKey(receiverAddress),
-        amount,
-        tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
-      );
+    const signature = await agent.transfer(
+      new PublicKey(receiverAddress),
+      amount,
+      tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
+    );
 
-      return { success: true, data: { signature } };
+    return { success: true, data: { signature } };
   });
