@@ -14,20 +14,20 @@ import { searchWalletAssets } from '@/lib/solana/helius';
 import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 
-interface WalletCardMiniProps {
+interface WalletCardEapProps {
   wallet: EmbeddedWallet;
   allWalletAddresses: string[];
   mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
-  useWallet: (wallet: EmbeddedWallet) => void;
+  onPayEap: (wallet: EmbeddedWallet) => void;
   onFundWallet: (wallet: EmbeddedWallet) => Promise<void>;
 }
 
-export function WalletCardMini({
+export function WalletCardEap({
   wallet,
   mutateWallets,
-  useWallet,
+  onPayEap,
   onFundWallet,
-}: WalletCardMiniProps) {
+}: WalletCardEapProps) {
   const {
     data: walletPortfolio,
     isLoading: isWalletPortfolioLoading,
@@ -131,7 +131,7 @@ export function WalletCardMini({
             disabled={(balance ?? 0) < EAP_PRICE || isLoading}
             onClick={(e) => {
               e.stopPropagation();
-              useWallet(wallet);
+              onPayEap(wallet);
             }}
           >
             <DollarSign className="h-4 w-4" />

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { WalletWithMetadata } from '@privy-io/react-auth';
 import { useFundWallet } from '@privy-io/react-auth/solana';
 import { solanaCluster } from '@/lib/constants';
-import { WalletCardMini } from '@/components/dashboard/wallet-card-mini';
+import { WalletCardEap } from '@/components/dashboard/wallet-card-eap';
 import {
   Dialog,
   DialogContent,
@@ -124,12 +124,12 @@ export function SelectFundingWalletDialog({
                 Linked Solana Wallets
               </h3>
               <div className="space-y-2">
-                <WalletCardMini
+                <WalletCardEap
                   key={linkedSolanaWalletEmbeddedWallet.id}
                   wallet={linkedSolanaWalletEmbeddedWallet}
                   mutateWallets={mutateWallets}
                   allWalletAddresses={allWalletAddresses}
-                  useWallet={() => {}}
+                  onPayEap={() => {}}
                   onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
                 />
               </div>
@@ -143,12 +143,12 @@ export function SelectFundingWalletDialog({
               </h3>
               <div className="space-y-2">
                 {legacyWallets.map((wallet) => (
-                  <WalletCardMini
+                  <WalletCardEap
                     key={wallet.id}
                     wallet={wallet}
                     mutateWallets={mutateWallets}
                     allWalletAddresses={allWalletAddresses}
-                    useWallet={() => {}}
+                    onPayEap={() => {}}
                     onFundWallet={async (wallet: EmbeddedWallet) => await fundWallet(wallet.publicKey, { cluster: solanaCluster })}
                   />
                 ))}
