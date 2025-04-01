@@ -1,6 +1,5 @@
 'use server';
 
-import { WalletWithMetadata } from '@privy-io/server-auth';
 import { PublicKey } from '@solana/web3.js';
 import { type CoreMessage, type CoreUserMessage, generateText } from 'ai';
 import { BaseWallet, SolanaAgentKit, WalletAdapter } from 'solana-agent-kit';
@@ -99,9 +98,12 @@ const getDBWallet = async ({
   userId,
   walletId,
 }: {
-  userId: string;
+  userId?: string;
   walletId?: string;
 }) => {
+  if (!userId || !walletId) {
+    return null;
+  }
   const whereClause = walletId
     ? { ownerId: userId, id: walletId }
     : { ownerId: userId, active: true };
@@ -118,16 +120,10 @@ export const getAgentKit = async ({
   walletId,
   embeddedWallet,
 }: {
-  userId: string;
+  userId?: string;
   walletId?: string;
   embeddedWallet?: EmbeddedWallet;
-}): Promise<{
-  success: boolean;
-  error?: string;
-  data?: {
-    agent: SolanaAgentKit;
-  };
-}> => {
+}) => {
   const wallet = embeddedWallet ?? (await getDBWallet({ userId, walletId }));
   if (!wallet) {
     return { success: false, error: 'WALLET_NOT_FOUND' };

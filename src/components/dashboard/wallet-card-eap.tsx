@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { set } from 'lodash';
-import { Banknote, DollarSign } from 'lucide-react';
+import { Banknote, DollarSign, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -20,24 +19,28 @@ interface WalletCardEapProps {
   wallet: EmbeddedWallet;
   allWalletAddresses: string[];
   isProcessing: boolean;
+  isEmbeddedWallet: boolean;
   mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
   onPayEap: (wallet: EmbeddedWallet) => void;
   onFundWallet: (wallet: EmbeddedWallet) => Promise<void>;
+  onDisconnectWallet?: () => void;
 }
 
 export function WalletCardEap({
   wallet,
   isProcessing,
+  isEmbeddedWallet,
   mutateWallets,
   onPayEap,
   onFundWallet,
+  onDisconnectWallet
 }: WalletCardEapProps) {
   const {
     data: walletPortfolio,
     isLoading: isWalletPortfolioLoading,
     mutate: mutateWalletPortfolio,
   } = useSWR(
-    ['wallet-portfolio', wallet.publicKey],
+    ['wallet-eap', wallet.publicKey],
     () => searchWalletAssets(wallet.publicKey),
     { refreshInterval: 30000 },
   );
@@ -119,7 +122,7 @@ export function WalletCardEap({
       </div>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
-        {(balance ?? 0) < EAP_PRICE && (
+        {(balance ?? 0) < EAP_PRICE && isEmbeddedWallet && (
           <Button
             variant="outline"
             className="w-full sm:w-auto"
@@ -128,6 +131,17 @@ export function WalletCardEap({
           >
             <Banknote className="h-4 w-4" />
             {isSelectedProcessing ? 'Processing...' : 'Fund'}
+          </Button>
+        )}
+        {!isEmbeddedWallet && (
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={onDisconnectWallet}
+            disabled={isLoading || isProcessing}
+          >
+            <Unlink className="h-4 w-4" />
+            Disconnect
           </Button>
         )}
         <div

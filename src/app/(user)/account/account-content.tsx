@@ -456,12 +456,12 @@ export function AccountContent() {
                           <span className="hidden sm:inline">
                             {linkedSolanaWallet?.address
                               ? linkedSolanaWallet?.address
-                              : 'Not connected'}
+                              : 'Link'}
                           </span>
                           <span className="sm:hidden">
                             {linkedSolanaWallet?.address
                               ? truncate(linkedSolanaWallet?.address)
-                              : 'Not connected'}
+                              : 'Link'}
                           </span>
                         </p>
                       </div>
@@ -480,7 +480,7 @@ export function AccountContent() {
                           'hover:bg-destructive hover:text-destructive-foreground',
                       )}
                     >
-                      {linkedSolanaWallet?.address ? 'Disconnect' : 'Connect'}
+                      {linkedSolanaWallet?.address ? 'Unlink' : 'Link'}
                     </Button>
                   </div>
 

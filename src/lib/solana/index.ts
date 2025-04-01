@@ -1,5 +1,3 @@
-import { SP } from 'next/dist/shared/lib/utils';
-
 import { resolve } from '@bonfida/spl-name-service';
 import { ConnectedSolanaWallet } from '@privy-io/react-auth/solana';
 import {
@@ -12,7 +10,7 @@ import {
 } from '@solana/web3.js';
 import { WalletAdapter } from 'solana-agent-kit';
 
-import { getAgentKit } from '@/server/actions/ai';
+import { getPrivyClient } from '@/server/actions/user';
 import { EmbeddedWallet, NeurUser } from '@/types/db';
 
 import { RPC_URL } from '../constants';
@@ -128,26 +126,42 @@ export class SolanaUtils {
 
   /**
    * Send SOL transfer transaction with memo
+    *
+    * Case 1: Phantom or user connected Privy wallets:
+    *         We can use the wallet provider’s `signTransaction` method to sign and send transactions directly from the client.
+    *
+    * Case 2: Server-side legacy wallets (non-Privy, stored encrypted in DB):
+    *         We use the SolanaAgentKit to decrypt and initialize the wallet, and sign/send the transaction server-side.
    */
   static async sendTransferWithMemo(
     params: TransferWithMemoParams,
-    user: NeurUser,
     wallet?: EmbeddedWallet,
   ): Promise<string | null> {
     let provider: PhantomProvider | WalletAdapterProvider | null = null;
     if (!wallet) {
       provider = await this.getPhantomProvider();
-    }
-
-    if (wallet) {
-      const solAgentKit = await getAgentKit({
-        userId: user.id,
-        embeddedWallet: wallet,
-      });
-      if (solAgentKit) {
-        if (solAgentKit.data?.agent?.wallet) {
-          provider = new WalletAdapterProvider(solAgentKit.data.agent.wallet);
-        }
+    } else {
+      if (wallet) {
+        const privyClientResponse = await getPrivyClient();
+        // const privyClient = privyClientResponse?.data;
+        // if (!privyClient) {
+        //   throw new Error('Privy client not found');
+        // }
+        // const walletAdapter = new PrivyEmbeddedWallet(
+        //   privyClient,
+        //   new PublicKey(wallet.publicKey),
+        // );
+        // provider = new WalletAdapterProvider(walletAdapter);
+        // const solAgentKit = await getAgentKit({
+        //   userId: user.id,
+        //   embeddedWallet: wallet,
+        // });
+        // if (solAgentKit) {
+        //   if (solAgentKit.data?.agent?.wallet) {
+        //     provider = new WalletAdapterProvider(solAgentKit.data.agent.wallet);
+        //   }
+        //   console.log("initialising wallet adapter");
+        // }
       }
     }
 
