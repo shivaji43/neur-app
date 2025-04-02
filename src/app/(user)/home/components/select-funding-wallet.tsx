@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
 
-import Image from 'next/image';
-
-import {
-  ConnectedSolanaWallet,
-  WalletWithMetadata,
-  useConnectWallet,
-} from '@privy-io/react-auth';
+import { WalletWithMetadata } from '@privy-io/react-auth';
+import { ConnectedSolanaWallet } from '@privy-io/react-auth';
 import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
 import { Wallet } from 'lucide-react';
 
+import { FundingWallet } from '@/app/(user)/home/data/funding-wallets';
+import { SolanaConnectedFundingWallet } from '@/app/(user)/home/data/funding-wallets';
 import { WalletCardEap } from '@/components/dashboard/wallet-card-eap';
 import {
   Dialog,
@@ -27,9 +24,8 @@ import { EmbeddedWallet } from '@/types/db';
 interface SelectFundingWalletProps {
   displayPrompt: boolean;
   isProcessing: boolean;
-  embeddedWallets: EmbeddedWallet[];
   onConnectExternalWallet: () => void;
-  onSelectWallet: (wallet: EmbeddedWallet | 'phantom') => void;
+  onSelectWallet: (wallet: EmbeddedWallet | ConnectedSolanaWallet) => void;
   onCancel: () => void;
 }
 
@@ -69,20 +65,6 @@ export function SelectFundingWalletDialog({
     (w: EmbeddedWallet) => w.walletSource === 'CUSTOM' && w.chain === 'SOLANA',
   );
 
-  const convertSolanaConnectedWalletToEmbeddedWallet = (
-    wallet: ConnectedSolanaWallet,
-  ): EmbeddedWallet => ({
-    id: wallet.address,
-    name: wallet.meta.name,
-    publicKey: wallet.address,
-    walletSource: 'CUSTOM',
-    chain: 'SOLANA',
-    delegated: false,
-    ownerId: user ? user.id : '',
-    active: false,
-    encryptedPrivateKey: null,
-  });
-
   const allWalletAddresses = [
     ...(linkedSolanaWallet ? [linkedSolanaWallet.address] : []),
     ...legacyWallets.map((w) => w.publicKey),
@@ -120,7 +102,9 @@ export function SelectFundingWalletDialog({
               <Wallet className="h-6 w-6" />
               <div className="space-y-0.5">
                 <h3 className="text-sm font-medium sm:text-base">
-                  { wallets.length === 0 ? "Connect a Solana Wallet" : "Connect Another Solana Wallet" }
+                  {wallets.length === 0
+                    ? 'Connect a Solana Wallet'
+                    : 'Connect Another Solana Wallet'}
                 </h3>
               </div>
             </div>
@@ -134,19 +118,13 @@ export function SelectFundingWalletDialog({
                     key={wallet.address}
                     isEmbeddedWallet={wallet.walletClientType === 'privy'}
                     onDisconnectWallet={() => wallet.disconnect()}
-                    wallet={convertSolanaConnectedWalletToEmbeddedWallet(
-                      wallet,
-                    )}
+                    wallet={new SolanaConnectedFundingWallet(wallet)}
                     mutateWallets={mutateWallets}
                     isProcessing={isProcessing}
                     allWalletAddresses={allWalletAddresses}
-                    onPayEap={() =>
-                      onSelectWallet(
-                        convertSolanaConnectedWalletToEmbeddedWallet(wallet),
-                      )
-                    }
-                    onFundWallet={async (wallet: EmbeddedWallet) =>
-                      await fundWallet(wallet.publicKey, {
+                    onPayEap={() => onSelectWallet(wallet)}
+                    onFundWallet={async (fundingWallet: FundingWallet) =>
+                      await fundWallet(fundingWallet.publicKey, {
                         cluster: solanaCluster,
                       })
                     }
@@ -171,8 +149,8 @@ export function SelectFundingWalletDialog({
                     isProcessing={isProcessing}
                     allWalletAddresses={allWalletAddresses}
                     onPayEap={() => onSelectWallet(wallet)}
-                    onFundWallet={async (wallet: EmbeddedWallet) =>
-                      await fundWallet(wallet.publicKey, {
+                    onFundWallet={async (fundingWallet: FundingWallet) =>
+                      await fundWallet(fundingWallet.publicKey, {
                         cluster: solanaCluster,
                       })
                     }

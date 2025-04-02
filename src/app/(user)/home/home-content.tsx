@@ -495,13 +495,8 @@ export function HomeContent() {
         <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-md" />
         {mainContent}
         <SelectFundingWalletDialog
-          embeddedWallets={[]}
           isProcessing={isProcessing}
-          onSelectWallet={async (wallet) =>
-            wallet === PHANTOM_WALLET_SELECT
-              ? await handlePurchase()
-              : await handlePurchase(wallet)
-          }
+          onSelectWallet={async (wallet) => {}}
           displayPrompt={displayPrompt}
           onCancel={() => setDisplayPrompt(false)}
           onConnectExternalWallet={connectWallet}

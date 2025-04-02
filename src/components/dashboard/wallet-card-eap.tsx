@@ -6,23 +6,23 @@ import { Banknote, DollarSign, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
+import { FundingWallet } from '@/app/(user)/home/data/funding-wallets';
 import { Button } from '@/components/ui/button';
 import { CopyableText } from '@/components/ui/copyable-text';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EAP_PRICE } from '@/lib/constants';
 import { searchWalletAssets } from '@/lib/solana/helius';
-import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 
 interface WalletCardEapProps {
-  wallet: EmbeddedWallet;
+  wallet: FundingWallet;
   allWalletAddresses: string[];
   isProcessing: boolean;
   isEmbeddedWallet: boolean;
-  mutateWallets: () => Promise<EmbeddedWallet[] | undefined>;
-  onPayEap: (wallet: EmbeddedWallet) => void;
-  onFundWallet: (wallet: EmbeddedWallet) => Promise<void>;
+  mutateWallets: () => Promise<FundingWallet[] | undefined>;
+  onPayEap: (wallet: FundingWallet) => void;
+  onFundWallet: (wallet: FundingWallet) => Promise<void>;
   onDisconnectWallet?: () => void;
 }
 
@@ -33,7 +33,7 @@ export function WalletCardEap({
   mutateWallets,
   onPayEap,
   onFundWallet,
-  onDisconnectWallet
+  onDisconnectWallet,
 }: WalletCardEapProps) {
   const {
     data: walletPortfolio,

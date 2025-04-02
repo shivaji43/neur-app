@@ -11,7 +11,7 @@ import {
 import { WalletAdapter } from 'solana-agent-kit';
 
 import { getPrivyClient } from '@/server/actions/user';
-import { EmbeddedWallet, NeurUser } from '@/types/db';
+import { EmbeddedWallet } from '@/types/db';
 
 import { RPC_URL } from '../constants';
 

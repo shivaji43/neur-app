@@ -19,7 +19,6 @@ export type EmbeddedWallet = Pick<
   | 'active'
   | 'delegated'
   | 'chain'
-  | 'encryptedPrivateKey'
 >;
 
 export type ConversationMeta = Pick<
