@@ -11,7 +11,6 @@ import prisma from '@/lib/prisma';
 import { ActionEmptyResponse, actionClient } from '@/lib/safe-action';
 import { PrivyEmbeddedWallet } from '@/lib/solana/PrivyEmbeddedWallet';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
-import { EmbeddedWallet } from '@/types/db';
 import { SOL_MINT } from '@/types/helius/portfolio';
 import { publicKeySchema } from '@/types/util';
 
@@ -94,37 +93,21 @@ export const retrieveAgentKit = actionClient
     return result;
   });
 
-const getDBWallet = async ({
+export const getAgentKit = async ({
   userId,
   walletId,
 }: {
-  userId?: string;
+  userId: string;
   walletId?: string;
 }) => {
-  if (!userId || !walletId) {
-    return null;
-  }
   const whereClause = walletId
     ? { ownerId: userId, id: walletId }
     : { ownerId: userId, active: true };
 
-  const dbWallet = await prisma.wallet.findFirst({
+  const wallet = await prisma.wallet.findFirst({
     where: whereClause,
   });
 
-  return dbWallet;
-};
-
-export const getAgentKit = async ({
-  userId,
-  walletId,
-  embeddedWallet,
-}: {
-  userId?: string;
-  walletId?: string;
-  embeddedWallet?: EmbeddedWallet;
-}) => {
-  const wallet = embeddedWallet ?? (await getDBWallet({ userId, walletId }));
   if (!wallet) {
     return { success: false, error: 'WALLET_NOT_FOUND' };
   }
