@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { SavedPrompt } from '@prisma/client';
-import { useConnectWallet } from '@privy-io/react-auth';
+import { ConnectedSolanaWallet, useConnectWallet } from '@privy-io/react-auth';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { RiTwitterXFill } from '@remixicon/react';
 import { Attachment, JSONValue } from 'ai';
@@ -88,7 +88,6 @@ export function HomeContent() {
   const MAX_VERIFICATION_ATTEMPTS = 20;
 
   const { conversations, refreshConversations } = useConversations(user?.id);
-  const { wallets } = useSolanaWallets();
   const { connectWallet } = useConnectWallet({
     onSuccess: (wallet) => {
       if (!displayPrompt) {
@@ -220,7 +219,7 @@ export function HomeContent() {
     setDisplayPrompt(true);
   };
 
-  const handlePurchase = async (wallet?: EmbeddedWallet) => {
+  const handlePurchase = async (wallet: EmbeddedWallet | ConnectedSolanaWallet) => {
     if (!user) return;
     setIsProcessing(true);
     setVerificationAttempts(0);
@@ -496,7 +495,7 @@ export function HomeContent() {
         {mainContent}
         <SelectFundingWalletDialog
           isProcessing={isProcessing}
-          onSelectWallet={async (wallet) => {}}
+          onSelectWallet={async (wallet) => await handlePurchase(wallet)}
           displayPrompt={displayPrompt}
           onCancel={() => setDisplayPrompt(false)}
           onConnectExternalWallet={connectWallet}
